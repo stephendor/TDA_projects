@@ -397,20 +397,13 @@ def load_and_prepare_data():
     
     print(f"   Using {len(attacks)} attacks + {len(benign_sample):,} benign = {len(df_balanced):,} total")
     
-    # Ensure we have the required columns
+    # Ensure we have the required columns - all should exist in CIC-IDS2017
     required_cols = ['Source IP', 'Destination IP', 'Flow Bytes/s', 'Flow Packets/s', 'Flow Duration']
     missing_cols = [col for col in required_cols if col not in df_balanced.columns]
     
     if missing_cols:
-        print(f"   ⚠️ Missing columns: {missing_cols}")
-        # Create proxy columns if needed
-        for col in missing_cols:
-            if col == 'Source IP':
-                df_balanced[col] = df_balanced.index % 100  # Proxy IP addresses
-            elif col == 'Destination IP':
-                df_balanced[col] = (df_balanced.index + 50) % 100
-            else:
-                df_balanced[col] = np.random.normal(100, 50, len(df_balanced))
+        raise ValueError(f"❌ Required columns missing from dataset: {missing_cols}. "
+                        f"This algorithm requires real network flow data with IP addresses.")
     
     print(f"   Final dataset for graph analysis: {df_balanced.shape}")
     print(f"   Attack rate: {(df_balanced['Label'] != 'BENIGN').mean():.3%}")

@@ -1,0 +1,48 @@
+{
+  "timestamp": "20250806_193811",
+  "validation_type": "REAL_DATA_ONLY",
+  "synthetic_data_usage": "FORBIDDEN",
+  "baseline_target": "70.6% F1-Score",
+  "results": {
+    "hybrid_baseline": {
+      "accuracy": 0.6333333333333333,
+      "f1_score": 0.56,
+      "random_seed": 42,
+      "timestamp": "20250806_193823",
+      "experiment_name": "real_data_hybrid_baseline",
+      "roc_auc": 0.6574074074074074,
+      "pr_auc": 0.6154308117946534,
+      "baseline_comparison": {
+        "baseline_f1": 0.706,
+        "actual_f1": 0.56,
+        "difference": -0.1459999999999999,
+        "claim_verified": false
+      }
+    },
+    "multi_attack": {
+      "infiltration": {
+        "f1_score": 0.56,
+        "accuracy": 0.6333333333333333,
+        "status": "COMPLETED"
+      },
+      "ddos": {
+        "status": "ERROR",
+        "error": "A negative number of rows requested. Please provide `n` >= 0."
+      },
+      "portscan": {
+        "status": "ERROR",
+        "error": "A negative number of rows requested. Please provide `n` >= 0."
+      },
+      "webattacks": {
+        "status": "ERROR",
+        "error": "'utf-8' codec can't decode byte 0x96 in position 22398: invalid start byte"
+      }
+    }
+  },
+  "plots_created": [
+    "validation/real_data_validation/20250806_193811/plots/baseline_comparison.png",
+    "validation/real_data_validation/20250806_193811/plots/baseline_comparison.png",
+    "validation/real_data_validation/20250806_193811/plots/multi_attack_comparison.png"
+  ],
+  "output_directory": "validation/real_data_validation/20250806_193811"
+}

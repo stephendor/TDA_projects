@@ -1,0 +1,15 @@
+{
+  "accuracy": 0.6333333333333333,
+  "f1_score": 0.56,
+  "random_seed": 42,
+  "timestamp": "20250806_193823",
+  "experiment_name": "real_data_hybrid_baseline",
+  "roc_auc": 0.6574074074074074,
+  "pr_auc": 0.6154308117946534,
+  "baseline_comparison": {
+    "baseline_f1": 0.706,
+    "actual_f1": 0.56,
+    "difference": -0.1459999999999999,
+    "claim_verified": false
+  }
+}

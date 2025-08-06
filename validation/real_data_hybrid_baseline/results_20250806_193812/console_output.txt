@@ -1,0 +1,29 @@
+Validation Console Output - real_data_hybrid_baseline
+Timestamp: 20250806_193812
+Random Seed: 42
+================================================================================
+
+[2025-08-06T19:38:20.482924]
+STDOUT:
+🔬 Hybrid Multi-Scale + Graph TDA Analyzer initialized
+   Temporal scales: [5, 10, 20, 40, 60]
+   Graph scales: [20, 50, 100, 200]
+
+🔄 EXTRACTING HYBRID TDA FEATURES
+============================================================
+   🕐 Extracting temporal multi-scale features...
+      ✅ Temporal features: (398, 60)
+   🕸️ Extracting graph-based network features...
+      ✅ Graph features: (157, 72)
+
+📊 HYBRID FEATURE SUMMARY:
+   Temporal features: (157, 60)
+   Graph features: (157, 72)
+   Combined features: (157, 132)
+   Total attack sequences: 31
+   Total benign sequences: 126
+   Attack rate: 19.745%
+✅ Features extracted: (157, 132)
+   Attack sequences: 31
+
+----------------------------------------
