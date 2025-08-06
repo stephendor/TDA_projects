@@ -1,0 +1,26 @@
+{
+  "experiment_name": "hybrid_multiscale_graph_tda",
+  "timestamp": "20250806_133834",
+  "random_seed": 42,
+  "validation_passed": false,
+  "metrics": {
+    "accuracy": 1.0,
+    "f1_score": 1.0,
+    "random_seed": 42,
+    "timestamp": "20250806_133834",
+    "experiment_name": "hybrid_multiscale_graph_tda",
+    "roc_auc": 1.0,
+    "pr_auc": 1.0
+  },
+  "plots": {
+    "confusion_matrix": "validation/hybrid_multiscale_graph_tda/plots_20250806_133834/confusion_matrix.png",
+    "roc_curve": "validation/hybrid_multiscale_graph_tda/plots_20250806_133834/roc_curve.png",
+    "precision_recall_curve": "validation/hybrid_multiscale_graph_tda/plots_20250806_133834/precision_recall_curve.png",
+    "prediction_distribution": "validation/hybrid_multiscale_graph_tda/plots_20250806_133834/prediction_distribution.png"
+  },
+  "files": {
+    "console_output": "validation/hybrid_multiscale_graph_tda/results_20250806_133834/console_output.txt",
+    "metrics": "validation/hybrid_multiscale_graph_tda/results_20250806_133834/metrics.json",
+    "raw_data": "validation/hybrid_multiscale_graph_tda/data_20250806_133834/raw_data.json"
+  }
+}

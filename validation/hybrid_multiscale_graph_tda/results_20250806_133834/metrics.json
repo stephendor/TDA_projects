@@ -1,0 +1,9 @@
+{
+  "accuracy": 1.0,
+  "f1_score": 1.0,
+  "random_seed": 42,
+  "timestamp": "20250806_133834",
+  "experiment_name": "hybrid_multiscale_graph_tda",
+  "roc_auc": 1.0,
+  "pr_auc": 1.0
+}

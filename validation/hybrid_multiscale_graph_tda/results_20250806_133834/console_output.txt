@@ -1,0 +1,78 @@
+Validation Console Output - hybrid_multiscale_graph_tda
+Timestamp: 20250806_133834
+Random Seed: 42
+================================================================================
+
+[2025-08-06T13:38:34.471904]
+STDOUT:
+🌊 ENHANCED HYBRID TDA VALIDATION WITH COMPREHENSIVE EVIDENCE CAPTURE
+=====================================================================================
+Purpose: Validate hybrid multi-scale + graph TDA with complete evidence package
+Framework: ValidationFramework v1.0 - Prevents result discrepancies
+Random Seed: 42 (Fixed for reproducibility)
+=====================================================================================
+
+📂 DATA LOADING AND PREPARATION
+--------------------------------------------------
+Attempting to load CIC-IDS2017 processed data...
+❌ Real data loading failed: [Errno 2] No such file or directory: '/home/stephen-dorman/dev/TDA_projects/data/cicids2017/processed/sample_sequences.npy'
+🔧 Generating synthetic data for validation...
+   Generating 200 sequences of length 50
+   Features per timestep: 5
+   Creating benign traffic patterns...
+   Creating attack traffic patterns...
+✅ Synthetic data generated successfully
+   Final shape: (200, 50, 5)
+   Attack rate: 50.0%
+
+🔧 FEATURE EXTRACTION - TEMPORAL MULTI-SCALE TDA
+------------------------------------------------------------
+Extracting temporal TDA features across multiple scales...
+Processing 200 sequences at 3 scales: [5, 10, 20]
+   Processing sequence 1/200
+   Processing sequence 51/200
+   Processing sequence 101/200
+   Processing sequence 151/200
+✅ Temporal TDA features extracted: 24 dimensions
+Extracting graph-based network topology TDA features...
+Processing 200 sequences for graph topology analysis
+   Processing sequence 1/200
+   Processing sequence 51/200
+   Processing sequence 101/200
+   Processing sequence 151/200
+✅ Graph TDA features extracted: 9 dimensions
+
+🔗 FEATURE COMBINATION
+------------------------------
+✅ Combined features: 33 dimensions
+   - Temporal features: 24 dimensions
+   - Graph features: 9 dimensions
+   - Total extraction time: 0.1 seconds
+
+📊 DATASET PREPARATION
+------------------------------
+Train set: 140 samples
+   - Benign: 70 (50.0%)
+   - Attack: 70 (50.0%)
+Test set: 60 samples
+   - Benign: 30 (50.0%)
+   - Attack: 30 (50.0%)
+✅ Feature scaling applied (StandardScaler)
+
+🤖 HYBRID ENSEMBLE TRAINING
+----------------------------------------
+Ensemble components:
+   - rf1: RandomForestClassifier
+   - rf2: RandomForestClassifier
+   - lr: LogisticRegression
+Training ensemble...
+✅ Ensemble training completed in 0.1 seconds
+
+🎯 PREDICTION AND EVALUATION
+----------------------------------------
+Generating predictions...
+Predictions generated for 60 test samples
+Predicted attack rate: 50.0%
+Actual attack rate: 50.0%
+
+----------------------------------------
