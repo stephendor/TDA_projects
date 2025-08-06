@@ -1,0 +1,5 @@
+Validation Console Output - deep_tda_netflow
+Timestamp: 20250806_204056
+Random Seed: 42
+================================================================================
+

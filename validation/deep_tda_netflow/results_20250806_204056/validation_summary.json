@@ -1,0 +1,26 @@
+{
+  "experiment_name": "deep_tda_netflow",
+  "timestamp": "20250806_204056",
+  "random_seed": 42,
+  "validation_passed": false,
+  "metrics": {
+    "accuracy": 1.0,
+    "f1_score": 1.0,
+    "random_seed": 42,
+    "timestamp": "20250806_204056",
+    "experiment_name": "deep_tda_netflow",
+    "roc_auc": 1.0,
+    "pr_auc": 1.0
+  },
+  "plots": {
+    "confusion_matrix": "validation/deep_tda_netflow/plots_20250806_204056/confusion_matrix.png",
+    "roc_curve": "validation/deep_tda_netflow/plots_20250806_204056/roc_curve.png",
+    "precision_recall_curve": "validation/deep_tda_netflow/plots_20250806_204056/precision_recall_curve.png",
+    "prediction_distribution": "validation/deep_tda_netflow/plots_20250806_204056/prediction_distribution.png"
+  },
+  "files": {
+    "console_output": "validation/deep_tda_netflow/results_20250806_204056/console_output.txt",
+    "metrics": "validation/deep_tda_netflow/results_20250806_204056/metrics.json",
+    "raw_data": "validation/deep_tda_netflow/data_20250806_204056/raw_data.json"
+  }
+}
