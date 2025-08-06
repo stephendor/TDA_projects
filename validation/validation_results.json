@@ -1,0 +1,70 @@
+{
+  "validated_claims": {
+    "hybrid_multiscale_graph_tda": {
+      "claimed_f1": 0.706,
+      "validated_f1": 0.706,
+      "status": "VALIDATED",
+      "validation_script": "validate_hybrid_results.py",
+      "date": "2025-08-06",
+      "accuracy": 0.896,
+      "precision": 0.750,
+      "recall": 0.667,
+      "test_samples": 48,
+      "attack_samples": 9,
+      "notes": "Exact reproduction successful, claim confirmed"
+    }
+  },
+  "rejected_claims": {
+    "tda_supervised_ensemble": {
+      "claimed_f1": 0.800,
+      "validated_f1": 0.556,
+      "status": "REJECTED",
+      "validation_script": "validate_supervised_tda.py",
+      "date": "2025-08-06",
+      "discrepancy": -0.244,
+      "discrepancy_percent": -30.5,
+      "root_cause": "Feature extraction differences (217 vs 80 dimensions), different sequence sampling",
+      "notes": "Significant performance inflation detected, claim invalid"
+    },
+    "temporal_persistence_evolution": {
+      "claimed_f1": "Not explicitly claimed",
+      "validated_f1": 0.176,
+      "status": "POOR_PERFORMANCE",
+      "validation_script": "temporal_persistence_evolution.py",
+      "date": "2025-08-06",
+      "notes": "Evolution-based features performed worse than baseline"
+    }
+  },
+  "pending_validation": {
+    "multiscale_temporal_tda": {
+      "claimed_f1": 0.654,
+      "status": "NEEDS_VALIDATION",
+      "validation_script": "validate_multiscale_tda.py (not created yet)",
+      "priority": "HIGH",
+      "notes": "Core breakthrough claim needs independent validation"
+    },
+    "graph_based_tda": {
+      "claimed_f1": 0.708,
+      "status": "NEEDS_VALIDATION", 
+      "validation_script": "validate_graph_tda.py (not created yet)",
+      "priority": "HIGH",
+      "notes": "Individual graph approach needs validation"
+    },
+    "single_scale_tda": {
+      "claimed_f1": 0.182,
+      "status": "NEEDS_VALIDATION",
+      "validation_script": "validate_single_scale_tda.py (not created yet)",
+      "priority": "MEDIUM",
+      "notes": "Original baseline needs confirmation"
+    }
+  },
+  "validation_summary": {
+    "total_claims": 5,
+    "validated": 1,
+    "rejected": 2,
+    "pending": 3,
+    "validation_rate": "20%",
+    "last_updated": "2025-08-06",
+    "next_priority": "Validate multiscale_temporal_tda (65.4% claim)"
+  }
+}

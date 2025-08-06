@@ -1,0 +1,98 @@
+# Docker ignore file for TDA Platform
+
+# Git and version control
+.git/
+.gitignore
+.github/
+
+# Python cache and compiled files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Logs and temporary files
+*.log
+logs/
+temp/
+tmp/
+
+# Test outputs and coverage
+.pytest_cache/
+.coverage
+htmlcov/
+test-reports/
+.tox/
+
+# Documentation
+docs/_build/
+docs/generated/
+
+# Data and output files (keep structure, not content)
+data/*
+!data/.gitkeep
+outputs/*
+!outputs/.gitkeep
+
+# Jupyter notebook checkpoints
+.ipynb_checkpoints/
+
+# Environment files (security)
+.env
+.env.local
+.env.production
+
+# Docker compose override files
+docker-compose.override.yml
+
+# Large model files
+*.pkl
+*.joblib
+*.model
+
+# Workspace chat logs (keep structure)
+workspace_chats/*
+!workspace_chats/README.md
+
+# Development databases
+*.db
+*.sqlite
+*.sqlite3
