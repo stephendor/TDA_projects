@@ -1,3 +1,0 @@
-[console_scripts]
-tda-apt-detect = src.cybersecurity.apt_detection:main
-tda-crypto-analyze = src.finance.crypto_analysis:main

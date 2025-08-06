@@ -73,6 +73,14 @@ class PersistentHomologyAnalyzer(BaseEstimator, TransformerMixin):
         --------
         self : PersistentHomologyAnalyzer
         """
+        # Input validation
+        if X.size == 0:
+            raise ValueError("Input data is empty")
+        if len(X.shape) == 1:
+            X = X.reshape(-1, 1)
+        if X.shape[0] < 1:
+            raise ValueError("Input data must have at least 1 point")
+            
         if self.backend == 'ripser':
             result = ripser.ripser(
                 X,
@@ -161,6 +169,50 @@ class PersistentHomologyAnalyzer(BaseEstimator, TransformerMixin):
         
         self.features_ = np.array(features)
         return self.features_.reshape(1, -1)
+    
+    def extract_features(self) -> np.ndarray:
+        """
+        Extract features from fitted persistence diagrams.
+        
+        Returns:
+        --------
+        features : np.ndarray
+            Extracted topological features
+        """
+        if self.persistence_diagrams_ is None:
+            raise ValueError("Must call fit() before extract_features()")
+        
+        features = []
+        
+        for dim, dgm in enumerate(self.persistence_diagrams_):
+            if len(dgm) == 0:
+                # No features in this dimension
+                dim_features = np.zeros(6)
+            else:
+                # Basic persistence statistics
+                births = dgm[:, 0]
+                deaths = dgm[:, 1]
+                lifetimes = deaths - births
+                
+                # Remove infinite bars for statistics
+                finite_mask = np.isfinite(deaths)
+                finite_lifetimes = lifetimes[finite_mask]
+                
+                if len(finite_lifetimes) > 0:
+                    dim_features = np.array([
+                        len(dgm),  # Total number of features
+                        np.sum(finite_mask),  # Number of finite features
+                        np.mean(finite_lifetimes),  # Mean lifetime
+                        np.std(finite_lifetimes),  # Std of lifetimes
+                        np.max(finite_lifetimes),  # Max lifetime
+                        np.sum(finite_lifetimes)  # Sum of lifetimes
+                    ])
+                else:
+                    dim_features = np.array([len(dgm), 0, 0, 0, 0, 0])
+            
+            features.extend(dim_features)
+        
+        return np.array(features)
     
     def fit_transform(self, X: np.ndarray, y: Optional[np.ndarray] = None) -> np.ndarray:
         """

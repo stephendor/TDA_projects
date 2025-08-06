@@ -46,3 +46,16 @@ ipykernel>=6.0.0
 # Configuration
 pyyaml>=6.0
 python-dotenv>=0.19.0
+
+# API Framework
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+pydantic>=2.4.0
+
+# Database & Cache
+asyncpg>=0.29.0  # PostgreSQL async driver
+aioredis>=2.0.1  # Redis async client
+psutil>=5.9.0    # System monitoring
+
+# Monitoring & Observability
+prometheus-fastapi-instrumentator>=6.1.0

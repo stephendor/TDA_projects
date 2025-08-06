@@ -12,6 +12,7 @@ from datetime import datetime, timedelta
 
 # Import TDA platform modules
 from src.cybersecurity import APTDetector
+from src.cybersecurity.apt_detection_improved import ImprovedAPTDetector
 from src.core import TopologyUtils
 
 
@@ -116,134 +117,217 @@ def main():
     print(f"Training on {len(train_data)} normal samples")
     print(f"Testing on {len(test_data)} samples")
     
-    # Initialize and train APT detector
-    print("\\nInitializing APT detector...")
-    detector = APTDetector(
+    # Initialize and train both APT detectors for comparison
+    print("\\nInitializing APT detectors...")
+    
+    # Baseline detector
+    baseline_detector = APTDetector(
         time_window=3600,  # 1 hour windows
         ph_maxdim=2,
         mapper_intervals=12,
         anomaly_threshold=0.15,
-        verbose=True
+        verbose=False
     )
     
-    print("Training detector on baseline traffic...")
-    detector.fit(train_data)
+    # Improved detector
+    improved_detector = ImprovedAPTDetector(
+        time_window=3600,
+        ph_maxdim=2,
+        mapper_intervals=20,
+        anomaly_threshold=0.05,
+        verbose=False
+    )
     
-    # Predict on test data
+    print("Training baseline detector...")
+    baseline_detector.fit(train_data)
+    
+    print("Training improved detector...")
+    improved_detector.fit(train_data, np.zeros(len(train_data)))
+    
+    # Predict on test data with both detectors
     print("\\nDetecting APTs in test data...")
-    predictions = detector.predict(test_data)
-    probabilities = detector.predict_proba(test_data)
     
-    # Analyze results
-    analysis = detector.analyze_apt_patterns(test_data)
+    print("Running baseline detector...")
+    baseline_predictions = baseline_detector.predict(test_data)
+    baseline_probabilities = baseline_detector.predict_proba(test_data)
+    baseline_analysis = baseline_detector.analyze_apt_patterns(test_data)
     
-    print("\\nDetection Results:")
+    print("Running improved detector...")
+    improved_predictions = improved_detector.predict(test_data)
+    improved_probabilities = improved_detector.predict_proba(test_data)
+    improved_analysis = improved_detector.analyze_apt_patterns(test_data)
+    
+    # Compare detection results
+    print("\\nDetection Results Comparison:")
+    print("=" * 50)
+    
+    from sklearn.metrics import classification_report, confusion_matrix, accuracy_score
+    
+    # Baseline results
+    print("BASELINE DETECTOR:")
     print("-" * 20)
-    print(f"Samples analyzed: {analysis['n_samples']}")
-    print(f"APTs detected: {analysis['n_apt_detected']}")
-    print(f"Detection rate: {analysis['apt_percentage']:.2f}%")
-    print(f"Mean APT score: {analysis['mean_apt_score']:.3f}")
-    print(f"High-risk samples: {analysis['high_risk_samples']}")
+    baseline_accuracy = accuracy_score(test_labels, baseline_predictions)
+    print(f"Accuracy: {baseline_accuracy:.4f} ({baseline_accuracy*100:.2f}%)")
+    print(f"APTs detected: {baseline_analysis.get('n_apt_detected', np.sum(baseline_predictions))}")
+    print(f"Detection rate: {baseline_analysis.get('apt_percentage', np.mean(baseline_predictions)*100):.2f}%")
+    print(f"High-risk samples: {baseline_analysis.get('high_risk_samples', np.sum(baseline_probabilities > 0.8))}")
     
-    # Calculate performance metrics
-    from sklearn.metrics import classification_report, confusion_matrix
-    
-    print("\\nPerformance Metrics:")
-    print("-" * 20)
-    print(classification_report(test_labels, predictions, 
+    print("\\nClassification Report (Baseline):")
+    print(classification_report(test_labels, baseline_predictions, 
                               target_names=['Normal', 'APT']))
     
-    print("\\nConfusion Matrix:")
-    cm = confusion_matrix(test_labels, predictions)
-    print(f"TN: {cm[0,0]}, FP: {cm[0,1]}")
-    print(f"FN: {cm[1,0]}, TP: {cm[1,1]}")
+    # Improved results
+    print("\\n" + "="*50)
+    print("IMPROVED DETECTOR:")
+    print("-" * 20)
+    improved_accuracy = accuracy_score(test_labels, improved_predictions)
+    print(f"Accuracy: {improved_accuracy:.4f} ({improved_accuracy*100:.2f}%)")
+    print(f"Threat Assessment: {improved_analysis.get('threat_assessment', 'N/A')}")
+    print(f"APT Percentage: {improved_analysis.get('apt_percentage', 0):.2f}%")
+    print(f"High-risk samples: {len(improved_analysis.get('high_risk_samples', []))}")
+    print(f"Confidence Score: {improved_analysis.get('confidence_score', 0):.4f}")
     
-    # Feature importance analysis
-    print("\\nFeature Importance Analysis:")
-    print("-" * 30)
-    feature_importance = detector.get_feature_importance()
+    print("\\nClassification Report (Improved):")
+    print(classification_report(test_labels, improved_predictions, 
+                              target_names=['Normal', 'APT']))
     
-    # Sort by importance
-    sorted_features = sorted(feature_importance.items(), 
-                           key=lambda x: x[1], reverse=True)
+    # Performance improvement
+    accuracy_improvement = ((improved_accuracy - baseline_accuracy) / baseline_accuracy) * 100
+    print(f"\\n🎯 ACCURACY IMPROVEMENT: {accuracy_improvement:+.2f}%")
     
-    print("Top 10 most important features:")
-    for i, (feature_name, importance) in enumerate(sorted_features[:10]):
-        print(f"{i+1:2d}. {feature_name:<25}: {importance:.4f}")
+    if improved_accuracy >= 0.95:
+        print("✅ TARGET ACHIEVED: 95%+ accuracy reached!")
+    else:
+        print(f"📊 Gap to 95% target: {(0.95 - improved_accuracy)*100:.2f} percentage points")
     
-    # Visualization
-    plt.figure(figsize=(15, 10))
+    # Feature importance analysis for baseline
+    print("\\nFeature Importance Analysis (Baseline):")
+    print("-" * 40)
+    baseline_importance = baseline_detector.get_feature_importance()
     
-    # Plot 1: APT probability scores over time
-    plt.subplot(2, 2, 1)
-    plt.plot(probabilities, alpha=0.7, label='APT Probability')
+    if baseline_importance:
+        # Sort by importance
+        sorted_features = sorted(baseline_importance.items(), 
+                               key=lambda x: x[1], reverse=True)
+        
+        print("Top 10 most important features (Baseline):")
+        for i, (feature_name, importance) in enumerate(sorted_features[:10]):
+            print(f"{i+1:2d}. {feature_name:<25}: {importance:.4f}")
+    
+    # Visualization comparing both detectors
+    plt.figure(figsize=(16, 12))
+    
+    # Plot 1: APT probability scores comparison
+    plt.subplot(2, 3, 1)
+    plt.plot(baseline_probabilities, alpha=0.7, label='Baseline', color='blue')
+    plt.plot(improved_probabilities, alpha=0.7, label='Improved', color='green')
     apt_indices = np.where(test_labels == 1)[0]
-    plt.scatter(apt_indices, probabilities[apt_indices], 
-               color='red', alpha=0.8, label='True APTs')
+    plt.scatter(apt_indices, baseline_probabilities[apt_indices], 
+               color='red', alpha=0.8, label='True APTs (Baseline)', s=30)
+    plt.scatter(apt_indices, improved_probabilities[apt_indices], 
+               color='darkred', alpha=0.8, label='True APTs (Improved)', s=20, marker='s')
     plt.xlabel('Sample Index')
     plt.ylabel('APT Probability')
-    plt.title('APT Detection Scores')
+    plt.title('APT Detection Scores Comparison')
     plt.legend()
     plt.grid(True, alpha=0.3)
     
-    # Plot 2: Feature importance
-    plt.subplot(2, 2, 2)
-    top_features = sorted_features[:15]
-    feature_names = [f.split('_')[-1] for f, _ in top_features]
-    importances = [imp for _, imp in top_features]
+    # Plot 2: Accuracy comparison
+    plt.subplot(2, 3, 2)
+    detectors = ['Baseline', 'Improved']
+    accuracies = [baseline_accuracy, improved_accuracy]
+    colors = ['blue', 'green']
     
-    plt.barh(range(len(feature_names)), importances)
-    plt.yticks(range(len(feature_names)), feature_names)
-    plt.xlabel('Importance Score')
-    plt.title('Top Feature Importance')
-    plt.grid(True, alpha=0.3)
+    bars = plt.bar(detectors, accuracies, color=colors, alpha=0.7)
+    plt.ylim(0, 1)
+    plt.axhline(y=0.95, color='red', linestyle='--', alpha=0.7, label='95% Target')
+    plt.ylabel('Accuracy')
+    plt.title('Detector Accuracy Comparison')
+    plt.legend()
     
-    # Plot 3: Detection threshold analysis
-    plt.subplot(2, 2, 3)
-    thresholds = np.linspace(0.1, 0.9, 50)
-    precisions, recalls, f1_scores = [], [], []
+    # Add accuracy values on bars
+    for bar, acc in zip(bars, accuracies):
+        plt.text(bar.get_x() + bar.get_width()/2, acc + 0.01, 
+                f'{acc*100:.1f}%', ha='center', va='bottom')
     
-    for threshold in thresholds:
-        pred_thresh = (probabilities > threshold).astype(int)
-        tp = np.sum((pred_thresh == 1) & (test_labels == 1))
-        fp = np.sum((pred_thresh == 1) & (test_labels == 0))
-        fn = np.sum((pred_thresh == 0) & (test_labels == 1))
-        
-        precision = tp / (tp + fp) if (tp + fp) > 0 else 0
-        recall = tp / (tp + fn) if (tp + fn) > 0 else 0
-        f1 = 2 * precision * recall / (precision + recall) if (precision + recall) > 0 else 0
-        
-        precisions.append(precision)
-        recalls.append(recall)
-        f1_scores.append(f1)
+    # Plot 3: Precision-Recall comparison
+    plt.subplot(2, 3, 3)
+    from sklearn.metrics import precision_recall_fscore_support
     
-    plt.plot(thresholds, precisions, label='Precision')
-    plt.plot(thresholds, recalls, label='Recall')
-    plt.plot(thresholds, f1_scores, label='F1-Score')
-    plt.xlabel('Threshold')
+    # Calculate precision and recall for both detectors
+    baseline_precision, baseline_recall, _, _ = precision_recall_fscore_support(
+        test_labels, baseline_predictions, average='binary', zero_division=0)
+    improved_precision, improved_recall, _, _ = precision_recall_fscore_support(
+        test_labels, improved_predictions, average='binary', zero_division=0)
+    
+    # Bar plot
+    metrics = ['Precision', 'Recall']
+    baseline_values = [baseline_precision, baseline_recall]
+    improved_values = [improved_precision, improved_recall]
+    
+    x = np.arange(len(metrics))
+    width = 0.35
+    
+    plt.bar(x - width/2, baseline_values, width, label='Baseline', color='blue', alpha=0.7)
+    plt.bar(x + width/2, improved_values, width, label='Improved', color='green', alpha=0.7)
+    
+    plt.xlabel('Metric')
     plt.ylabel('Score')
-    plt.title('Performance vs Threshold')
+    plt.title('Precision & Recall Comparison')
+    plt.xticks(x, metrics)
     plt.legend()
     plt.grid(True, alpha=0.3)
     
-    # Plot 4: Sample data distribution
-    plt.subplot(2, 2, 4)
-    # Use first two principal components for visualization
-    from sklearn.decomposition import PCA
-    pca = PCA(n_components=2)
-    data_2d = pca.fit_transform(test_data)
+    # Plot 4: Confusion matrices
+    plt.subplot(2, 3, 4)
+    baseline_cm = confusion_matrix(test_labels, baseline_predictions)
+    plt.imshow(baseline_cm, interpolation='nearest', cmap='Blues')
+    plt.title('Baseline Confusion Matrix')
+    plt.colorbar()
+    plt.xlabel('Predicted')
+    plt.ylabel('Actual')
     
-    normal_mask = test_labels == 0
-    apt_mask = test_labels == 1
+    # Add text annotations
+    for i in range(2):
+        for j in range(2):
+            plt.text(j, i, baseline_cm[i, j], ha='center', va='center', 
+                    color='white' if baseline_cm[i, j] > baseline_cm.max()/2 else 'black')
     
-    plt.scatter(data_2d[normal_mask, 0], data_2d[normal_mask, 1], 
-               alpha=0.6, label='Normal', color='blue', s=20)
-    plt.scatter(data_2d[apt_mask, 0], data_2d[apt_mask, 1], 
-               alpha=0.8, label='APT', color='red', s=30)
+    plt.subplot(2, 3, 5)
+    improved_cm = confusion_matrix(test_labels, improved_predictions)
+    plt.imshow(improved_cm, interpolation='nearest', cmap='Greens')
+    plt.title('Improved Confusion Matrix')
+    plt.colorbar()
+    plt.xlabel('Predicted')
+    plt.ylabel('Actual')
     
-    plt.xlabel(f'PC1 ({pca.explained_variance_ratio_[0]:.2%} variance)')
-    plt.ylabel(f'PC2 ({pca.explained_variance_ratio_[1]:.2%} variance)')
-    plt.title('Data Distribution (PCA)')
+    # Add text annotations
+    for i in range(2):
+        for j in range(2):
+            plt.text(j, i, improved_cm[i, j], ha='center', va='center', 
+                    color='white' if improved_cm[i, j] > improved_cm.max()/2 else 'black')
+    
+    # Plot 6: Performance summary
+    plt.subplot(2, 3, 6)
+    from sklearn.metrics import f1_score
+    
+    baseline_f1 = f1_score(test_labels, baseline_predictions, zero_division=0)
+    improved_f1 = f1_score(test_labels, improved_predictions, zero_division=0)
+    
+    metrics_names = ['Accuracy', 'Precision', 'Recall', 'F1-Score']
+    baseline_scores = [baseline_accuracy, baseline_precision, baseline_recall, baseline_f1]
+    improved_scores = [improved_accuracy, improved_precision, improved_recall, improved_f1]
+    
+    x = np.arange(len(metrics_names))
+    width = 0.35
+    
+    plt.bar(x - width/2, baseline_scores, width, label='Baseline', color='blue', alpha=0.7)
+    plt.bar(x + width/2, improved_scores, width, label='Improved', color='green', alpha=0.7)
+    
+    plt.xlabel('Metrics')
+    plt.ylabel('Score')
+    plt.title('Overall Performance Comparison')
+    plt.xticks(x, metrics_names, rotation=45)
     plt.legend()
     plt.grid(True, alpha=0.3)
     

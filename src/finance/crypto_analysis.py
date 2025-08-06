@@ -613,6 +613,193 @@ class CryptoAnalyzer(BaseEstimator, RegressorMixin):
         return instability / len(diagrams) if len(diagrams) > 0 else 0
 
 
+def analyze_cryptocurrency_derivatives(
+    spot_prices: np.ndarray,
+    futures_prices: Optional[np.ndarray] = None,
+    options_data: Optional[Dict[str, np.ndarray]] = None,
+    **kwargs
+) -> Dict[str, Any]:
+    """
+    Analyze cryptocurrency derivatives using TDA methods.
+    
+    Parameters:
+    -----------
+    spot_prices : np.ndarray
+        Spot price time series
+    futures_prices : np.ndarray, optional
+        Futures price time series
+    options_data : Dict[str, np.ndarray], optional
+        Options data (implied volatility, etc.)
+    **kwargs : dict
+        Additional arguments for CryptoAnalyzer
+        
+    Returns:
+    --------
+    analysis : dict
+        Derivatives analysis results
+    """
+    results = {}
+    
+    # Spot price analysis
+    spot_analyzer = CryptoAnalyzer(**kwargs)
+    spot_analyzer.fit(spot_prices)
+    
+    results['spot_analysis'] = {
+        'regimes': spot_analyzer.detect_market_regimes(spot_prices),
+        'bubble_risk': spot_analyzer.detect_bubble_conditions(spot_prices),
+        'predictions': spot_analyzer.predict(spot_prices[-50:]) if len(spot_prices) >= 50 else []
+    }
+    
+    # Futures analysis
+    if futures_prices is not None:
+        futures_analyzer = CryptoAnalyzer(**kwargs)
+        futures_analyzer.fit(futures_prices)
+        
+        # Compute basis (futures - spot premium)
+        min_len = min(len(spot_prices), len(futures_prices))
+        basis = futures_prices[-min_len:] - spot_prices[-min_len:]
+        basis_returns = np.diff(basis) / np.abs(basis[:-1] + 1e-10)
+        
+        results['futures_analysis'] = {
+            'regimes': futures_analyzer.detect_market_regimes(futures_prices),
+            'basis_statistics': {
+                'mean_basis': float(np.mean(basis)),
+                'basis_volatility': float(np.std(basis_returns)) if len(basis_returns) > 0 else 0,
+                'contango_backwardation': 'contango' if np.mean(basis) > 0 else 'backwardation'
+            }
+        }
+    
+    # Options analysis (if available)
+    if options_data is not None:
+        options_analysis = {}
+        
+        for key, data in options_data.items():
+            if len(data) > 10:  # Minimum data for analysis
+                # Analyze implied volatility surface topology
+                iv_kwargs = kwargs.copy()
+                iv_kwargs['window_size'] = min(20, len(data)//2)
+                iv_analyzer = CryptoAnalyzer(**iv_kwargs)
+                iv_analyzer.fit(data)
+                
+                options_analysis[key] = {
+                    'regimes': iv_analyzer.detect_market_regimes(data),
+                    'volatility_statistics': {
+                        'mean_iv': float(np.mean(data)),
+                        'iv_volatility': float(np.std(np.diff(data) / data[:-1])) if len(data) > 1 else 0
+                    }
+                }
+        
+        results['options_analysis'] = options_analysis
+    
+    # Cross-asset correlation analysis
+    if futures_prices is not None:
+        min_len = min(len(spot_prices), len(futures_prices))
+        spot_returns = np.diff(spot_prices[-min_len:]) / spot_prices[-min_len:-1]
+        futures_returns = np.diff(futures_prices[-min_len:]) / futures_prices[-min_len:-1]
+        
+        if len(spot_returns) > 1:
+            correlation = np.corrcoef(spot_returns, futures_returns)[0, 1]
+            results['cross_asset_analysis'] = {
+                'spot_futures_correlation': float(correlation) if np.isfinite(correlation) else 0
+            }
+    
+    return results
+
+
+def analyze_defi_yield_strategies(
+    yield_data: Dict[str, np.ndarray],
+    risk_free_rate: float = 0.02,
+    **kwargs
+) -> Dict[str, Any]:
+    """
+    Analyze DeFi yield farming strategies using topological risk measures.
+    
+    Parameters:
+    -----------
+    yield_data : Dict[str, np.ndarray]
+        Dictionary mapping strategy names to yield time series
+    risk_free_rate : float, default=0.02
+        Risk-free rate for Sharpe ratio calculation
+    **kwargs : dict
+        Additional arguments for CryptoAnalyzer
+        
+    Returns:
+    --------
+    analysis : dict
+        DeFi strategy analysis results
+    """
+    strategy_analyses = {}
+    
+    for strategy_name, yields in yield_data.items():
+        if len(yields) < 10:
+            continue
+        
+        # Analyze yield time series
+        yield_kwargs = kwargs.copy()
+        yield_kwargs['window_size'] = min(15, len(yields)//3)
+        yield_analyzer = CryptoAnalyzer(**yield_kwargs)
+        yield_analyzer.fit(yields)
+        
+        # Calculate risk metrics
+        yield_returns = np.diff(yields) / np.abs(yields[:-1] + 1e-10)
+        
+        # Traditional metrics
+        avg_yield = float(np.mean(yields))
+        yield_volatility = float(np.std(yield_returns)) if len(yield_returns) > 0 else 0
+        sharpe_ratio = (avg_yield - risk_free_rate) / (yield_volatility + 1e-10)
+        
+        # Topological risk metrics
+        regimes = yield_analyzer.detect_market_regimes(yields)
+        bubble_risk = yield_analyzer.detect_bubble_conditions(yields)
+        
+        # Drawdown analysis
+        cumulative_yields = np.cumprod(1 + yield_returns)
+        running_max = np.maximum.accumulate(cumulative_yields)
+        drawdowns = (cumulative_yields - running_max) / running_max
+        max_drawdown = float(np.min(drawdowns)) if len(drawdowns) > 0 else 0
+        
+        strategy_analyses[strategy_name] = {
+            'traditional_metrics': {
+                'average_yield': avg_yield,
+                'volatility': yield_volatility,
+                'sharpe_ratio': float(sharpe_ratio),
+                'max_drawdown': max_drawdown
+            },
+            'topological_analysis': {
+                'regimes': regimes,
+                'bubble_risk': bubble_risk,
+                'regime_stability': regimes['n_transitions'] / len(yields) if len(yields) > 0 else 0
+            }
+        }
+    
+    # Rank strategies by risk-adjusted returns
+    strategy_rankings = []
+    for name, analysis in strategy_analyses.items():
+        risk_score = (
+            0.4 * (1 - analysis['topological_analysis']['bubble_risk']['bubble_probability']) +
+            0.3 * analysis['traditional_metrics']['sharpe_ratio'] +
+            0.3 * (1 + analysis['traditional_metrics']['max_drawdown'])  # max_drawdown is negative
+        )
+        
+        strategy_rankings.append({
+            'strategy': name,
+            'risk_adjusted_score': risk_score,
+            'recommendation': 'HIGH' if risk_score > 0.7 else 'MEDIUM' if risk_score > 0.4 else 'LOW'
+        })
+    
+    strategy_rankings.sort(key=lambda x: x['risk_adjusted_score'], reverse=True)
+    
+    return {
+        'strategy_analyses': strategy_analyses,
+        'rankings': strategy_rankings,
+        'summary': {
+            'total_strategies': len(strategy_analyses),
+            'high_rated': len([s for s in strategy_rankings if s['recommendation'] == 'HIGH']),
+            'best_strategy': strategy_rankings[0]['strategy'] if strategy_rankings else None
+        }
+    }
+
+
 def analyze_cryptocurrency_portfolio(
     price_data_dict: Dict[str, np.ndarray],
     weights: Optional[np.ndarray] = None,
@@ -663,10 +850,23 @@ def analyze_cryptocurrency_portfolio(
     portfolio_regimes = analyzer.detect_market_regimes(portfolio_prices)
     portfolio_bubble_risk = analyzer.detect_bubble_conditions(portfolio_prices)
     
+    # Risk attribution analysis
+    asset_contributions = {}
+    for i, symbol in enumerate(symbols):
+        asset_weight = weights[i]
+        asset_volatility = np.std(np.diff(price_data[i]) / price_data[i][:-1])
+        risk_contribution = asset_weight * asset_volatility
+        asset_contributions[symbol] = {
+            'weight': float(asset_weight),
+            'volatility': float(asset_volatility),
+            'risk_contribution': float(risk_contribution)
+        }
+    
     return {
         'portfolio_analysis': {
             'regimes': portfolio_regimes,
-            'bubble_risk': portfolio_bubble_risk
+            'bubble_risk': portfolio_bubble_risk,
+            'risk_attribution': asset_contributions
         },
         'asset_analyses': asset_analyses,
         'weights': weights,

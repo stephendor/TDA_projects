@@ -489,6 +489,27 @@ class TopologyUtils:
 
 
 # Convenience functions
+def create_distance_matrix(X: np.ndarray, metric: str = 'euclidean', **kwargs) -> np.ndarray:
+    """
+    Create distance matrix from point cloud.
+    
+    Parameters:
+    -----------
+    X : np.ndarray
+        Input point cloud
+    metric : str
+        Distance metric
+    **kwargs
+        Additional arguments
+        
+    Returns:
+    --------
+    np.ndarray
+        Distance matrix
+    """
+    return TopologyUtils.compute_distance_matrix(X, metric=metric, **kwargs)
+
+
 def create_point_cloud_circle(n_points: int = 100, radius: float = 1.0, noise: float = 0.1) -> np.ndarray:
     """Create noisy circle point cloud for testing."""
     angles = np.linspace(0, 2*np.pi, n_points, endpoint=False)
