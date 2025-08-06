@@ -1,0 +1,26 @@
+{
+  "experiment_name": "hybrid_baseline_real_validation",
+  "timestamp": "20250806_201438",
+  "random_seed": 42,
+  "validation_passed": false,
+  "metrics": {
+    "accuracy": 0.9666666666666667,
+    "f1_score": 0.9502824858757062,
+    "random_seed": 42,
+    "timestamp": "20250806_201438",
+    "experiment_name": "hybrid_baseline_real_validation",
+    "roc_auc": 0.9655172413793104,
+    "pr_auc": 0.25
+  },
+  "plots": {
+    "confusion_matrix": "validation/hybrid_baseline_real_validation/plots_20250806_201438/confusion_matrix.png",
+    "roc_curve": "validation/hybrid_baseline_real_validation/plots_20250806_201438/roc_curve.png",
+    "precision_recall_curve": "validation/hybrid_baseline_real_validation/plots_20250806_201438/precision_recall_curve.png",
+    "prediction_distribution": "validation/hybrid_baseline_real_validation/plots_20250806_201438/prediction_distribution.png"
+  },
+  "files": {
+    "console_output": "validation/hybrid_baseline_real_validation/results_20250806_201438/console_output.txt",
+    "metrics": "validation/hybrid_baseline_real_validation/results_20250806_201438/metrics.json",
+    "raw_data": "validation/hybrid_baseline_real_validation/data_20250806_201438/raw_data.json"
+  }
+}

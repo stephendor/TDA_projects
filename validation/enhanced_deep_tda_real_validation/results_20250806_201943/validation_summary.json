@@ -1,0 +1,26 @@
+{
+  "experiment_name": "enhanced_deep_tda_real_validation",
+  "timestamp": "20250806_201943",
+  "random_seed": 42,
+  "validation_passed": false,
+  "metrics": {
+    "accuracy": 0.811965811965812,
+    "f1_score": 0.758345428156749,
+    "random_seed": 42,
+    "timestamp": "20250806_201943",
+    "experiment_name": "enhanced_deep_tda_real_validation",
+    "roc_auc": 0.7751122334455666,
+    "pr_auc": 0.27997842913009025
+  },
+  "plots": {
+    "confusion_matrix": "validation/enhanced_deep_tda_real_validation/plots_20250806_201943/confusion_matrix.png",
+    "roc_curve": "validation/enhanced_deep_tda_real_validation/plots_20250806_201943/roc_curve.png",
+    "precision_recall_curve": "validation/enhanced_deep_tda_real_validation/plots_20250806_201943/precision_recall_curve.png",
+    "prediction_distribution": "validation/enhanced_deep_tda_real_validation/plots_20250806_201943/prediction_distribution.png"
+  },
+  "files": {
+    "console_output": "validation/enhanced_deep_tda_real_validation/results_20250806_201943/console_output.txt",
+    "metrics": "validation/enhanced_deep_tda_real_validation/results_20250806_201943/metrics.json",
+    "raw_data": "validation/enhanced_deep_tda_real_validation/data_20250806_201943/raw_data.json"
+  }
+}

@@ -1,0 +1,34 @@
+{
+  "timestamp": "20250806_195454",
+  "validation_type": "REAL_DATA_ONLY",
+  "synthetic_data_usage": "FORBIDDEN",
+  "baseline_target": "70.6% F1-Score",
+  "results": {
+    "enhanced_deep_tda": {
+      "binary_f1": 0.9907116816026721,
+      "attack_type_f1": 0.9907116816026721,
+      "phase_f1": 0.9907116816026721,
+      "model_type": "Enhanced Deep TDA",
+      "architecture": "Kill Chain Aware Transformer",
+      "training_time": 6.336229085922241,
+      "model_parameters": 1088791,
+      "kill_chain_awareness": true,
+      "multi_attack_detection": true,
+      "persistent_homology": true,
+      "transformer_layers": 4,
+      "attention_heads": 4,
+      "embedding_dimension": 128,
+      "baseline_comparison": {
+        "baseline_f1": 0.706,
+        "enhanced_f1": 0.9907116816026721,
+        "improvement": 0.28471168160267213,
+        "improvement_pct": 40.32743365476942,
+        "target_achievement": true
+      }
+    }
+  },
+  "plots_created": [
+    "validation/enhanced_deep_tda_breakthrough/20250806_195454/plots/enhanced_deep_tda_breakthrough.png"
+  ],
+  "output_directory": "validation/enhanced_deep_tda_breakthrough/20250806_195454"
+}
