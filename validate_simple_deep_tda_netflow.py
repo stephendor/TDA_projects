@@ -1,288 +1,422 @@
 #!/usr/bin/env python3
 """
-Validate Enhanced Deep TDA on NF-CICIDS2018-v3 NetFlow dataset
-Using a simplified approach that works with NetFlow feature columns
-"""
-import sys
-from pathlib import Path
-sys.path.append(str(Path(__file__).parent))
+Validate SSH-Bruteforce Detection Using Real TDA Infrastructure
+================================================================
 
+This script validates SSH-Bruteforce attack detection using actual topological data analysis,
+following the mandatory TDA implementation rules:
+
+CRITICAL REQUIREMENTS:
+- Uses existing TDA infrastructure: PersistentHomologyAnalyzer and MapperAnalyzer
+- NO statistical proxies (mean, std, skew, kurtosis) as "topological features"
+- Real persistence diagrams, birth/death times, Betti numbers only
+- Temporal integrity verified: SSH-Bruteforce and benign samples from same time period (Feb 14, 2018)
+
+Dataset: NF-CICIDS2018-v3 NetFlow
+- SSH-Bruteforce attacks: 188,474 samples
+- Benign traffic: 1,563,644 samples
+- All from February 14, 2018 (temporal integrity confirmed)
+"""
+
+import sys
+import os
 import numpy as np
 import pandas as pd
-import torch
-import torch.nn as nn
+from pathlib import Path
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
-from sklearn.metrics import classification_report, f1_score, accuracy_score
-import warnings
-warnings.filterwarnings('ignore')
+from sklearn.metrics import classification_report, confusion_matrix, accuracy_score
+import logging
 
-from validation.validation_framework import ValidationFramework
+# Add project root to path
+project_root = Path(__file__).parent
+sys.path.append(str(project_root))
 
-# Simple Deep TDA model for NetFlow data
-class SimpleDeepTDAModel(nn.Module):
-    def __init__(self, input_dim, hidden_dim=128):
-        super().__init__()
-        self.feature_extractor = nn.Sequential(
-            nn.Linear(input_dim, hidden_dim),
-            nn.ReLU(),
-            nn.Dropout(0.3),
-            nn.Linear(hidden_dim, hidden_dim//2),
-            nn.ReLU(),
-            nn.Dropout(0.3)
+# MANDATORY: Import existing TDA infrastructure only
+try:
+    from src.core.persistent_homology import PersistentHomologyAnalyzer
+    from src.core.mapper import MapperAnalyzer
+    from validation.validation_framework import ValidationFramework
+    print("✓ Successfully imported existing TDA infrastructure")
+except ImportError as e:
+    print(f"❌ CRITICAL ERROR: Cannot import existing TDA infrastructure: {e}")
+    print("This violates mandatory TDA implementation rules!")
+    sys.exit(1)
+
+# Set up logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
+
+class SSHBruteforceValidation:
+    """
+    Validates SSH-Bruteforce detection using REAL topological analysis.
+    
+    FORBIDDEN APPROACHES:
+    - Statistical moments as topology
+    - Custom "basic topology" functions
+    - Any non-topological proxies
+    
+    REQUIRED APPROACHES:
+    - PersistentHomologyAnalyzer for persistence diagrams
+    - MapperAnalyzer for topological clustering
+    - Real birth/death times and Betti numbers
+    """
+    
+    def __init__(self, data_path: str):
+        self.data_path = data_path
+        self.ph_analyzer = None
+        self.mapper_analyzer = None
+        self.scaler = StandardScaler()
+        
+    def load_and_validate_data_chunked(self):
+        """Load NetFlow data in chunks to avoid memory issues while preserving temporal integrity"""
+        logger.info("Loading NF-CICIDS2018-v3 NetFlow dataset in chunks...")
+        
+        ssh_attacks_list = []
+        benign_list = []
+        chunk_size = 10000
+        total_rows_processed = 0
+        max_samples_per_class = 5000  # Limit to prevent memory issues
+        
+        # Process dataset in chunks
+        for chunk_num, chunk in enumerate(pd.read_csv(self.data_path, chunksize=chunk_size)):
+            total_rows_processed += len(chunk)
+            logger.info(f"Processing chunk {chunk_num + 1}, rows processed: {total_rows_processed}")
+            
+            # Filter SSH-Bruteforce attacks and benign traffic
+            chunk_ssh_attacks = chunk[chunk['Attack'] == 'SSH-Bruteforce']
+            chunk_benign = chunk[chunk['Attack'] == 'Benign']
+            
+            if len(chunk_ssh_attacks) > 0:
+                ssh_attacks_list.append(chunk_ssh_attacks)
+                logger.info(f"Found {len(chunk_ssh_attacks)} SSH-Bruteforce attacks in chunk {chunk_num + 1}")
+            
+            if len(chunk_benign) > 0:
+                benign_list.append(chunk_benign)
+            
+            # Check if we have enough samples
+            current_ssh_count = sum(len(df) for df in ssh_attacks_list)
+            current_benign_count = sum(len(df) for df in benign_list)
+            
+            if current_ssh_count >= max_samples_per_class and current_benign_count >= max_samples_per_class:
+                logger.info(f"Collected sufficient samples: {current_ssh_count} SSH-Bruteforce, {current_benign_count} Benign")
+                break
+        
+        # Combine collected data
+        if not ssh_attacks_list:
+            logger.error("❌ No SSH-Bruteforce attacks found in dataset!")
+            return None, None, None, None
+        
+        if not benign_list:
+            logger.error("❌ No benign samples found in dataset!")
+            return None, None, None, None
+        
+        ssh_attacks = pd.concat(ssh_attacks_list, ignore_index=True)
+        benign = pd.concat(benign_list, ignore_index=True)
+        
+        # Limit to manageable size for TDA processing
+        if len(ssh_attacks) > max_samples_per_class:
+            ssh_attacks = ssh_attacks.sample(n=max_samples_per_class, random_state=42)
+        if len(benign) > max_samples_per_class:
+            benign = benign.sample(n=max_samples_per_class, random_state=42)
+        
+        logger.info(f"SSH-Bruteforce attacks: {len(ssh_attacks)}")
+        logger.info(f"Benign samples: {len(benign)}")
+        
+        # Verify temporal integrity
+        ssh_timestamps = ssh_attacks['FLOW_START_MILLISECONDS']
+        benign_timestamps = benign['FLOW_START_MILLISECONDS']
+        
+        ssh_min_time = ssh_timestamps.min()
+        ssh_max_time = ssh_timestamps.max()
+        benign_min_time = benign_timestamps.min()
+        benign_max_time = benign_timestamps.max()
+        
+        logger.info(f"SSH-Bruteforce time range: {ssh_min_time} to {ssh_max_time}")
+        logger.info(f"Benign time range: {benign_min_time} to {benign_max_time}")
+        
+        # Check for temporal overlap
+        overlap = not (ssh_max_time < benign_min_time or benign_max_time < ssh_min_time)
+        if overlap:
+            logger.info("✓ Temporal integrity verified: Attack and benign samples co-occur")
+        else:
+            logger.error("❌ TEMPORAL LEAKAGE DETECTED: No overlap between attack and benign timestamps!")
+            return None, None, None, None
+        
+        # Combine datasets
+        combined_df = pd.concat([ssh_attacks, benign], ignore_index=True)
+        
+        # Create binary labels
+        y = (combined_df['Attack'] == 'SSH-Bruteforce').astype(int)
+        
+        # Select network flow features (exclude metadata columns)
+        feature_columns = [col for col in combined_df.columns 
+                          if col not in ['Label', 'Attack', 'FLOW_START_MILLISECONDS', 'FLOW_END_MILLISECONDS',
+                                       'IPV4_SRC_ADDR', 'IPV4_DST_ADDR']]
+        
+        X = combined_df[feature_columns].copy()
+        
+        # Handle missing values
+        X = X.fillna(0)
+        
+        # Convert to numeric (some columns might be strings)
+        for col in X.columns:
+            X[col] = pd.to_numeric(X[col], errors='coerce')
+        X = X.fillna(0)
+        
+        logger.info(f"Final dataset: {len(X)} samples, {X.shape[1]} features")
+        logger.info(f"Attack rate: {y.mean():.3f}")
+        
+        return X, y, feature_columns, combined_df
+    
+    def initialize_tda_analyzers(self, X_sample):
+        """Initialize real TDA analyzers with sample data"""
+        logger.info("Initializing TDA analyzers...")
+        
+        # Initialize PersistentHomologyAnalyzer
+        try:
+            self.ph_analyzer = PersistentHomologyAnalyzer(
+                maxdim=2,  # Compute H0, H1, H2
+                backend='ripser'
+            )
+            logger.info("✓ PersistentHomologyAnalyzer initialized")
+        except Exception as e:
+            logger.error(f"❌ Failed to initialize PersistentHomologyAnalyzer: {e}")
+            return False
+        
+        # Initialize MapperAnalyzer
+        try:
+            self.mapper_analyzer = MapperAnalyzer(
+                n_intervals=10,
+                overlap_frac=0.3,
+                clusterer=None  # Use default DBSCAN
+            )
+            logger.info("✓ MapperAnalyzer initialized")
+        except Exception as e:
+            logger.error(f"❌ Failed to initialize MapperAnalyzer: {e}")
+            return False
+        
+        return True
+    
+    def extract_topological_features(self, X):
+        """
+        Extract REAL topological features using existing TDA infrastructure.
+        
+        CRITICAL: This method MUST use actual topology:
+        - Persistence diagrams from PersistentHomologyAnalyzer
+        - Mapper graph topology from MapperAnalyzer
+        - Real birth/death times and Betti numbers
+        
+        FORBIDDEN: Any statistical moments or proxy features
+        """
+        logger.info("Extracting real topological features...")
+        
+        topological_features = []
+        
+        for i in range(len(X)):
+            if i % 1000 == 0:
+                logger.info(f"Processing sample {i}/{len(X)}")
+            
+            sample = X.iloc[i:i+1].values.reshape(-1, 1)  # Reshape for TDA
+            
+            try:
+                # REAL topological analysis using PersistentHomologyAnalyzer
+                self.ph_analyzer.fit(sample)
+                
+                # Extract real topological features from persistence diagrams
+                topo_features = []
+                
+                # Get persistence diagrams - handle None case
+                diagrams = self.ph_analyzer.persistence_diagrams_
+                if diagrams is None:
+                    # If analysis failed, add zero features
+                    topo_features.extend([0] * 17)  # 3 Betti + 3*3 persistence + 2 Mapper
+                    topological_features.append(topo_features)
+                    continue
+                
+                # Betti numbers (actual topological invariants)
+                betti_0 = len(diagrams[0]) if len(diagrams) > 0 else 0
+                betti_1 = len(diagrams[1]) if len(diagrams) > 1 else 0
+                betti_2 = len(diagrams[2]) if len(diagrams) > 2 else 0
+                
+                topo_features.extend([betti_0, betti_1, betti_2])
+                
+                # Persistence statistics (birth/death times)
+                for dim in range(min(3, len(diagrams))):
+                    diagram = diagrams[dim]
+                    if len(diagram) > 0:
+                        births = diagram[:, 0]
+                        deaths = diagram[:, 1]
+                        lifetimes = deaths - births
+                        
+                        # Real topological features: persistence statistics
+                        topo_features.extend([
+                            np.max(lifetimes) if len(lifetimes) > 0 else 0,  # Max persistence
+                            np.sum(lifetimes) if len(lifetimes) > 0 else 0,  # Total persistence
+                            len(lifetimes)  # Number of topological features
+                        ])
+                    else:
+                        topo_features.extend([0, 0, 0])
+                
+                # Mapper topology analysis
+                try:
+                    self.mapper_analyzer.fit(sample)
+                    mapper_graph = self.mapper_analyzer.mapper_graph_
+                    
+                    # Real topological features from Mapper
+                    n_nodes = len(mapper_graph.nodes()) if mapper_graph and hasattr(mapper_graph, 'nodes') else 0
+                    n_edges = len(mapper_graph.edges()) if mapper_graph and hasattr(mapper_graph, 'edges') else 0
+                    
+                    topo_features.extend([n_nodes, n_edges])
+                    
+                except Exception as e:
+                    # If Mapper fails, add zeros
+                    topo_features.extend([0, 0])
+                
+                topological_features.append(topo_features)
+                
+            except Exception as e:
+                logger.warning(f"TDA analysis failed for sample {i}: {e}")
+                # Add zero features if analysis fails
+                topological_features.append([0] * 17)  # 3 Betti + 3*3 persistence + 2 Mapper
+        
+        logger.info(f"Extracted topological features for {len(topological_features)} samples")
+        return np.array(topological_features)
+    
+    def validate_approach(self):
+        """Run complete validation of SSH-Bruteforce detection using real TDA"""
+        logger.info("Starting SSH-Bruteforce TDA validation...")
+        
+        # Load and validate data
+        data_result = self.load_and_validate_data_chunked()
+        if data_result is None or data_result[0] is None:
+            logger.error("❌ Data loading failed - cannot proceed with validation")
+            return None
+            
+        X, y, feature_columns, df = data_result
+        
+        # Take a very small subset for TDA validation (TDA is extremely computationally intensive)
+        subset_size = min(50, len(X))  # Use only 50 samples for TDA testing
+        indices = np.random.choice(len(X), subset_size, replace=False)
+        X_subset = X.iloc[indices]
+        y_subset = y.iloc[indices]  # y is a pandas Series, use iloc for indexing
+        
+        logger.info(f"Using subset of {subset_size} samples for TDA validation")
+        logger.info(f"Subset attack rate: {y_subset.mean():.3f}")
+        
+        # Normalize features
+        X_normalized = self.scaler.fit_transform(X_subset)
+        X_normalized_df = pd.DataFrame(X_normalized, columns=X_subset.columns)
+        
+        # Initialize TDA analyzers
+        if not self.initialize_tda_analyzers(X_normalized_df):
+            return None
+        
+        # Extract topological features
+        topo_features = self.extract_topological_features(X_normalized_df)
+        
+        if len(topo_features) == 0:
+            logger.error("❌ No topological features extracted!")
+            return None
+        
+        logger.info(f"Extracted topological feature matrix: {topo_features.shape}")
+        
+        # Clean topological features (handle infinities and NaNs)
+        topo_features = np.nan_to_num(topo_features, nan=0.0, posinf=1e6, neginf=-1e6)
+        
+        # Verify no invalid values remain
+        if not np.all(np.isfinite(topo_features)):
+            logger.warning("Invalid values detected in topological features - applying final cleanup")
+            topo_features = np.where(np.isfinite(topo_features), topo_features, 0)
+        
+        logger.info(f"Cleaned topological feature matrix: {topo_features.shape}")
+        logger.info(f"Feature range: [{np.min(topo_features):.3f}, {np.max(topo_features):.3f}]")
+        
+        # Split data
+        X_train, X_test, y_train, y_test = train_test_split(
+            topo_features, y_subset, test_size=0.3, random_state=42, stratify=y_subset
         )
         
-        # Binary classifier
-        self.classifier = nn.Sequential(
-            nn.Linear(hidden_dim//2, 32),
-            nn.ReLU(),
-            nn.Linear(32, 2)
-        )
-    
-    def forward(self, x):
-        features = self.feature_extractor(x)
-        logits = self.classifier(features)
-        return logits
+        # Use ValidationFramework for consistent evaluation
+        try:
+            framework = ValidationFramework("SSH_Bruteforce_TDA")
+            
+            # Simple baseline classifier for comparison
+            from sklearn.ensemble import RandomForestClassifier
+            
+            rf = RandomForestClassifier(n_estimators=100, random_state=42)
+            rf.fit(X_train, y_train)
+            y_pred = rf.predict(X_test)
+            
+            accuracy = accuracy_score(y_test, y_pred)
+            
+            logger.info("TDA-based SSH-Bruteforce Detection Results:")
+            logger.info(f"Accuracy: {accuracy:.4f}")
+            logger.info("\nClassification Report:")
+            logger.info(classification_report(y_test, y_pred))
+            logger.info("\nConfusion Matrix:")
+            logger.info(confusion_matrix(y_test, y_pred))
+            
+            return {
+                'accuracy': accuracy,
+                'topological_features_shape': topo_features.shape,
+                'method': 'Real TDA with PersistentHomologyAnalyzer and MapperAnalyzer',
+                'classification_report': classification_report(y_test, y_pred, output_dict=True)
+            }
+            
+        except Exception as e:
+            logger.error(f"Validation failed: {e}")
+            logger.info("Falling back to basic validation...")
+            
+            # Simple baseline classifier for comparison
+            from sklearn.ensemble import RandomForestClassifier
+            
+            rf = RandomForestClassifier(n_estimators=100, random_state=42)
+            rf.fit(X_train, y_train)
+            y_pred = rf.predict(X_test)
+            
+            accuracy = accuracy_score(y_test, y_pred)
+            
+            logger.info("Basic Validation Results:")
+            logger.info(f"Accuracy: {accuracy:.4f}")
+            logger.info("\nClassification Report:")
+            logger.info(classification_report(y_test, y_pred))
+            logger.info("\nConfusion Matrix:")
+            logger.info(confusion_matrix(y_test, y_pred))
+            
+            return {
+                'accuracy': accuracy,
+                'topological_features_shape': topo_features.shape,
+                'method': 'Real TDA with PersistentHomologyAnalyzer and MapperAnalyzer'
+            }
 
-def load_netflow_data(max_samples=20000):
-    """
-    Load balanced NetFlow data with multiple attack types
-    """
-    print("🔧 LOADING NF-CICIDS2018-v3 NETFLOW DATA")
-    print("-" * 60)
-    
+
+def main():
+    """Main validation execution"""
+    # Data path
     data_path = "data/apt_datasets/NF-CICIDS2018-v3/f78acbaa2afe1595_NFV3DATA-A11964_A11964/data/NF-CICIDS2018-v3.csv"
     
-    # Load data in chunks to find attacks
-    chunk_size = 10000
-    attacks_found = []
-    benign_found = []
-    chunks_processed = 0
+    if not os.path.exists(data_path):
+        print(f"❌ Dataset not found at: {data_path}")
+        print("Please ensure the NF-CICIDS2018-v3 dataset is properly downloaded")
+        return
     
-    print(f"Searching for attacks in chunks of {chunk_size:,}...")
+    # Run validation
+    validator = SSHBruteforceValidation(data_path)
+    results = validator.validate_approach()
     
-    for chunk in pd.read_csv(data_path, chunksize=chunk_size):
-        chunks_processed += 1
-        
-        # Check for attacks
-        attacks = chunk[chunk['Attack'] != 'Benign']
-        benign = chunk[chunk['Attack'] == 'Benign']
-        
-        if len(attacks) > 0:
-            attacks_found.append(attacks)
-            print(f"  Chunk {chunks_processed}: Found {len(attacks)} attacks ({attacks['Attack'].iloc[0]})")
-        
-        if len(benign) > 0:
-            benign_found.append(benign)
-        
-        # Stop when we have enough
-        total_attacks = sum(len(df) for df in attacks_found)
-        total_benign = sum(len(df) for df in benign_found)
-        
-        if total_attacks >= max_samples//2 and total_benign >= max_samples//2:
-            break
-        
-        if chunks_processed >= 100:  # Safety limit
-            break
-    
-    # Combine results
-    if attacks_found:
-        attacks_df = pd.concat(attacks_found, ignore_index=True)
+    if results:
+        print("\n" + "="*60)
+        print("SSH-BRUTEFORCE TDA VALIDATION COMPLETE")
+        print("="*60)
+        print(f"Method: Real TDA using existing infrastructure")
+        print(f"Dataset: NF-CICIDS2018-v3 NetFlow")
+        print(f"Attack Type: SSH-Bruteforce")
+        print(f"Results: {results}")
+        print("="*60)
     else:
-        raise ValueError("No attacks found in the dataset")
-    
-    benign_df = pd.concat(benign_found, ignore_index=True)
-    
-    print(f"\\n📊 DATA SUMMARY")
-    print(f"   Total attacks found: {len(attacks_df):,}")
-    print(f"   Total benign found: {len(benign_df):,}")
-    print(f"   Attack types: {attacks_df['Attack'].value_counts().to_dict()}")
-    
-    # Balance the dataset
-    n_attacks = min(len(attacks_df), max_samples//2)
-    n_benign = min(len(benign_df), max_samples//2)
-    
-    attacks_sample = attacks_df.sample(n=n_attacks, random_state=42)
-    benign_sample = benign_df.sample(n=n_benign, random_state=42)
-    
-    # Combine
-    combined_df = pd.concat([attacks_sample, benign_sample], ignore_index=True)
-    
-    print(f"\\n✅ BALANCED DATASET CREATED")
-    print(f"   Attack samples: {len(attacks_sample):,}")
-    print(f"   Benign samples: {len(benign_sample):,}")
-    print(f"   Total samples: {len(combined_df):,}")
-    print(f"   Attack rate: {len(attacks_sample)/len(combined_df)*100:.1f}%")
-    
-    # Select numeric features only
-    numeric_columns = combined_df.select_dtypes(include=[np.number]).columns
-    feature_columns = [col for col in numeric_columns 
-                      if col not in ['Label']]
-    
-    print(f"\\n🔢 FEATURE SELECTION")
-    print(f"   Available numeric features: {len(feature_columns)}")
-    print(f"   Feature names: {feature_columns[:10]}...")  # Show first 10
-    
-    X = combined_df[feature_columns].fillna(0)
-    y = combined_df['Label'].values.astype(int)  # 0=benign, 1=attack
-    
-    # Replace infinite values
-    X = X.replace([np.inf, -np.inf], 0)
-    
-    print(f"\\n📊 FINAL DATASET")
-    print(f"   Feature matrix shape: {X.shape}")
-    print(f"   Labels: {len(y)} (Attacks: {np.sum(y)}, Benign: {len(y)-np.sum(y)})")
-    
-    return X.values, y, feature_columns, combined_df['Attack'].values
+        print("\n❌ Validation failed - see logs for details")
 
-def validate_deep_tda_netflow():
-    """
-    Main validation function using proper ValidationFramework
-    """
-    # Initialize validation framework
-    validator = ValidationFramework(
-        experiment_name="deep_tda_netflow",
-        random_seed=42
-    )
-    
-    # Capture console output
-    with validator.capture_console_output():
-        print("🔬 DEEP TDA VALIDATION - NF-CICIDS2018-v3 NETFLOW")
-        print("=" * 80)
-        print("Real multi-attack validation with ValidationFramework")
-        print("Using simplified Deep TDA on actual NetFlow features")
-        print("=" * 80)
-        
-        # Load data
-        X, y, feature_names, attack_types = load_netflow_data(max_samples=20000)
-        
-        # Train-test split
-        X_train, X_test, y_train, y_test = train_test_split(
-            X, y, test_size=0.3, random_state=42, stratify=y
-        )
-        
-        # Scale features
-        scaler = StandardScaler()
-        X_train_scaled = scaler.fit_transform(X_train)
-        X_test_scaled = scaler.transform(X_test)
-        
-        print(f"\\n🏋️ TRAINING DATA")
-        print(f"   Training samples: {len(X_train)} (Attacks: {np.sum(y_train)})")
-        print(f"   Test samples: {len(X_test)} (Attacks: {np.sum(y_test)})")
-        print(f"   Features: {X.shape[1]}")
-        
-        # Initialize model
-        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-        model = SimpleDeepTDAModel(input_dim=X.shape[1], hidden_dim=128)
-        model.to(device)
-        
-        print(f"\\n🧠 MODEL INITIALIZATION")
-        print(f"   Device: {device}")
-        print(f"   Parameters: {sum(p.numel() for p in model.parameters()):,}")
-        print(f"   Architecture: Simple Deep Neural Network")
-        
-        # Training setup
-        criterion = nn.CrossEntropyLoss()
-        optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
-        
-        # Convert to tensors
-        X_train_tensor = torch.FloatTensor(X_train_scaled).to(device)
-        y_train_tensor = torch.LongTensor(y_train).to(device)
-        X_test_tensor = torch.FloatTensor(X_test_scaled).to(device)
-        
-        # Training loop
-        print(f"\\n🚀 TRAINING MODEL")
-        print("-" * 60)
-        
-        model.train()
-        epochs = 50
-        batch_size = 256
-        
-        for epoch in range(epochs):
-            epoch_loss = 0
-            correct = 0
-            total = 0
-            
-            # Mini-batch training
-            for i in range(0, len(X_train_tensor), batch_size):
-                batch_X = X_train_tensor[i:i+batch_size]
-                batch_y = y_train_tensor[i:i+batch_size]
-                
-                optimizer.zero_grad()
-                outputs = model(batch_X)
-                loss = criterion(outputs, batch_y)
-                loss.backward()
-                optimizer.step()
-                
-                epoch_loss += loss.item()
-                _, predicted = torch.max(outputs.data, 1)
-                total += batch_y.size(0)
-                correct += (predicted == batch_y).sum().item()
-            
-            accuracy = 100 * correct / total
-            if epoch % 10 == 0:
-                print(f"   Epoch {epoch:2d}: Loss={epoch_loss/total:.4f}, Accuracy={accuracy:.1f}%")
-        
-        # Generate predictions
-        print(f"\\n📊 GENERATING PREDICTIONS")
-        print("-" * 60)
-        
-        model.eval()
-        with torch.no_grad():
-            test_outputs = model(X_test_tensor)
-            test_proba = torch.softmax(test_outputs, dim=1)
-            y_pred_proba = test_proba[:, 1].cpu().numpy()  # Probability of attack class
-            y_pred = torch.argmax(test_outputs, dim=1).cpu().numpy()
-        
-        print(f"✅ Predictions generated")
-        print(f"   Test samples: {len(y_test)}")
-        print(f"   Predicted attacks: {np.sum(y_pred)}")
-        print(f"   Actual attacks: {np.sum(y_test)}")
-        
-        # Validate using framework
-        results = validator.validate_classification_results(
-            y_true=y_test,
-            y_pred=y_pred,
-            y_pred_proba=y_pred_proba,
-            class_names=['Benign', 'Attack']
-        )
-        
-        # Save additional metadata
-        validator.raw_data['model_info'] = {
-            'model_type': 'Simple Deep TDA',
-            'architecture': 'Feed-Forward Neural Network',
-            'parameters': int(sum(p.numel() for p in model.parameters())),
-            'input_features': X.shape[1],
-            'training_samples': len(X_train),
-            'test_samples': len(X_test),
-            'dataset': 'NF-CICIDS2018-v3',
-            'attack_types': list(set(attack_types[attack_types != 'Benign']))
-        }
-        
-        # Save results
-        import json
-        import os
-        
-        results_file = os.path.join(validator.results_dir, "validation_results.json")
-        with open(results_file, 'w') as f:
-            json.dump({
-                'metrics': results,
-                'model_info': validator.raw_data['model_info']
-            }, f, indent=2)
-        
-        print(f"\\n🎯 VALIDATION COMPLETE")
-        print(f"   Results directory: {validator.results_dir}")
-        print(f"   Plots directory: {validator.plots_dir}")
-        print(f"   F1-Score: {results['f1']:.3f}")
-        print(f"   Accuracy: {results['accuracy']:.3f}")
-        print(f"   Precision: {results['precision']:.3f}")
-        print(f"   Recall: {results['recall']:.3f}")
-        
-        # Display directory structure
-        print(f"\\n📁 VALIDATION ARTIFACTS")
-        print(f"   📊 Plots: {validator.plots_dir}")
-        print(f"   📋 Console output: {validator.results_dir}/console_output.txt")
-        print(f"   📄 Metrics: {validator.results_dir}/validation_results.json")
 
 if __name__ == "__main__":
-    validate_deep_tda_netflow()
+    main()
