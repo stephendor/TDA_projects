@@ -53,6 +53,22 @@
    ✅ RIGHT: "Method failed: 18.2% F1 vs 70.6% baseline (-52.4%, abandoning approach)"
    ```
 
+### 7. **🚨 NEVER CREATE GENERIC OR SYNTHETIC VALIDATION TESTS**
+   - **ONLY test SPECIFIC named methods**: hybrid_multiscale_graph_tda, implement_multiscale_tda, etc.
+   - **NO generic "detector" tests**: Do NOT create tests for generic "APTDetector" classes  
+   - **NO synthetic data fallbacks**: If real data fails, FIX the data loading, don't create fake data
+   - **NO "comprehensive" or "enhanced" invented methods**: Only test methods explicitly mentioned by user
+   - **FIND AND TEST EXISTING SCRIPTS**: Look for and run the actual TDA method scripts the user references
+   - **DO NOT INVENT NEW TEST APPROACHES**: Use exactly what the user asks for, nothing else
+
+### 8. **WHEN USER SAYS "TEST METHOD X" - DO THIS:**
+   1. Find the existing script for method X (e.g., `hybrid_multiscale_graph_tda.py`) 
+   2. Run that EXACT script on real data
+   3. Report the results from THAT script
+   4. DO NOT create a new "validation" wrapper
+   5. DO NOT create generic detector tests
+   6. DO NOT invent "comprehensive" approaches
+
 ### 7. **DISCREPANCY INVESTIGATION PROTOCOL**
    When validation != claim:
    1. **Immediate Documentation**: Record exact discrepancy

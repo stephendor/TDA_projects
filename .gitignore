@@ -119,7 +119,3 @@ dmypy.json
 .Trashes
 ehthumbs.db
 Thumbs.db
-
-
-#Ignore vscode AI rules
-.github/copilot-instructions.md

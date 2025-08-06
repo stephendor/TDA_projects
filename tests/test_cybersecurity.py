@@ -106,7 +106,7 @@ class TestIoTClassifier:
     
     def setup_method(self):
         """Set up test fixtures."""
-        self.classifier = IoTClassifier(verbose=False)
+        self.classifier = IoTClassifier()
         
         # Synthetic IoT device data (different device types)
         np.random.seed(42)
@@ -172,7 +172,7 @@ class TestNetworkAnalyzer:
     
     def setup_method(self):
         """Set up test fixtures."""
-        self.analyzer = NetworkAnalyzer(verbose=False)
+        self.analyzer = NetworkAnalyzer()
         
         # Synthetic network traffic data
         np.random.seed(42)
@@ -257,7 +257,7 @@ class TestCybersecurityIntegration:
         
         # Initialize components
         apt_detector = APTDetector(verbose=False)
-        iot_classifier = IoTClassifier(verbose=False)
+        iot_classifier = IoTClassifier()
         
         # Fit both components
         apt_detector.fit(network_data[:70])
@@ -279,7 +279,7 @@ class TestCybersecurityIntegration:
         
         # Initialize all components
         apt_detector = APTDetector(verbose=False)
-        network_analyzer = NetworkAnalyzer(verbose=False)
+        network_analyzer = NetworkAnalyzer()
         
         # Fit on baseline data
         baseline_data = network_traffic[:100]

@@ -143,7 +143,7 @@ class TestRiskAssessment:
     
     def setup_method(self):
         """Set up test fixtures."""
-        self.risk_assessor = RiskAssessment(confidence_level=0.95, verbose=False)
+        self.risk_assessor = RiskAssessment()
         
         # Create synthetic portfolio data
         np.random.seed(42)
@@ -338,8 +338,8 @@ class TestFinanceIntegration:
         weights = np.array([0.5, 0.3, 0.2])
         
         # Initialize components
-        crypto_analyzer = CryptoAnalyzer(verbose=False)
-        risk_assessor = RiskAssessment(verbose=False)
+        crypto_analyzer = CryptoAnalyzer()
+        risk_assessor = RiskAssessment()
         
         # Fit both components
         crypto_analyzer.fit(crypto_prices[:150])
