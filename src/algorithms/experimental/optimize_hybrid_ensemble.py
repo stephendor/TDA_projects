@@ -38,9 +38,8 @@ except ImportError:
     print("   XGBoost not available, using alternatives")
 
 # Import TDA modules
-import sys
-sys.path.append('.')
-from src.core.persistent_homology import PersistentHomologyAnalyzer
+# Updated imports for new structure
+from ...core.persistent_homology import PersistentHomologyAnalyzer
 
 class OptimizedHybridTDAAnalyzer:
     """

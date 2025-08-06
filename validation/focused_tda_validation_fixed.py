@@ -100,10 +100,10 @@ def test_hybrid_tda_method(X, y):
     
     try:
         # Import hybrid method
-        from src.algorithms.hybrid.hybrid_multiscale_graph_tda import HybridTDAAnalyzer
+        from hybrid_multiscale_graph_tda import HybridMultiscaleGraphTDA
         
         # Initialize and test
-        detector = HybridTDAAnalyzer()
+        detector = HybridMultiscaleGraphTDA()
         
         # Train/test split
         split_idx = int(0.7 * len(X))
@@ -149,8 +149,11 @@ def test_deep_tda_method(X, y):
     logger.info("Testing Deep TDA method")
     
     try:
-        # Import deep TDA components from new structure
-        from src.algorithms.deep.deep_tda_breakthrough import DifferentiablePersistentHomology
+        # Check if we have the deep TDA model
+        if not Path("deep_tda_breakthrough.py").exists():
+            raise FileNotFoundError("Deep TDA module not found")
+        
+        from deep_tda_breakthrough import DeepTDAEnsemble
         
         # Initialize with smaller parameters for faster testing
         detector = DeepTDAEnsemble(
@@ -202,9 +205,12 @@ def test_supervised_ensemble(X, y):
     logger.info("Testing Supervised TDA Ensemble")
     
     try:
-        from src.algorithms.ensemble.tda_supervised_ensemble import TDASupervisedEnsemble
+        if not Path("tda_supervised_ensemble.py").exists():
+            raise FileNotFoundError("Supervised ensemble module not found")
         
-        detector = TDASupervisedEnsemble()
+        from tda_supervised_ensemble import SupervisedTDAEnsemble
+        
+        detector = SupervisedTDAEnsemble()
         
         # Train/test split
         split_idx = int(0.7 * len(X))

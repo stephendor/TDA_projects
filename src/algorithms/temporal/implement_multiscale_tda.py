@@ -20,10 +20,9 @@ import warnings
 warnings.filterwarnings('ignore')
 
 # Import our TDA modules
-import sys
-sys.path.append('.')
-from src.core.persistent_homology import PersistentHomologyAnalyzer
-from src.cybersecurity.apt_detection import APTDetector
+# Updated imports for new structure
+from ...core.persistent_homology import PersistentHomologyAnalyzer
+from ...cybersecurity.apt_detection import APTDetector
 
 class MultiScaleTDAAnalyzer:
     """

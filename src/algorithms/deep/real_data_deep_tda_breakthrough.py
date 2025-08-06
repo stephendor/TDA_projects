@@ -3,9 +3,7 @@
 Real Data Deep TDA Breakthrough - 90%+ Target on CIC-IDS2017 Infiltration
 Revolutionary TDA-native deep learning applied to real APT attack patterns
 """
-import sys
-sys.path.append('/home/stephen-dorman/dev/TDA_projects')
-sys.path.append('/home/stephen-dorman/dev/TDA_projects/validation')
+# Updated imports for new structure - no sys.path needed
 
 import torch
 import torch.nn as nn
@@ -22,10 +20,10 @@ import time
 import warnings
 warnings.filterwarnings('ignore')
 
-from validation_framework import ValidationFramework, report_validated_results
+from ....validation.validation_framework import ValidationFramework, report_validated_results
 
 # Import the breakthrough Deep TDA architecture
-from deep_tda_breakthrough import (
+from .deep_tda_breakthrough import (
     DifferentiablePersistentHomology, 
     PersistentAttentionLayer, 
     DeepTDATransformer

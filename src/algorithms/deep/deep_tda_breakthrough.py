@@ -3,8 +3,7 @@
 Breakthrough Deep TDA for APT Detection - 90%+ Target
 Revolutionary approach using differentiable topology and persistent attention
 """
-import sys
-sys.path.append('/home/stephen-dorman/dev/TDA_projects')
+# Updated for new structure - no sys.path needed
 
 import torch
 import torch.nn as nn
