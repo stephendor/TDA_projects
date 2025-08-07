@@ -1,0 +1,10 @@
+{
+  "ids_detection_features": [
+    "Anomaly_Type"
+  ],
+  "future_information": [],
+  "temporal_ordering_issues": false,
+  "high_risk_features_to_remove": [
+    "Anomaly_Type"
+  ]
+}

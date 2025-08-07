@@ -1,0 +1,11 @@
+{
+  "dataset_name": "Cybercrime_Forensics",
+  "total_samples": 7400,
+  "tda_readiness_score": 2,
+  "key_findings": [
+    "Class imbalance severity: balanced",
+    "TDA suitable features: 2",
+    "Temporal co-occurrence: True",
+    "Data leakage risks: 1 risky features"
+  ]
+}

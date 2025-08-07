@@ -1,0 +1,31 @@
+{
+  "tda_suitable_features": [
+    "no",
+    "id.orig_p",
+    "id.resp_p",
+    "flow_duration",
+    "fwd_pkts_tot",
+    "bwd_pkts_tot",
+    "fwd_data_pkts_tot",
+    "bwd_data_pkts_tot",
+    "fwd_pkts_per_sec",
+    "bwd_pkts_per_sec",
+    "flow_pkts_per_sec",
+    "down_up_ratio",
+    "fwd_header_size_tot",
+    "bwd_header_size_tot",
+    "flow_FIN_flag_count",
+    "fwd_PSH_flag_count",
+    "bwd_PSH_flag_count",
+    "flow_ACK_flag_count",
+    "fwd_pkts_payload.min",
+    "fwd_pkts_payload.max"
+  ],
+  "total_tda_features": 72,
+  "graph_constructible": false,
+  "graph_features": [
+    "proto"
+  ],
+  "time_series_constructible": true,
+  "tda_readiness_score": 2
+}

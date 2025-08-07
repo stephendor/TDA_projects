@@ -12,6 +12,8 @@ Date: August 7, 2025
 
 
 import pandas as pd
+import psutil
+import gc
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -51,17 +53,61 @@ def find_dataset_files():
 # Helper: Load a dataset file
 
 def load_dataset(file_path, use_dask=False):
+    file_size_mb = file_path.stat().st_size / (1024 * 1024)
+    print(f"[MEM] Before loading {file_path}: {psutil.virtual_memory().percent}% used")
+    adaptive_sample_size = 100000
+    if file_size_mb > 1000:
+        adaptive_sample_size = 10000
+    elif file_size_mb > 500:
+        adaptive_sample_size = 25000
     try:
         if use_dask and dd is not None:
             if file_path.suffix == '.parquet':
-                return dd.read_parquet(file_path)
+                df = dd.read_parquet(file_path)
             elif file_path.suffix == '.csv':
-                return dd.read_csv(file_path, assume_missing=True)
+                df = dd.read_csv(file_path, blocksize="16MB", assume_missing=True)
+            else:
+                print(f"Unsupported file type for Dask: {file_path}")
+                return None
+            # Stratified sampling
+            label_column = None
+            possible_labels = ['attack_cat', 'label', 'Label', 'Attack_Type', 'attack_type', 'Class', 'class']
+            for col in df.columns:
+                if col in possible_labels:
+                    label_column = col
+                    break
+            if label_column:
+                df_sample = stratified_sample_dask(df, label_column, adaptive_sample_size)
+                df_sample = df_sample.compute()
+            else:
+                df_sample = df.sample(n=adaptive_sample_size, random_state=42).compute()
         else:
             if file_path.suffix == '.parquet':
-                return pd.read_parquet(file_path)
+                df = pd.read_parquet(file_path)
             elif file_path.suffix == '.csv':
-                return pd.read_csv(file_path)
+                df = pd.read_csv(file_path)
+            else:
+                print(f"Unsupported file type for pandas: {file_path}")
+                return None
+            label_column = None
+            possible_labels = ['attack_cat', 'label', 'Label', 'Attack_Type', 'attack_type', 'Class', 'class']
+            for col in df.columns:
+                if col in possible_labels:
+                    label_column = col
+                    break
+            if label_column:
+                df_sample = df.groupby(label_column, group_keys=False).apply(
+                    lambda x: x.sample(n=max(1, int(len(x) / len(df) * adaptive_sample_size)), random_state=42)
+                )
+            else:
+                df_sample = df.sample(n=min(adaptive_sample_size, len(df)), random_state=42)
+        print(f"[MEM] After loading {file_path}: {psutil.virtual_memory().percent}% used")
+        gc.collect()
+        print(f"[MEM] After gc.collect() for {file_path}: {psutil.virtual_memory().percent}% used")
+        return df_sample
+    except MemoryError as me:
+        print(f"[ERROR] MemoryError for {file_path}: {me}")
+        return None
     except Exception as e:
         print(f"❌ Error loading {file_path}: {e}")
         return None
@@ -72,34 +118,31 @@ def stratified_sample_dask(df, label_column, sample_size=100000):
     class_counts = df[label_column].value_counts().compute()
     total = class_counts.sum()
     samples = []
-    for cls, count in class_counts.items():
-        frac = count / total
-        n_cls = max(1, int(frac * sample_size))
-        cls_df = df[df[label_column] == cls]
-        samples.append(cls_df.sample(n=n_cls, random_state=42))
-    sampled_df = dd.concat(samples).compute()
+        for cls, count in class_counts.items():
+            frac = count / total
+            n_cls = max(1, int(frac * sample_size))
+            cls_df = df[df[label_column] == cls].sample(n=n_cls, random_state=42)
+            samples.append(cls_df)
+        sampled_df = pd.concat(samples, ignore_index=True)
     return sampled_df
 
 def analyze_dataset(dataset_name, file_paths):
     print(f"\n{'='*80}\nAnalyzing dataset: {dataset_name}\n{'='*80}")
     dfs = []
-    use_dask = False
-    for fp in file_paths:
-        if fp.stat().st_size > 500 * 1024 * 1024:
-            use_dask = True
-            break
+    use_dask = any(fp.stat().st_size > 500 * 1024 * 1024 for fp in file_paths)
     for fp in file_paths:
         print(f"Loading: {fp}")
         df = load_dataset(fp, use_dask=use_dask)
         if df is not None:
             dfs.append(df)
+        gc.collect()
+        print(f"[MEM] After loading and gc.collect() for {fp}: {psutil.virtual_memory().percent}% used")
     if not dfs:
         print(f"❌ No valid files loaded for {dataset_name}")
         return
     if use_dask:
-        full_df = dd.concat(dfs)
+        full_df = pd.concat(dfs, ignore_index=True)
         columns = full_df.columns
-        # Detect label column
         label_column = None
         possible_labels = ['attack_cat', 'label', 'Label', 'Attack_Type', 'attack_type', 'Class', 'class']
         for col in possible_labels:
@@ -107,10 +150,12 @@ def analyze_dataset(dataset_name, file_paths):
                 label_column = col
                 break
         if label_column:
-            sample_df = stratified_sample_dask(full_df, label_column)
+            sample_df = full_df.groupby(label_column, group_keys=False).apply(
+                lambda x: x.sample(n=max(1, int(len(x) / len(full_df) * 100000)), random_state=42)
+            )
         else:
-            sample_df = full_df.sample(n=100000, random_state=42).compute()
-        total_samples = full_df.shape[0].compute()
+            sample_df = full_df.sample(n=min(100000, len(full_df)), random_state=42)
+        total_samples = len(full_df)
     else:
         full_df = pd.concat(dfs, ignore_index=True)
         columns = full_df.columns
@@ -122,14 +167,13 @@ def analyze_dataset(dataset_name, file_paths):
                 break
         if label_column:
             sample_df = full_df.groupby(label_column, group_keys=False).apply(
-                lambda x: x.sample(
-                    n=max(1, int(len(x) / len(full_df) * 100000)),
-                    random_state=42
-                )
+                lambda x: x.sample(n=max(1, int(len(x) / len(full_df) * 100000)), random_state=42)
             )
         else:
             sample_df = full_df.sample(n=min(100000, len(full_df)), random_state=42)
         total_samples = len(full_df)
+    gc.collect()
+    print(f"[MEM] After analysis and gc.collect() for {dataset_name}: {psutil.virtual_memory().percent}% used")
 
     output_dir = OUTPUT_ROOT / dataset_name
     output_dir.mkdir(parents=True, exist_ok=True)
