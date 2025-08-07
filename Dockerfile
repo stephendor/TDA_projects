@@ -47,8 +47,7 @@ RUN mkdir -p /app/logs /app/data /app/outputs && \
 USER tda
 
 # Health check
-HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
-    CMD python -c "import src; print('Health check passed')" || exit 1
+HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 CMD python -c "print('Health check passed')" || exit 1
 
 # Default command
 CMD ["python", "-m", "src.api.server"]
@@ -58,7 +57,7 @@ FROM base as development
 USER root
 RUN pip install pytest pytest-cov black flake8 mypy jupyter
 USER tda
-CMD ["jupyter", "notebook", "--ip=0.0.0.0", "--port=8888", "--no-browser", "--allow-root"]
+CMD ["jupyter", "notebook", "--ip=0.0.0.0", "--port=8888", "--no-browser"]
 
 FROM base as testing
 USER root

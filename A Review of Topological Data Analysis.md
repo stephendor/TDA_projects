@@ -78,7 +78,7 @@ The Alan Turing Institute
 
 -----
 
-[cite\_start]**Figure 3:** Mapper applied to firewall logs. [cite: 118] [cite\_start]Nodes in close proximity to those flagged as potentially anomalous could be worth further investigation. [cite: 118] Reproduced with permission from Bihl et al. (2020)[cite\_start]. [cite: 119]
+[cite\_start]**Figure 3:** Mapper applied to firewall logs. [cite: 118] [cite_start]Nodes in close proximity to those flagged as potentially anomalous could be worth further investigation. [cite: 118] Reproduced with permission from Bihl et al. [2020](cite_start). [cite: 119]
 
 -----
 
@@ -122,7 +122,7 @@ Collins et al. (2020) [cite\_start]used encrypted packet data to build a filtrat
 
 **Ransomware payments.** Akcora et al. (2020) [cite\_start]computed a Mapper graph from Bitcoin transaction data. [cite: 197] [cite\_start]If a certain proportion of addresses that are within a node of the Mapper graph are known to receive ransomware payments then the remaining addresses have their risk scores increased. [cite: 198] [cite\_start]Repeating over the entire map and thresholding the acceptable risk gave a list of suspicious Bitcoin addresses. [cite: 199] [cite\_start]This approach outperformed DBSCAN and XGBoost at detecting suspicious addresses. [cite: 200]
 
-[cite\_start]**Attack graphs.** An attack on a computer network consists of several different stages, which are categorised by the Mitre ATT\&CK® framework as reconnaissance, delivery, exploitation, operation, data collection, and exfiltration. [cite: 201] [cite\_start]Such a sequence of actions naturally admits a graph structure, referred to as an attack graph. [cite: 202] This graph is susceptible to analysis with topological techniques, which was the focus of work by Navarro et al. (2018)[cite\_start]. [cite: 203] [cite\_start]They focused on context, attack patterns, and events, which combine to create an attack graph. [cite: 204] [cite\_start]They applied mapper to this attack graph in the hope that the reduced graph is able to be analysed by humans who can find repeated structures across attacks. [cite: 205]
+[cite\_start]**Attack graphs.** An attack on a computer network consists of several different stages, which are categorised by the Mitre ATT&CK® framework as reconnaissance, delivery, exploitation, operation, data collection, and exfiltration. [cite: 201] [cite\_start]Such a sequence of actions naturally admits a graph structure, referred to as an attack graph. [cite: 202] This graph is susceptible to analysis with topological techniques, which was the focus of work by Navarro et al. [2018](cite_start). [cite: 203] [cite_start]They focused on context, attack patterns, and events, which combine to create an attack graph. [cite: 204] [cite_start]They applied mapper to this attack graph in the hope that the reduced graph is able to be analysed by humans who can find repeated structures across attacks. [cite: 205]
 
 ## 5 Persistence for cybersecurity
 
@@ -144,7 +144,7 @@ Collins et al. (2020) [cite\_start]also studied IoT data, only they used the nat
 
 -----
 
-[cite\_start]**Figure 6:** The 1-persistent homology of packet data can be used to accurately fingerprint IoT devices on networks, even when the traffic is encrypted. [cite: 253] (a) [cite\_start]A simplicial complex built from packet data. [cite: 252] (b) [cite\_start]Examples of 1-persistence images of encrypted packet data. [cite: 253] Reproduced with permission from Collins et al. (2020)[cite\_start]. [cite: 254]
+[cite\_start]**Figure 6:** The 1-persistent homology of packet data can be used to accurately fingerprint IoT devices on networks, even when the traffic is encrypted. [cite: 253] (a) [cite_start]A simplicial complex built from packet data. [cite: 252] (b) [cite_start]Examples of 1-persistence images of encrypted packet data. [cite: 253] Reproduced with permission from Collins et al. [2020](cite_start). [cite: 254] (See <attachments> above for file contents. You may not need to search or read the file again.)
 
 -----
 

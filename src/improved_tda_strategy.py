@@ -123,7 +123,7 @@ class ImprovedTDAStrategy:
                             np.std(centrality),
                             np.max(centrality)
                         ])
-                    except:
+                    except Exception:
                         features.extend([0, 0, 0])
                 else:
                     features.extend([0, 0, 0])
