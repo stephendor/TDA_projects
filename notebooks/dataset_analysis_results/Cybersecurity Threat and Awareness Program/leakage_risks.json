@@ -1,0 +1,14 @@
+{
+  "ids_detection_features": [
+    "IDS_Alert_Count",
+    "Anomaly_Score",
+    "Anomaly_Severity_Index"
+  ],
+  "future_information": [],
+  "temporal_ordering_issues": false,
+  "high_risk_features_to_remove": [
+    "IDS_Alert_Count",
+    "Anomaly_Score",
+    "Anomaly_Severity_Index"
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "tda_suitable_features": [
+    "stcpb",
+    "dtcpb"
+  ],
+  "total_tda_features": 2,
+  "graph_constructible": true,
+  "graph_features": [
+    "proto",
+    "ct_src_dport_ltm",
+    "ct_dst_sport_ltm"
+  ],
+  "time_series_constructible": true,
+  "expected_homology_dimensions": [
+    "H0"
+  ],
+  "computational_feasibility": "high",
+  "tda_readiness_score": 2
+}

@@ -1,0 +1,29 @@
+{
+  "tda_suitable_features": [
+    "Source_Port",
+    "Flow_Duration",
+    "Packet_Size",
+    "Flow_Bytes_per_s",
+    "Flow_Packets_per_s",
+    "Total_Forward_Packets",
+    "Total_Backward_Packets",
+    "Packet_Length_Mean_Forward",
+    "Packet_Length_Mean_Backward",
+    "IAT_Forward",
+    "IAT_Backward",
+    "Active_Duration",
+    "Idle_Duration",
+    "Anomaly_Score",
+    "CPU_Utilization",
+    "Memory_Utilization",
+    "Normalized_Packet_Flow",
+    "Anomaly_Severity_Index"
+  ],
+  "total_tda_features": 18,
+  "graph_constructible": false,
+  "graph_features": [
+    "Protocol_Type"
+  ],
+  "time_series_constructible": true,
+  "tda_readiness_score": 3
+}

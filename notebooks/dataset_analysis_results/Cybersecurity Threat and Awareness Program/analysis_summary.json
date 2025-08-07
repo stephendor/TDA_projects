@@ -1,0 +1,11 @@
+{
+  "dataset_name": "Cybersecurity Threat and Awareness Program",
+  "total_samples": 54768,
+  "tda_readiness_score": 3,
+  "key_findings": [
+    "Class imbalance severity: balanced",
+    "TDA suitable features: 18",
+    "Temporal co-occurrence: True",
+    "Data leakage risks: 3 risky features"
+  ]
+}

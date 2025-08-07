@@ -1,0 +1,31 @@
+{
+  "label_column": "attack_cat",
+  "attack_types": {
+    "Normal": 93000,
+    "Generic": 58871,
+    "Exploits": 44525,
+    "Fuzzers": 24246,
+    "DoS": 16353,
+    "Reconnaissance": 13987,
+    "Analysis": 2677,
+    "Backdoor": 2329,
+    "Shellcode": 1511,
+    "Worms": 174
+  },
+  "class_percentages": {
+    "Normal": 36.09225646458884,
+    "Generic": 22.84717451964311,
+    "Exploits": 17.279652893395895,
+    "Fuzzers": 9.40960054021958,
+    "DoS": 6.346415806079799,
+    "Reconnaissance": 5.428197754518323,
+    "Analysis": 1.0389136618892938,
+    "Backdoor": 0.9038587667314776,
+    "Shellcode": 0.5864021453547714,
+    "Worms": 0.06752744757890815
+  },
+  "normal_vs_attack_ratio": 0.5647556065657394,
+  "imbalance_severity": "severe",
+  "smallest_class_percentage": 0.06752744757890815,
+  "largest_class_percentage": 36.09225646458884
+}

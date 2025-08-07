@@ -1,0 +1,42 @@
+{
+  "tda_suitable_features": [
+    "Header_Length",
+    "Time_To_Live",
+    "Rate",
+    "fin_flag_number",
+    "syn_flag_number",
+    "rst_flag_number",
+    "psh_flag_number",
+    "ack_flag_number",
+    "ece_flag_number",
+    "ack_count",
+    "syn_count",
+    "fin_count",
+    "rst_count",
+    "HTTP",
+    "HTTPS",
+    "DNS",
+    "SSH",
+    "TCP",
+    "UDP",
+    "DHCP"
+  ],
+  "total_tda_features": 104,
+  "graph_constructible": true,
+  "graph_features": [
+    "Protocol Type",
+    "src_ip",
+    "src_port",
+    "dst_ip",
+    "dst_port",
+    "proto",
+    "src_bytes",
+    "dst_bytes",
+    "src_pkts",
+    "src_ip_bytes",
+    "dst_pkts",
+    "dst_ip_bytes"
+  ],
+  "time_series_constructible": true,
+  "tda_readiness_score": 3
+}

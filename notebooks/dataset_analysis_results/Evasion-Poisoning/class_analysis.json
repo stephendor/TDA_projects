@@ -1,0 +1,15 @@
+{
+  "label_column": "label",
+  "attack_types": {
+    "1.0": 161043,
+    "0.0": 50000
+  },
+  "class_percentages": {
+    "1.0": 5.157004881194799,
+    "0.0": 1.6011266808227613
+  },
+  "normal_vs_attack_ratio": null,
+  "imbalance_severity": "moderate",
+  "smallest_class_percentage": 1.6011266808227613,
+  "largest_class_percentage": 5.157004881194799
+}

@@ -1,0 +1,172 @@
+{
+  "name": "Cybersecurity Threat and Awareness Program",
+  "file_count": 1,
+  "total_samples": 54768,
+  "feature_count": 30,
+  "feature_types": {
+    "numerical": 20,
+    "categorical": 10,
+    "temporal": 3,
+    "network_flow": 14
+  },
+  "missing_values": {
+    "columns_with_missing": [
+      "Attack_Vector",
+      "Botnet_Family",
+      "Malware_Type"
+    ],
+    "total_missing_percentage": 8.801307332749051
+  },
+  "feature_details": {
+    "Date": {
+      "dtype": "object",
+      "unique_values": 54768,
+      "missing_percentage": 0.0
+    },
+    "Source_IP": {
+      "dtype": "object",
+      "unique_values": 3,
+      "missing_percentage": 0.0
+    },
+    "Destination_IP": {
+      "dtype": "object",
+      "unique_values": 3,
+      "missing_percentage": 0.0
+    },
+    "Source_Port": {
+      "dtype": "int64",
+      "unique_values": 36852,
+      "missing_percentage": 0.0
+    },
+    "Destination_Port": {
+      "dtype": "int64",
+      "unique_values": 4,
+      "missing_percentage": 0.0
+    },
+    "Protocol_Type": {
+      "dtype": "object",
+      "unique_values": 3,
+      "missing_percentage": 0.0
+    },
+    "Flow_Duration": {
+      "dtype": "int64",
+      "unique_values": 689,
+      "missing_percentage": 0.0
+    },
+    "Packet_Size": {
+      "dtype": "int64",
+      "unique_values": 994,
+      "missing_percentage": 0.0
+    },
+    "Flow_Bytes_per_s": {
+      "dtype": "float64",
+      "unique_values": 54768,
+      "missing_percentage": 0.0
+    },
+    "Flow_Packets_per_s": {
+      "dtype": "float64",
+      "unique_values": 54768,
+      "missing_percentage": 0.0
+    },
+    "Total_Forward_Packets": {
+      "dtype": "int64",
+      "unique_values": 37,
+      "missing_percentage": 0.0
+    },
+    "Total_Backward_Packets": {
+      "dtype": "int64",
+      "unique_values": 33,
+      "missing_percentage": 0.0
+    },
+    "Packet_Length_Mean_Forward": {
+      "dtype": "float64",
+      "unique_values": 54768,
+      "missing_percentage": 0.0
+    },
+    "Packet_Length_Mean_Backward": {
+      "dtype": "float64",
+      "unique_values": 54768,
+      "missing_percentage": 0.0
+    },
+    "IAT_Forward": {
+      "dtype": "float64",
+      "unique_values": 54768,
+      "missing_percentage": 0.0
+    },
+    "IAT_Backward": {
+      "dtype": "float64",
+      "unique_values": 54768,
+      "missing_percentage": 0.0
+    },
+    "Active_Duration": {
+      "dtype": "float64",
+      "unique_values": 54768,
+      "missing_percentage": 0.0
+    },
+    "Idle_Duration": {
+      "dtype": "float64",
+      "unique_values": 54768,
+      "missing_percentage": 0.0
+    },
+    "IDS_Alert_Count": {
+      "dtype": "int64",
+      "unique_values": 9,
+      "missing_percentage": 0.0
+    },
+    "Anomaly_Score": {
+      "dtype": "float64",
+      "unique_values": 54768,
+      "missing_percentage": 0.0
+    },
+    "Attack_Vector": {
+      "dtype": "object",
+      "unique_values": 3,
+      "missing_percentage": 80.03761320479111
+    },
+    "Attack_Severity": {
+      "dtype": "object",
+      "unique_values": 3,
+      "missing_percentage": 0.0
+    },
+    "Botnet_Family": {
+      "dtype": "object",
+      "unique_values": 2,
+      "missing_percentage": 89.87547472976921
+    },
+    "Malware_Type": {
+      "dtype": "object",
+      "unique_values": 2,
+      "missing_percentage": 94.1261320479112
+    },
+    "CPU_Utilization": {
+      "dtype": "float64",
+      "unique_values": 54768,
+      "missing_percentage": 0.0
+    },
+    "Memory_Utilization": {
+      "dtype": "float64",
+      "unique_values": 54768,
+      "missing_percentage": 0.0
+    },
+    "System_Patch_Status": {
+      "dtype": "object",
+      "unique_values": 2,
+      "missing_percentage": 0.0
+    },
+    "Label": {
+      "dtype": "object",
+      "unique_values": 2,
+      "missing_percentage": 0.0
+    },
+    "Normalized_Packet_Flow": {
+      "dtype": "float64",
+      "unique_values": 7683,
+      "missing_percentage": 0.0
+    },
+    "Anomaly_Severity_Index": {
+      "dtype": "float64",
+      "unique_values": 54768,
+      "missing_percentage": 0.0
+    }
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "dataset_name": "Evasion-Poisoning",
+  "total_samples": 3122801,
+  "tda_readiness_score": 3,
+  "key_findings": [
+    "Class imbalance severity: moderate",
+    "TDA suitable features: 104",
+    "Temporal co-occurrence: False",
+    "Data leakage risks: 1 risky features"
+  ]
+}
