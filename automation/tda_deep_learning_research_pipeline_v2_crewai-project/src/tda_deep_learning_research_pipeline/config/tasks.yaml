@@ -1,0 +1,65 @@
+---
+literature_review_on_tda_applications:
+  description: Conduct a comprehensive literature review on recent applications of
+    Topological Data Analysis in {domain}. Search for papers published in the last
+    3 years focusing on methodological innovations, successful applications, and computational
+    approaches. Pay special attention to how TDA is combined with machine learning
+    and deep learning techniques. Identify key algorithms, software libraries, and
+    best practices mentioned in the literature.
+  expected_output: 'A detailed literature review report in markdown format covering:
+    (1) Recent TDA methodologies relevant to {domain}, (2) Key findings from successful
+    applications, (3) Computational tools and libraries used, (4) Integration approaches
+    with machine learning, (5) Identified research gaps and opportunities for {project_description}'
+  agent: tda_research_specialist
+tda_feature_extraction_and_analysis:
+  description: Perform comprehensive topological data analysis on {dataset_description}.
+    Use established TDA methodologies to compute persistent homology, generate persistence
+    diagrams, and extract topological features. Research and apply appropriate filtration
+    methods for {data_type}. Vectorize the topological features to create input suitable
+    for machine learning models. Document the preprocessing steps, parameter choices,
+    and interpretation of the topological signatures discovered.
+  expected_output: 'A complete TDA analysis report including: (1) Data preprocessing
+    methodology, (2) Computed persistence diagrams and their interpretation, (3) Extracted
+    topological features in machine learning-ready format, (4) Statistical analysis
+    of topological signatures, (5) Recommendations for feature selection and dimensionality
+    reduction, (6) Code documentation for reproducibility'
+  agent: tda_analysis_engineer
+  context:
+  - literature_review_on_tda_applications
+deep_learning_model_development:
+  description: 'Design and implement deep learning models that can effectively learn
+    from the topological features extracted from TDA analysis. Experiment with different
+    architectures suitable for {problem_type}, including but not limited to: neural
+    networks designed for persistence diagram inputs, graph neural networks for topological
+    spaces, and hybrid architectures. Perform hyperparameter optimization, cross-validation,
+    and model selection. Evaluate models using {evaluation_metrics} and ensure robust
+    performance across different data splits.'
+  expected_output: 'A comprehensive deep learning model development report including:
+    (1) Model architecture designs and rationale, (2) Training methodology and hyperparameter
+    optimization results, (3) Performance evaluation with {evaluation_metrics}, (4)
+    Model comparison and selection criteria, (5) Feature importance analysis showing
+    which topological features are most predictive, (6) Complete code implementation
+    with documentation for model training and inference'
+  agent: deep_learning_engineer
+  context:
+  - tda_feature_extraction_and_analysis
+comprehensive_technical_report:
+  description: Create a comprehensive technical report that synthesizes all findings
+    from the literature review, TDA analysis, and deep learning model development.
+    The report should clearly explain the entire pipeline from raw data to final model
+    predictions, making complex topological concepts accessible to readers. Include
+    visualizations of persistence diagrams, model architecture diagrams, performance
+    plots, and feature importance analysis. Provide actionable insights and recommendations
+    for {domain} applications.
+  expected_output: 'A complete technical report in markdown format with the following
+    sections: (1) Executive Summary, (2) Literature Review Summary and Key Insights,
+    (3) Data and TDA Methodology, (4) Deep Learning Model Architecture and Training,
+    (5) Results and Performance Analysis, (6) Discussion of Topological Features and
+    Their Significance, (7) Practical Applications and Recommendations for {domain},
+    (8) Conclusions and Future Work, (9) Appendices with code documentation and additional
+    visualizations'
+  agent: technical_report_writer
+  context:
+  - literature_review_on_tda_applications
+  - tda_feature_extraction_and_analysis
+  - deep_learning_model_development
