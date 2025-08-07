@@ -44,8 +44,8 @@
    └── validation_results.json       # All validated claims registry
    ```
 
-### 6. **VALIDATION OUTPUT STRUCTURE** 
-   **MANDATORY:** Follow existing project conventions exactly:
+### 6. **MANDATORY GRANULAR VALIDATION OUTPUT STRUCTURE** 
+   **REQUIRED FOR ALL VALIDATIONS:** Every TDA validation MUST produce granular data outputs:
    ```
    validation/
    ├── method_name_description/           # Descriptive method name
@@ -53,21 +53,64 @@
    │       ├── VALIDATION_REPORT.md      # Main validation report
    │       ├── validation_summary.json   # Structured summary data
    │       ├── data/                     # Dataset info and raw data
-   │       │   └── raw_data.json
+   │       │   ├── raw_data.json
+   │       │   ├── persistence_diagrams/ # TDA artifacts by attack type
+   │       │   │   ├── normal_H0.json
+   │       │   │   ├── normal_H1.json
+   │       │   │   ├── ddos_H0.json
+   │       │   │   ├── ddos_H1.json
+   │       │   │   └── [attack_type]_H[dim].json
+   │       │   └── barcodes/             # Persistence barcodes
+   │       │       ├── normal_barcodes.json
+   │       │       └── [attack_type]_barcodes.json
    │       ├── plots/                    # All visualization outputs
    │       │   ├── confusion_matrix.png
    │       │   ├── precision_recall_curve.png
-   │       │   └── prediction_distribution.png
+   │       │   ├── roc_curve.png
+   │       │   ├── attack_type_performance.png      # F1/precision/recall by attack type
+   │       │   ├── attack_type_confusion_matrices.png # Individual matrices per attack
+   │       │   ├── persistence_diagrams.png         # H0, H1, H2 diagrams
+   │       │   ├── persistence_landscapes.png       # Persistence landscapes
+   │       │   └── topological_features_comparison.png # Topology by attack type
    │       └── results/                  # Metrics and console output
-   │           ├── metrics.json
+   │           ├── metrics.json          # MUST include attack-type breakdown
+   │           ├── topological_analysis.json # TDA-specific metrics
    │           ├── console_output.txt
    │           └── validation_summary.json
    ```
+
+   **MANDATORY METRICS IN metrics.json:**
+   ```json
+   {
+     "overall_metrics": {
+       "f1_score": float, "accuracy": float, "precision": float, "recall": float, "roc_auc": float
+     },
+     "attack_type_metrics": {
+       "Normal": {"f1": float, "precision": float, "recall": float, "support": int},
+       "DDoS": {"f1": float, "precision": float, "recall": float, "support": int},
+       "[AttackType]": {"f1": float, "precision": float, "recall": float, "support": int}
+     },
+     "topological_analysis": {
+       "homology_dimensions_analyzed": ["H0", "H1", "H2"],
+       "persistence_features_extracted": int,
+       "topological_separability_score": float,
+       "attack_type_topology_signatures": {
+         "Normal": {"H0_features": int, "H1_features": int, "avg_persistence": float},
+         "[AttackType]": {"H0_features": int, "H1_features": int, "avg_persistence": float}
+       }
+     }
+   }
+   ```
+
+   **MANDATORY TDA ARTIFACTS:**
+   - **Persistence Diagrams**: H0, H1, H2 for each attack type
+   - **Barcodes**: Persistence intervals for topological features
+   - **Topological Signatures**: Attack-specific topological characteristics
+   - **Landscape Comparisons**: Statistical summaries of persistence landscapes
    
    **Examples from existing project:**
-   - `validation/SSH_Bruteforce_TDA/20250806_223951/`
-   - `validation/enhanced_deep_tda_breakthrough/20250806_195454/`
-   - `validation/unsw_nb15_tda_enhanced/20250807_012106/`
+   - `validation/unsw_nb15_granular_analysis/20250807_013922/` (has attack-type breakdown)
+   - `validation/unsw_nb15_clean_streaming/20250807_014939/` (lacks granular analysis - INCOMPLETE)
 
 ### 7. **PERFORMANCE CLAIM FORMAT**
    ```
