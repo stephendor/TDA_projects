@@ -2,6 +2,16 @@
 # TDA Project Rules
 Configuration for AI behavior in Topological Data Analysis project
 
+## 📋 **PRIMARY INSTRUCTIONS**
+**IMPORTANT**: All core project rules are defined in `UNIFIED_AGENT_INSTRUCTIONS.md`. Read that file for:
+- Validation-first development principles
+- TDA implementation requirements  
+- Data integrity protocols
+- Project structure guidelines
+- Methodology assessment protocols
+
+This file contains Copilot-specific extensions and integrations.
+
 ## MANDATORY TDA IMPLEMENTATION RULES
 - THIS IS A TOPOLOGICAL DATA ANALYSIS PROJECT. ALL ANALYSIS MUST USE ACTUAL TOPOLOGY.
 - FORBIDDEN: Using statistical features (mean, std, skew, kurtosis) as "topological proxies" or "basic topological features"

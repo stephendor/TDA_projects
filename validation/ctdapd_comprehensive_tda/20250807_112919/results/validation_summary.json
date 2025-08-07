@@ -1,0 +1,21 @@
+{
+  "validation_type": "comprehensive_tda_ctdapd",
+  "timestamp": "20250807_112919",
+  "dataset": "CTDAPD",
+  "attack_categories": [
+    "Brute_Force",
+    "DDoS",
+    "Normal",
+    "SQL_Injection",
+    "Unknown_Attack"
+  ],
+  "overall_accuracy": 1.0,
+  "overall_f1": 1.0,
+  "tda_features_computed": true,
+  "persistence_diagrams_generated": true,
+  "homology_dimensions": [
+    "H0",
+    "H1",
+    "H2"
+  ]
+}

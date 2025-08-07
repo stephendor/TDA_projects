@@ -1,0 +1,33 @@
+{
+  "homology_dimensions_analyzed": [
+    "H0",
+    "H1",
+    "H2"
+  ],
+  "persistence_features_extracted": 21,
+  "data_leakage_removed": true,
+  "leakage_features_removed": [
+    "IDS_Alert_Count",
+    "Anomaly_Score",
+    "Anomaly_Severity_Index"
+  ],
+  "clean_features_used": [
+    "Flow_Duration",
+    "Packet_Size",
+    "Flow_Bytes_per_s",
+    "Flow_Packets_per_s",
+    "Total_Forward_Packets",
+    "Total_Backward_Packets",
+    "Packet_Length_Mean_Forward",
+    "Packet_Length_Mean_Backward",
+    "IAT_Forward",
+    "IAT_Backward",
+    "Active_Duration",
+    "Idle_Duration",
+    "CPU_Utilization",
+    "Memory_Utilization",
+    "Normalized_Packet_Flow"
+  ],
+  "individual_persistence_diagrams": true,
+  "topological_separability_score": 0.85
+}

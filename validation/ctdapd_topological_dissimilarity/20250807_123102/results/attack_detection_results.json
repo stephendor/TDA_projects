@@ -1,0 +1,9 @@
+{
+  "method": "topological_dissimilarity_attack_detection",
+  "approach": "bruillard_nowak_purvine_2016",
+  "timestamp": "20250807_123102",
+  "attack_detection_performance": {
+    "attack_recall": 0.050274223034734916,
+    "attack_precision": 1.0,
+    "attack_f1_score": 0.09573542210617929,
+    "attacks_detected": 

@@ -1,5 +1,15 @@
 # Gemini Project Guide: TDA Platform
 
+## 📋 **PRIMARY INSTRUCTIONS**
+**IMPORTANT**: All core project rules are defined in `UNIFIED_AGENT_INSTRUCTIONS.md`. Read that file for:
+- Validation-first development principles
+- TDA implementation requirements  
+- Data integrity protocols
+- Project structure guidelines
+- Methodology assessment protocols
+
+This file contains Gemini-specific extensions and workflow details.
+
 ## 🚨 Primary Directive: Validation First
 
 This project operates under a strict **VALIDATION-FIRST DEVELOPMENT PRINCIPLE**. My primary goal is to ensure every claim is backed by reproducible, evidence-based validation. Accuracy is more important than perceived progress.

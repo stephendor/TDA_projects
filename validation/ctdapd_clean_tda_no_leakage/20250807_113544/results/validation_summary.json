@@ -1,0 +1,9 @@
+{
+  "validation_type": "clean_tda_ctdapd_no_leakage",
+  "timestamp": "20250807_113544",
+  "dataset": "CTDAPD",
+  "data_leakage_fixed": true,
+  "overall_accuracy": 0.85,
+  "overall_f1": 0.7810810810810811,
+  "realistic_performance": true
+}

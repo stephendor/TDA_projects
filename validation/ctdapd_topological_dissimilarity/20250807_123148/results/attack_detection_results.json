@@ -1,0 +1,30 @@
+{
+  "method": "topological_dissimilarity_attack_detection",
+  "approach": "bruillard_nowak_purvine_2016",
+  "timestamp": "20250807_123148",
+  "attack_detection_performance": {
+    "attack_recall": 0.050274223034734916,
+    "attack_precision": 1.0,
+    "attack_f1_score": 0.09573542210617929,
+    "attacks_detected": 55,
+    "total_attacks": 1094,
+    "false_alarms": 0,
+    "dissimilarity_threshold": 0.19301951272147042
+  },
+  "dataset_info": {
+    "total_windows": 1094,
+    "attack_windows": 1094,
+    "attack_window_ratio": 1.0,
+    "baseline_windows": 0
+  },
+  "topological_analysis": {
+    "method": "wasserstein_distance_H0_persistence",
+    "baseline_features": 35,
+    "dissimilarity_statistics": {
+      "mean": 0.07109546018812213,
+      "std": 0.08316414034771319,
+      "max": 0.833357984679086,
+      "threshold": 0.19301951272147042
+    }
+  }
+}

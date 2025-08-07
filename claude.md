@@ -1,14 +1,31 @@
 # Claude Project Documentation
 
+## 📋 **PRIMARY INSTRUCTIONS**
+**IMPORTANT**: All core project rules are defined in `UNIFIED_AGENT_INSTRUCTIONS.md`. Read that file for:
+- Validation-first development principles
+- TDA implementation requirements  
+- Data integrity protocols
+- Project structure guidelines
+- Methodology assessment protocols
+
+This file contains Claude-specific extensions and workflow details.
+
 ## 🚨 CRITICAL ACCURACY AND VALIDATION RULES
 
 **🛑 MANDATORY - NO EXCEPTIONS:**
+
+### 0. **PROJECT FOCUS: CYBERSECURITY ATTACK DETECTION**
+   - **PRIMARY GOAL**: Detect network attacks (DDoS, Brute Force, SQL Injection, etc.)
+   - **SUCCESS METRIC**: Attack detection F1-scores, NOT overall accuracy
+   - **FAILURE DEFINITION**: 0% attack detection = COMPLETE FAILURE regardless of overall accuracy
+   - **HONEST REPORTING**: Never present normal traffic classification as attack detection success
 
 ### 1. **VALIDATION-FIRST DEVELOPMENT PRINCIPLE**
    - **ACCURACY > PROGRESS**: Accurate reporting is INFINITELY more valuable than artificial progress claims
    - **FAILURE IS PROGRESS**: Finding methods that don't work is as valuable as finding ones that do
    - **VALIDATE IMMEDIATELY**: Every performance claim must be validated with independent reproduction script
    - **NO CLAIMS WITHOUT PROOF**: Zero tolerance for unvalidated performance assertions
+   - **ATTACK-FOCUSED METRICS**: Always report attack detection rates first, overall metrics second
 
 ### 2. **MANDATORY VALIDATION PROTOCOL**
    ```python

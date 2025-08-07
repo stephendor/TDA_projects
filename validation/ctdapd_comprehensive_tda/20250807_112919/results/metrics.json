@@ -1,0 +1,82 @@
+{
+  "overall_metrics": {
+    "accuracy": 1.0,
+    "f1_score": 1.0,
+    "precision": 1.0,
+    "recall": 1.0,
+    "roc_auc": 1.0
+  },
+  "attack_type_metrics": {
+    "Brute_Force": {
+      "f1": 1.0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "support": 84
+    },
+    "DDoS": {
+      "f1": 1.0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "support": 100
+    },
+    "Normal": {
+      "f1": 1.0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "support": 100
+    },
+    "SQL_Injection": {
+      "f1": 1.0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "support": 85
+    },
+    "Unknown_Attack": {
+      "f1": 1.0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "support": 100
+    }
+  },
+  "topological_analysis": {
+    "homology_dimensions_analyzed": [
+      "H0",
+      "H1",
+      "H2"
+    ],
+    "persistence_features_extracted": 15,
+    "attack_type_topology_signatures": {
+      "Brute_Force": {
+        "H0_features": 418,
+        "H1_features": 0,
+        "H2_features": 0,
+        "avg_persistence": Infinity
+      },
+      "DDoS": {
+        "H0_features": 500,
+        "H1_features": 0,
+        "H2_features": 0,
+        "avg_persistence": Infinity
+      },
+      "Normal": {
+        "H0_features": 500,
+        "H1_features": 0,
+        "H2_features": 0,
+        "avg_persistence": Infinity
+      },
+      "SQL_Injection": {
+        "H0_features": 424,
+        "H1_features": 0,
+        "H2_features": 0,
+        "avg_persistence": Infinity
+      },
+      "Unknown_Attack": {
+        "H0_features": 500,
+        "H1_features": 0,
+        "H2_features": 0,
+        "avg_persistence": Infinity
+      }
+    },
+    "topological_separability_score": 468.4
+  }
+}
