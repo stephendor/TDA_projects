@@ -1,31 +1,31 @@
 {
   "label_column": "attack_cat",
   "attack_types": {
-    "Normal": 93000,
-    "Generic": 58871,
-    "Exploits": 44525,
-    "Fuzzers": 24246,
-    "DoS": 16353,
-    "Reconnaissance": 13987,
-    "Analysis": 2677,
-    "Backdoor": 2329,
-    "Shellcode": 1511,
-    "Worms": 174
+    "Normal": 36092,
+    "Generic": 22847,
+    "Exploits": 17279,
+    "Fuzzers": 9409,
+    "DoS": 6346,
+    "Reconnaissance": 5428,
+    "Analysis": 1038,
+    "Backdoor": 903,
+    "Shellcode": 586,
+    "Worms": 67
   },
   "class_percentages": {
-    "Normal": 36.09225646458884,
-    "Generic": 22.84717451964311,
-    "Exploits": 17.279652893395895,
-    "Fuzzers": 9.40960054021958,
-    "DoS": 6.346415806079799,
-    "Reconnaissance": 5.428197754518323,
-    "Analysis": 1.0389136618892938,
-    "Backdoor": 0.9038587667314776,
-    "Shellcode": 0.5864021453547714,
-    "Worms": 0.06752744757890815
+    "Normal": 36.093804690234506,
+    "Generic": 22.848142407120356,
+    "Exploits": 17.27986399319966,
+    "Fuzzers": 9.409470473523676,
+    "DoS": 6.346317315865793,
+    "Reconnaissance": 5.428271413570678,
+    "Analysis": 1.0380519025951298,
+    "Backdoor": 0.9030451522576128,
+    "Shellcode": 0.5860293014650733,
+    "Worms": 0.06700335016750837
   },
-  "normal_vs_attack_ratio": 0.5647556065657394,
+  "normal_vs_attack_ratio": 0.5647935151714317,
   "imbalance_severity": "severe",
-  "smallest_class_percentage": 0.06752744757890815,
-  "largest_class_percentage": 36.09225646458884
+  "smallest_class_percentage": 0.06700335016750837,
+  "largest_class_percentage": 36.093804690234506
 }

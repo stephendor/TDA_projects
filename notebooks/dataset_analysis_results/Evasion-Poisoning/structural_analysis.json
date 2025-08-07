@@ -4,8 +4,8 @@
   "total_samples": 3122801,
   "feature_count": 163,
   "feature_types": {
-    "numerical": 133,
-    "categorical": 30,
+    "numerical": 0,
+    "categorical": 0,
     "temporal": 3,
     "network_flow": 48
   },
@@ -129,869 +129,825 @@
       " Idle Std",
       " Idle Max",
       " Idle Min",
-      " Label",
-      "src_ip",
-      "src_port",
-      "dst_ip",
-      "dst_port",
-      "proto",
-      "service",
-      "duration",
-      "src_bytes",
-      "dst_bytes",
-      "conn_state",
-      "missed_bytes",
-      "src_pkts",
-      "src_ip_bytes",
-      "dst_pkts",
-      "dst_ip_bytes",
-      "dns_query",
-      "dns_qclass",
-      "dns_qtype",
-      "dns_rcode",
-      "dns_AA",
-      "dns_RD",
-      "dns_RA",
-      "dns_rejected",
-      "ssl_version",
-      "ssl_cipher",
-      "ssl_resumed",
-      "ssl_established",
-      "ssl_subject",
-      "ssl_issuer",
-      "http_trans_depth",
-      "http_method",
-      "http_uri",
-      "http_version",
-      "http_request_body_len",
-      "http_response_body_len",
-      "http_status_code",
-      "http_user_agent",
-      "http_orig_mime_types",
-      "http_resp_mime_types",
-      "weird_name",
-      "weird_addl",
-      "weird_notice",
-      "label",
-      "type"
+      " Label"
     ],
-    "total_missing_percentage": 58.32762911488992
+    "total_missing_percentage": 73.00613496932516
   },
   "feature_details": {
     "Header_Length": {
-      "dtype": "float64",
-      "unique_values": 1246,
-      "missing_percentage": 77.67103955711555
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
     },
     "Protocol Type": {
-      "dtype": "float64",
-      "unique_values": 5,
-      "missing_percentage": 77.67103955711555
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
     },
     "Time_To_Live": {
-      "dtype": "float64",
-      "unique_values": 5711,
-      "missing_percentage": 77.67103955711555
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
     },
     "Rate": {
-      "dtype": "float64",
-      "unique_values": 108455,
-      "missing_percentage": 77.67103955711555
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
     },
     "fin_flag_number": {
-      "dtype": "float64",
-      "unique_values": 118,
-      "missing_percentage": 77.67103955711555
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
     },
     "syn_flag_number": {
-      "dtype": "float64",
-      "unique_values": 168,
-      "missing_percentage": 77.67103955711555
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
     },
     "rst_flag_number": {
-      "dtype": "float64",
-      "unique_values": 132,
-      "missing_percentage": 77.67103955711555
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
     },
     "psh_flag_number": {
-      "dtype": "float64",
-      "unique_values": 153,
-      "missing_percentage": 77.67103955711555
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
     },
     "ack_flag_number": {
-      "dtype": "float64",
-      "unique_values": 219,
-      "missing_percentage": 77.67103955711555
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
     },
     "ece_flag_number": {
-      "dtype": "float64",
-      "unique_values": 16,
-      "missing_percentage": 77.67103955711555
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
     },
     "cwr_flag_number": {
-      "dtype": "float64",
-      "unique_values": 8,
-      "missing_percentage": 77.67103955711555
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
     },
     "ack_count": {
-      "dtype": "float64",
-      "unique_values": 101,
-      "missing_percentage": 77.67103955711555
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
     },
     "syn_count": {
-      "dtype": "float64",
-      "unique_values": 101,
-      "missing_percentage": 77.67103955711555
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
     },
     "fin_count": {
-      "dtype": "float64",
-      "unique_values": 95,
-      "missing_percentage": 77.67103955711555
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
     },
     "rst_count": {
-      "dtype": "float64",
-      "unique_values": 101,
-      "missing_percentage": 77.67103955711555
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
     },
     "HTTP": {
-      "dtype": "float64",
-      "unique_values": 124,
-      "missing_percentage": 77.67103955711555
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
     },
     "HTTPS": {
-      "dtype": "float64",
-      "unique_values": 168,
-      "missing_percentage": 77.67103955711555
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
     },
     "DNS": {
-      "dtype": "float64",
-      "unique_values": 121,
-      "missing_percentage": 77.67103955711555
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
     },
     "Telnet": {
-      "dtype": "float64",
-      "unique_values": 7,
-      "missing_percentage": 77.67103955711555
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
     },
     "SMTP": {
-      "dtype": "float64",
-      "unique_values": 9,
-      "missing_percentage": 77.67103955711555
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
     },
     "SSH": {
-      "dtype": "float64",
-      "unique_values": 17,
-      "missing_percentage": 77.67103955711555
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
     },
     "IRC": {
-      "dtype": "float64",
-      "unique_values": 7,
-      "missing_percentage": 77.67103955711555
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
     },
     "TCP": {
-      "dtype": "float64",
-      "unique_values": 224,
-      "missing_percentage": 77.67103955711555
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
     },
     "UDP": {
-      "dtype": "float64",
-      "unique_values": 216,
-      "missing_percentage": 77.67103955711555
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
     },
     "DHCP": {
-      "dtype": "float64",
-      "unique_values": 27,
-      "missing_percentage": 77.67103955711555
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
     },
     "ARP": {
-      "dtype": "float64",
-      "unique_values": 127,
-      "missing_percentage": 77.67103955711555
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
     },
     "ICMP": {
-      "dtype": "float64",
-      "unique_values": 173,
-      "missing_percentage": 77.67103955711555
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
     },
     "IGMP": {
-      "dtype": "float64",
-      "unique_values": 7,
-      "missing_percentage": 77.67103955711555
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
     },
     "IPv": {
-      "dtype": "float64",
-      "unique_values": 127,
-      "missing_percentage": 77.67103955711555
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
     },
     "LLC": {
-      "dtype": "float64",
-      "unique_values": 127,
-      "missing_percentage": 77.67103955711555
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
     },
     "Tot sum": {
-      "dtype": "float64",
-      "unique_values": 26094,
-      "missing_percentage": 77.67103955711555
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
     },
     "Min": {
-      "dtype": "float64",
-      "unique_values": 450,
-      "missing_percentage": 77.67103955711555
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
     },
     "Max": {
-      "dtype": "float64",
-      "unique_values": 2346,
-      "missing_percentage": 77.67103955711555
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
     },
     "AVG": {
-      "dtype": "float64",
-      "unique_values": 26557,
-      "missing_percentage": 77.67103955711555
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
     },
     "Std": {
-      "dtype": "float64",
-      "unique_values": 73978,
-      "missing_percentage": 77.6713277599181
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
     },
     "Tot size": {
-      "dtype": "float64",
-      "unique_values": 26557,
-      "missing_percentage": 77.67103955711555
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
     },
     "IAT": {
-      "dtype": "float64",
-      "unique_values": 109283,
-      "missing_percentage": 77.67103955711555
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
     },
     "Number": {
-      "dtype": "float64",
-      "unique_values": 100,
-      "missing_percentage": 77.67103955711555
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
     },
     "Variance": {
-      "dtype": "float64",
-      "unique_values": 78696,
-      "missing_percentage": 77.6713277599181
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
     },
     "Label": {
-      "dtype": "object",
-      "unique_values": 34,
-      "missing_percentage": 77.67103955711555
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
     },
     " Destination Port": {
-      "dtype": "object",
-      "unique_values": 51725,
-      "missing_percentage": 29.08709200490201
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
     },
     " Flow Duration": {
-      "dtype": "float64",
-      "unique_values": 870395,
-      "missing_percentage": 29.087124027435625
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
     },
     " Total Fwd Packets": {
-      "dtype": "float64",
-      "unique_values": 1202,
-      "missing_percentage": 29.087124027435625
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
     },
     " Total Backward Packets": {
-      "dtype": "float64",
-      "unique_values": 1490,
-      "missing_percentage": 29.087124027435625
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
     },
     "Total Length of Fwd Packets": {
-      "dtype": "float64",
-      "unique_values": 15928,
-      "missing_percentage": 29.087124027435625
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
     },
     " Total Length of Bwd Packets": {
-      "dtype": "float64",
-      "unique_values": 52489,
-      "missing_percentage": 29.087124027435625
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
     },
     " Fwd Packet Length Max": {
-      "dtype": "float64",
-      "unique_values": 4977,
-      "missing_percentage": 29.087124027435625
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
     },
     " Fwd Packet Length Min": {
-      "dtype": "float64",
-      "unique_values": 349,
-      "missing_percentage": 29.087124027435625
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
     },
     " Fwd Packet Length Mean": {
-      "dtype": "float64",
-      "unique_values": 70038,
-      "missing_percentage": 29.087124027435625
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
     },
     " Fwd Packet Length Std": {
-      "dtype": "float64",
-      "unique_values": 180348,
-      "missing_percentage": 29.087124027435625
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
     },
     "Bwd Packet Length Max": {
-      "dtype": "float64",
-      "unique_values": 4610,
-      "missing_percentage": 29.087124027435625
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
     },
     " Bwd Packet Length Min": {
-      "dtype": "float64",
-      "unique_values": 536,
-      "missing_percentage": 29.087124027435625
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
     },
     " Bwd Packet Length Mean": {
-      "dtype": "float64",
-      "unique_values": 105166,
-      "missing_percentage": 29.087124027435625
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
     },
     " Bwd Packet Length Std": {
-      "dtype": "float64",
-      "unique_values": 172699,
-      "missing_percentage": 29.087124027435625
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
     },
     "Flow Bytes/s": {
-      "dtype": "float64",
-      "unique_values": 1235919,
-      "missing_percentage": 29.123533648157533
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
     },
     " Flow Packets/s": {
-      "dtype": "float64",
-      "unique_values": 964585,
-      "missing_percentage": 29.087124027435625
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
     },
     " Flow IAT Mean": {
-      "dtype": "float64",
-      "unique_values": 942929,
-      "missing_percentage": 29.087124027435625
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
     },
     " Flow IAT Std": {
-      "dtype": "float64",
-      "unique_values": 803558,
-      "missing_percentage": 29.087124027435625
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
     },
     " Flow IAT Max": {
-      "dtype": "float64",
-      "unique_values": 489838,
-      "missing_percentage": 29.087124027435625
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
     },
     " Flow IAT Min": {
-      "dtype": "float64",
-      "unique_values": 111049,
-      "missing_percentage": 29.087124027435625
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
     },
     "Fwd IAT Total": {
-      "dtype": "float64",
-      "unique_values": 403544,
-      "missing_percentage": 29.087124027435625
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
     },
     " Fwd IAT Mean": {
-      "dtype": "float64",
-      "unique_values": 564384,
-      "missing_percentage": 29.087124027435625
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
     },
     " Fwd IAT Std": {
-      "dtype": "float64",
-      "unique_values": 526269,
-      "missing_percentage": 29.087124027435625
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
     },
     " Fwd IAT Max": {
-      "dtype": "float64",
-      "unique_values": 357008,
-      "missing_percentage": 29.087124027435625
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
     },
     " Fwd IAT Min": {
-      "dtype": "float64",
-      "unique_values": 93593,
-      "missing_percentage": 29.087124027435625
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
     },
     "Bwd IAT Total": {
-      "dtype": "float64",
-      "unique_values": 364002,
-      "missing_percentage": 29.087124027435625
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
     },
     " Bwd IAT Mean": {
-      "dtype": "float64",
-      "unique_values": 536864,
-      "missing_percentage": 29.087124027435625
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
     },
     " Bwd IAT Std": {
-      "dtype": "float64",
-      "unique_values": 574023,
-      "missing_percentage": 29.087124027435625
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
     },
     " Bwd IAT Max": {
-      "dtype": "float64",
-      "unique_values": 323914,
-      "missing_percentage": 29.087124027435625
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
     },
     " Bwd IAT Min": {
-      "dtype": "float64",
-      "unique_values": 54829,
-      "missing_percentage": 29.087124027435625
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
     },
     "Fwd PSH Flags": {
-      "dtype": "float64",
-      "unique_values": 2,
-      "missing_percentage": 29.087124027435625
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
     },
     " Bwd PSH Flags": {
-      "dtype": "float64",
-      "unique_values": 1,
-      "missing_percentage": 29.087124027435625
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
     },
     " Fwd URG Flags": {
-      "dtype": "float64",
-      "unique_values": 2,
-      "missing_percentage": 29.087124027435625
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
     },
     " Bwd URG Flags": {
-      "dtype": "float64",
-      "unique_values": 1,
-      "missing_percentage": 29.087124027435625
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
     },
     " Fwd Header Length": {
-      "dtype": "float64",
-      "unique_values": 3149,
-      "missing_percentage": 29.087124027435625
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
     },
     " Bwd Header Length": {
-      "dtype": "float64",
-      "unique_values": 3404,
-      "missing_percentage": 29.087124027435625
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
     },
     "Fwd Packets/s": {
-      "dtype": "float64",
-      "unique_values": 948525,
-      "missing_percentage": 29.087124027435625
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
     },
     " Bwd Packets/s": {
-      "dtype": "float64",
-      "unique_values": 853574,
-      "missing_percentage": 29.087124027435625
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
     },
     " Min Packet Length": {
-      "dtype": "float64",
-      "unique_values": 200,
-      "missing_percentage": 29.087124027435625
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
     },
     " Max Packet Length": {
-      "dtype": "float64",
-      "unique_values": 5421,
-      "missing_percentage": 29.087124027435625
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
     },
     " Packet Length Mean": {
-      "dtype": "float64",
-      "unique_values": 153552,
-      "missing_percentage": 29.087124027435625
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
     },
     " Packet Length Std": {
-      "dtype": "float64",
-      "unique_values": 306180,
-      "missing_percentage": 29.087124027435625
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
     },
     " Packet Length Variance": {
-      "dtype": "float64",
-      "unique_values": 304252,
-      "missing_percentage": 29.087124027435625
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
     },
     "FIN Flag Count": {
-      "dtype": "float64",
-      "unique_values": 2,
-      "missing_percentage": 29.087124027435625
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
     },
     " SYN Flag Count": {
-      "dtype": "float64",
-      "unique_values": 2,
-      "missing_percentage": 29.087124027435625
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
     },
     " RST Flag Count": {
-      "dtype": "float64",
-      "unique_values": 2,
-      "missing_percentage": 29.087124027435625
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
     },
     " PSH Flag Count": {
-      "dtype": "float64",
-      "unique_values": 2,
-      "missing_percentage": 29.087124027435625
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
     },
     " ACK Flag Count": {
-      "dtype": "float64",
-      "unique_values": 2,
-      "missing_percentage": 29.087124027435625
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
     },
     " URG Flag Count": {
-      "dtype": "float64",
-      "unique_values": 2,
-      "missing_percentage": 29.087124027435625
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
     },
     " CWE Flag Count": {
-      "dtype": "float64",
-      "unique_values": 2,
-      "missing_percentage": 29.087124027435625
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
     },
     " ECE Flag Count": {
-      "dtype": "float64",
-      "unique_values": 2,
-      "missing_percentage": 29.087124027435625
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
     },
     " Down/Up Ratio": {
-      "dtype": "float64",
-      "unique_values": 28,
-      "missing_percentage": 29.087124027435625
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
     },
     " Average Packet Size": {
-      "dtype": "float64",
-      "unique_values": 151454,
-      "missing_percentage": 29.087124027435625
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
     },
     " Avg Fwd Segment Size": {
-      "dtype": "float64",
-      "unique_values": 70038,
-      "missing_percentage": 29.087124027435625
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
     },
     " Avg Bwd Segment Size": {
-      "dtype": "float64",
-      "unique_values": 105166,
-      "missing_percentage": 29.087124027435625
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
     },
     " Fwd Header Length.1": {
-      "dtype": "float64",
-      "unique_values": 3149,
-      "missing_percentage": 29.087124027435625
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
     },
     "Fwd Avg Bytes/Bulk": {
-      "dtype": "float64",
-      "unique_values": 1,
-      "missing_percentage": 29.087124027435625
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
     },
     " Fwd Avg Packets/Bulk": {
-      "dtype": "float64",
-      "unique_values": 1,
-      "missing_percentage": 29.087124027435625
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
     },
     " Fwd Avg Bulk Rate": {
-      "dtype": "float64",
-      "unique_values": 1,
-      "missing_percentage": 29.087124027435625
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
     },
     " Bwd Avg Bytes/Bulk": {
-      "dtype": "float64",
-      "unique_values": 1,
-      "missing_percentage": 29.087124027435625
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
     },
     " Bwd Avg Packets/Bulk": {
-      "dtype": "float64",
-      "unique_values": 1,
-      "missing_percentage": 29.087124027435625
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
     },
     "Bwd Avg Bulk Rate": {
-      "dtype": "float64",
-      "unique_values": 1,
-      "missing_percentage": 29.087124027435625
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
     },
     "Subflow Fwd Packets": {
-      "dtype": "float64",
-      "unique_values": 1202,
-      "missing_percentage": 29.087124027435625
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
     },
     " Subflow Fwd Bytes": {
-      "dtype": "float64",
-      "unique_values": 15928,
-      "missing_percentage": 29.087124027435625
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
     },
     " Subflow Bwd Packets": {
-      "dtype": "float64",
-      "unique_values": 1490,
-      "missing_percentage": 29.087124027435625
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
     },
     " Subflow Bwd Bytes": {
-      "dtype": "float64",
-      "unique_values": 52508,
-      "missing_percentage": 29.087124027435625
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
     },
     "Init_Win_bytes_forward": {
-      "dtype": "float64",
-      "unique_values": 10485,
-      "missing_percentage": 29.087124027435625
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
     },
     " Init_Win_bytes_backward": {
-      "dtype": "float64",
-      "unique_values": 11461,
-      "missing_percentage": 29.087124027435625
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
     },
     " act_data_pkt_fwd": {
-      "dtype": "float64",
-      "unique_values": 1001,
-      "missing_percentage": 29.087124027435625
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
     },
     " min_seg_size_forward": {
-      "dtype": "float64",
-      "unique_values": 24,
-      "missing_percentage": 29.087124027435625
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
     },
     "Active Mean": {
-      "dtype": "float64",
-      "unique_values": 251408,
-      "missing_percentage": 29.087124027435625
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
     },
     " Active Std": {
-      "dtype": "float64",
-      "unique_values": 146538,
-      "missing_percentage": 29.087124027435625
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
     },
     " Active Max": {
-      "dtype": "float64",
-      "unique_values": 235741,
-      "missing_percentage": 29.087124027435625
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
     },
     " Active Min": {
-      "dtype": "float64",
-      "unique_values": 146265,
-      "missing_percentage": 29.087124027435625
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
     },
     "Idle Mean": {
-      "dtype": "float64",
-      "unique_values": 183369,
-      "missing_percentage": 29.087124027435625
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
     },
     " Idle Std": {
-      "dtype": "float64",
-      "unique_values": 143016,
-      "missing_percentage": 29.087124027435625
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
     },
     " Idle Max": {
-      "dtype": "float64",
-      "unique_values": 133131,
-      "missing_percentage": 29.087124027435625
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
     },
     " Idle Min": {
-      "dtype": "float64",
-      "unique_values": 187474,
-      "missing_percentage": 29.087124027435625
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
     },
     " Label": {
-      "dtype": "object",
-      "unique_values": 10,
-      "missing_percentage": 29.087124027435625
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
     },
     "src_ip": {
-      "dtype": "object",
-      "unique_values": 51,
-      "missing_percentage": 93.24186843798245
+      "dtype": "string",
+      "unique_values": 49,
+      "missing_percentage": 0.0
     },
     "src_port": {
-      "dtype": "float64",
-      "unique_values": 26628,
-      "missing_percentage": 93.24186843798245
+      "dtype": "string",
+      "unique_values": 22597,
+      "missing_percentage": 0.0
     },
     "dst_ip": {
-      "dtype": "object",
-      "unique_values": 753,
-      "missing_percentage": 93.24186843798245
+      "dtype": "string",
+      "unique_values": 584,
+      "missing_percentage": 0.0
     },
     "dst_port": {
-      "dtype": "float64",
-      "unique_values": 2039,
-      "missing_percentage": 93.24186843798245
+      "dtype": "string",
+      "unique_values": 1960,
+      "missing_percentage": 0.0
     },
     "proto": {
-      "dtype": "object",
+      "dtype": "string",
       "unique_values": 3,
-      "missing_percentage": 93.24186843798245
+      "missing_percentage": 0.0
     },
     "service": {
-      "dtype": "object",
+      "dtype": "string",
       "unique_values": 9,
-      "missing_percentage": 93.24186843798245
+      "missing_percentage": 0.0
     },
     "duration": {
-      "dtype": "float64",
-      "unique_values": 68570,
-      "missing_percentage": 93.24186843798245
+      "dtype": "string",
+      "unique_values": 35804,
+      "missing_percentage": 0.0
     },
     "src_bytes": {
-      "dtype": "float64",
-      "unique_values": 2199,
-      "missing_percentage": 93.24186843798245
+      "dtype": "string",
+      "unique_values": 1691,
+      "missing_percentage": 0.0
     },
     "dst_bytes": {
-      "dtype": "float64",
-      "unique_values": 2338,
-      "missing_percentage": 93.24186843798245
+      "dtype": "string",
+      "unique_values": 1721,
+      "missing_percentage": 0.0
     },
     "conn_state": {
-      "dtype": "object",
+      "dtype": "string",
       "unique_values": 13,
-      "missing_percentage": 93.24186843798245
+      "missing_percentage": 0.0
     },
     "missed_bytes": {
-      "dtype": "float64",
-      "unique_values": 694,
-      "missing_percentage": 93.24186843798245
+      "dtype": "string",
+      "unique_values": 393,
+      "missing_percentage": 0.0
     },
     "src_pkts": {
-      "dtype": "float64",
-      "unique_values": 274,
-      "missing_percentage": 93.24186843798245
+      "dtype": "string",
+      "unique_values": 201,
+      "missing_percentage": 0.0
     },
     "src_ip_bytes": {
-      "dtype": "float64",
-      "unique_values": 3648,
-      "missing_percentage": 93.24186843798245
+      "dtype": "string",
+      "unique_values": 2642,
+      "missing_percentage": 0.0
     },
     "dst_pkts": {
-      "dtype": "float64",
-      "unique_values": 203,
-      "missing_percentage": 93.24186843798245
+      "dtype": "string",
+      "unique_values": 123,
+      "missing_percentage": 0.0
     },
     "dst_ip_bytes": {
-      "dtype": "float64",
-      "unique_values": 3304,
-      "missing_percentage": 93.24186843798245
+      "dtype": "string",
+      "unique_values": 2298,
+      "missing_percentage": 0.0
     },
     "dns_query": {
-      "dtype": "object",
-      "unique_values": 726,
-      "missing_percentage": 93.24186843798245
+      "dtype": "string",
+      "unique_values": 576,
+      "missing_percentage": 0.0
     },
     "dns_qclass": {
-      "dtype": "float64",
+      "dtype": "string",
       "unique_values": 3,
-      "missing_percentage": 93.24186843798245
+      "missing_percentage": 0.0
     },
     "dns_qtype": {
-      "dtype": "float64",
+      "dtype": "string",
       "unique_values": 12,
-      "missing_percentage": 93.24186843798245
+      "missing_percentage": 0.0
     },
     "dns_rcode": {
-      "dtype": "float64",
+      "dtype": "string",
       "unique_values": 4,
-      "missing_percentage": 93.24186843798245
+      "missing_percentage": 0.0
     },
     "dns_AA": {
-      "dtype": "object",
+      "dtype": "string",
       "unique_values": 3,
-      "missing_percentage": 93.24186843798245
+      "missing_percentage": 0.0
     },
     "dns_RD": {
-      "dtype": "object",
+      "dtype": "string",
       "unique_values": 3,
-      "missing_percentage": 93.24186843798245
+      "missing_percentage": 0.0
     },
     "dns_RA": {
-      "dtype": "object",
+      "dtype": "string",
       "unique_values": 3,
-      "missing_percentage": 93.24186843798245
+      "missing_percentage": 0.0
     },
     "dns_rejected": {
-      "dtype": "object",
+      "dtype": "string",
       "unique_values": 3,
-      "missing_percentage": 93.24186843798245
+      "missing_percentage": 0.0
     },
     "ssl_version": {
-      "dtype": "object",
+      "dtype": "string",
       "unique_values": 4,
-      "missing_percentage": 93.24186843798245
+      "missing_percentage": 0.0
     },
     "ssl_cipher": {
-      "dtype": "object",
+      "dtype": "string",
       "unique_values": 6,
-      "missing_percentage": 93.24186843798245
+      "missing_percentage": 0.0
     },
     "ssl_resumed": {
-      "dtype": "object",
+      "dtype": "string",
       "unique_values": 3,
-      "missing_percentage": 93.24186843798245
+      "missing_percentage": 0.0
     },
     "ssl_established": {
-      "dtype": "object",
+      "dtype": "string",
       "unique_values": 3,
-      "missing_percentage": 93.24186843798245
+      "missing_percentage": 0.0
     },
     "ssl_subject": {
-      "dtype": "object",
-      "unique_values": 6,
-      "missing_percentage": 93.24186843798245
+      "dtype": "string",
+      "unique_values": 4,
+      "missing_percentage": 0.0
     },
     "ssl_issuer": {
-      "dtype": "object",
-      "unique_values": 5,
-      "missing_percentage": 93.24186843798245
+      "dtype": "string",
+      "unique_values": 4,
+      "missing_percentage": 0.0
     },
     "http_trans_depth": {
-      "dtype": "object",
-      "unique_values": 11,
-      "missing_percentage": 93.24186843798245
+      "dtype": "string",
+      "unique_values": 10,
+      "missing_percentage": 0.0
     },
     "http_method": {
-      "dtype": "object",
+      "dtype": "string",
       "unique_values": 4,
-      "missing_percentage": 93.24186843798245
+      "missing_percentage": 0.0
     },
     "http_uri": {
-      "dtype": "object",
-      "unique_values": 86,
-      "missing_percentage": 93.24186843798245
+      "dtype": "string",
+      "unique_values": 61,
+      "missing_percentage": 0.0
     },
     "http_version": {
-      "dtype": "object",
+      "dtype": "string",
       "unique_values": 2,
-      "missing_percentage": 93.24186843798245
+      "missing_percentage": 0.0
     },
     "http_request_body_len": {
-      "dtype": "float64",
-      "unique_values": 6,
-      "missing_percentage": 93.24186843798245
+      "dtype": "string",
+      "unique_values": 5,
+      "missing_percentage": 0.0
     },
     "http_response_body_len": {
-      "dtype": "float64",
-      "unique_values": 75,
-      "missing_percentage": 93.24186843798245
+      "dtype": "string",
+      "unique_values": 52,
+      "missing_percentage": 0.0
     },
     "http_status_code": {
-      "dtype": "float64",
-      "unique_values": 8,
-      "missing_percentage": 93.24186843798245
+      "dtype": "string",
+      "unique_values": 7,
+      "missing_percentage": 0.0
     },
     "http_user_agent": {
-      "dtype": "object",
-      "unique_values": 35,
-      "missing_percentage": 93.24186843798245
+      "dtype": "string",
+      "unique_values": 22,
+      "missing_percentage": 0.0
     },
     "http_orig_mime_types": {
-      "dtype": "object",
+      "dtype": "string",
       "unique_values": 3,
-      "missing_percentage": 93.24186843798245
+      "missing_percentage": 0.0
     },
     "http_resp_mime_types": {
-      "dtype": "object",
+      "dtype": "string",
       "unique_values": 10,
-      "missing_percentage": 93.24186843798245
+      "missing_percentage": 0.0
     },
     "weird_name": {
-      "dtype": "object",
-      "unique_values": 11,
-      "missing_percentage": 93.24186843798245
+      "dtype": "string",
+      "unique_values": 9,
+      "missing_percentage": 0.0
     },
     "weird_addl": {
-      "dtype": "object",
-      "unique_values": 3,
-      "missing_percentage": 93.24186843798245
+      "dtype": "string",
+      "unique_values": 2,
+      "missing_percentage": 0.0
     },
     "weird_notice": {
-      "dtype": "object",
+      "dtype": "string",
       "unique_values": 2,
-      "missing_percentage": 93.24186843798245
+      "missing_percentage": 0.0
     },
     "label": {
-      "dtype": "float64",
+      "dtype": "string",
       "unique_values": 2,
-      "missing_percentage": 93.24186843798245
+      "missing_percentage": 0.0
     },
     "type": {
-      "dtype": "object",
+      "dtype": "string",
       "unique_values": 10,
-      "missing_percentage": 93.24186843798245
+      "missing_percentage": 0.0
     }
   }
 }
