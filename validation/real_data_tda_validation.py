@@ -20,49 +20,7 @@ import time
 import warnings
 warnings.filterwarnings('ignore')
 
-def load_real_cicids_infiltration():
-    """Load the REAL CIC-IDS2017 infiltration dataset - NO SYNTHETIC FALLBACK"""
-    print("🎯 LOADING REAL CIC-IDS2017 INFILTRATION DATA")
-    print("=" * 60)
-    
-    # REAL data path - no alternatives
-    real_data_path = "data/apt_datasets/cicids2017/MachineLearningCSV/MachineLearningCVE/Thursday-WorkingHours-Afternoon-Infilteration.pcap_ISCX.csv"
-    
-    print(f"Loading: {real_data_path}")
-    
-    # Load the full real dataset
-    df = pd.read_csv(real_data_path)
-    df.columns = df.columns.str.strip()  # Remove leading/trailing spaces
-    
-    print(f"✅ Dataset shape: {df.shape}")
-    print(f"✅ Label distribution:")
-    print(df['Label'].value_counts())
-    
-    # Prepare features (all numeric columns except Label)
-    feature_cols = [col for col in df.columns if col != 'Label']
-    X = df[feature_cols].select_dtypes(include=[np.number])
-    
-    # Handle missing/infinite values properly
-    print(f"🔧 Cleaning data...")
-    print(f"   Missing values: {X.isnull().sum().sum()}")
-    print(f"   Infinite values: {np.isinf(X.values).sum()}")
-    
-    # Fill missing with median
-    X = X.fillna(X.median())
-    
-    # Replace infinite values with column medians
-    for col in X.columns:
-        col_median = X[col].median()
-        X[col] = X[col].replace([np.inf, -np.inf], col_median)
-    
-    # Create binary labels (BENIGN=0, Infiltration=1)
-    y = (df['Label'] == 'Infiltration').astype(int)
-    
-    print(f"✅ Final features: {X.shape[1]} dimensions")
-    print(f"✅ Final attack rate: {y.mean():.4%} ({y.sum()} attacks)")
-    print(f"✅ Data ready for TDA validation")
-    
-    return X.values, y.values
+from src.utils.data_loader import load_real_cicids_infiltration
 
 def test_baseline_apt_detector(X, y):
     """Test the baseline APT detector on real data"""

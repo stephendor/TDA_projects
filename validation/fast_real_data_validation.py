@@ -6,6 +6,14 @@ Purpose: Test TDA methods on REAL CIC-IDS2017 data with manageable sample sizes
 Data: Real infiltration attacks but sampled for computational efficiency
 """
 
+#!/usr/bin/env python3
+"""
+FAST REAL DATA TDA VALIDATION
+==============================
+Purpose: Test TDA methods on REAL CIC-IDS2017 data with manageable sample sizes
+Data: Real infiltration attacks but sampled for computational efficiency
+"""
+
 import sys
 import os
 sys.path.append('/home/stephen-dorman/dev/TDA_projects')
@@ -19,114 +27,9 @@ import time
 import warnings
 warnings.filterwarnings('ignore')
 
-def load_sampled_real_data(max_benign=5000):
-    """Load real CIC-IDS2017 data but sample benign for speed"""
-    print("🎯 LOADING SAMPLED REAL CIC-IDS2017 DATA")
-    print("-" * 50)
-    
-    real_data_path = "data/apt_datasets/cicids2017/MachineLearningCSV/MachineLearningCVE/Thursday-WorkingHours-Afternoon-Infilteration.pcap_ISCX.csv"
-    
-    df = pd.read_csv(real_data_path)
-    df.columns = df.columns.str.strip()
-    
-    print(f"Original dataset: {df.shape}")
-    
-    # Separate attacks and benign
-    attacks = df[df['Label'] == 'Infiltration']
-    benign = df[df['Label'] == 'BENIGN']
-    
-    print(f"Original attacks: {len(attacks)}")
-    print(f"Original benign: {len(benign)}")
-    
-    # Keep ALL attacks, sample benign for speed
-    benign_sampled = benign.sample(n=min(max_benign, len(benign)), random_state=42)
-    
-    # Combine
-    df_sampled = pd.concat([attacks, benign_sampled])
-    
-    print(f"Sampled dataset: {df_sampled.shape}")
-    print(f"Attack rate: {len(attacks)}/{len(df_sampled)} = {len(attacks)/len(df_sampled):.3%}")
-    
-    # Prepare features
-    feature_cols = [col for col in df_sampled.columns if col != 'Label']
-    X = df_sampled[feature_cols].select_dtypes(include=[np.number])
-    
-    # Clean data
-    X = X.fillna(X.median())
-    for col in X.columns:
-        X[col] = X[col].replace([np.inf, -np.inf], X[col].median())
-    
-    # Binary labels
-    y = (df_sampled['Label'] == 'Infiltration').astype(int)
-    
-    print(f"Final features: {X.shape[1]} dimensions")
-    print(f"Final samples: {len(X)} ({y.sum()} attacks)")
-    
-    return X.values, y.values
-
-def test_detector_fast(detector_class, detector_name, X, y, **kwargs):
-    """Fast detector test"""
-    print(f"\n🧪 TESTING {detector_name}")
-    print("-" * 40)
-    
-    try:
-        # Split data
-        X_train, X_test, y_train, y_test = train_test_split(
-            X, y, test_size=0.3, random_state=42, stratify=y
-        )
-        
-        print(f"Train: {len(X_train)} samples ({y_train.sum()} attacks)")
-        print(f"Test: {len(X_test)} samples ({y_test.sum()} attacks)")
-        
-        start_time = time.time()
-        detector = detector_class(**kwargs)
-        
-        # Handle different training approaches
-        if "baseline" in detector_name.lower():
-            # Unsupervised - normal data only
-            X_train_normal = X_train[y_train == 0]
-            detector.fit(X_train_normal)
-        else:
-            # Supervised
-            detector.fit(X_train, y_train)
-        
-        train_time = time.time() - start_time
-        
-        # Predict
-        y_pred = detector.predict(X_test)
-        
-        # Metrics
-        f1 = f1_score(y_test, y_pred, zero_division=0)
-        accuracy = accuracy_score(y_test, y_pred)
-        precision = precision_score(y_test, y_pred, zero_division=0)
-        recall = recall_score(y_test, y_pred, zero_division=0)
-        cm = confusion_matrix(y_test, y_pred)
-        
-        print(f"✅ Results:")
-        print(f"   F1: {f1:.3f} ({f1*100:.1f}%)")
-        print(f"   Accuracy: {accuracy:.3f} ({accuracy*100:.1f}%)")
-        print(f"   Precision: {precision:.3f}")
-        print(f"   Recall: {recall:.3f}")
-        print(f"   Time: {train_time:.1f}s")
-        print(f"   Attacks found: {cm[1,1]}/{y_test.sum()}")
-        print(f"   False positives: {cm[0,1]}")
-        
-        return {
-            'method': detector_name,
-            'f1_score': f1,
-            'accuracy': accuracy,
-            'precision': precision,
-            'recall': recall,
-            'training_time': train_time,
-            'attacks_detected': int(cm[1,1]),
-            'total_attacks': int(y_test.sum()),
-            'false_positives': int(cm[0,1]),
-            'status': 'SUCCESS'
-        }
-        
-    except Exception as e:
-        print(f"❌ FAILED: {e}")
-        return {'method': detector_name, 'status': 'FAILED', 'error': str(e)}
+from src.utils.data_loader import load_sampled_real_data
+from src.utils.model_testing import run_detector_test
+from src.utils.results_saver import save_validation_results
 
 def main():
     """Run fast real data validation"""
@@ -143,7 +46,7 @@ def main():
     # Test 1: Baseline APT Detector
     try:
         from src.cybersecurity.apt_detection import APTDetector
-        result = test_detector_fast(APTDetector, "Baseline APT Detector", X, y, verbose=False)
+        result = run_detector_test(APTDetector, "Baseline APT Detector", X, y, verbose=False)
         results.append(result)
     except ImportError as e:
         print(f"❌ Cannot import baseline: {e}")
@@ -152,7 +55,7 @@ def main():
     # Test 2: Improved APT Detector
     try:
         from src.cybersecurity.apt_detection_improved import ImprovedAPTDetector
-        result = test_detector_fast(
+        result = run_detector_test(
             ImprovedAPTDetector, "Improved APT Detector", X, y, 
             ensemble_size=2, verbose=False
         )
@@ -164,7 +67,7 @@ def main():
     # Test 3: Enhanced APT Detector
     try:
         from src.cybersecurity.apt_detection_optimized import EnhancedAPTDetector
-        result = test_detector_fast(
+        result = run_detector_test(
             EnhancedAPTDetector, "Enhanced APT Detector", X, y, verbose=False
         )
         results.append(result)
@@ -216,20 +119,19 @@ def main():
             print(f"   - {result['method']}: {result['status']}")
     
     # Save results
-    import json
-    output_file = 'fast_real_data_results.json'
-    with open(output_file, 'w') as f:
-        json.dump({
-            'validation_type': 'Fast Real Data Validation',
-            'dataset': 'CIC-IDS2017 Infiltration (sampled)',
-            'results': results,
-            'best_performer': successful[0] if successful else None
-        }, f, indent=2, default=str)
+    dataset_info = {
+        'total_samples': len(X),
+        'attack_samples': int(np.sum(y)),
+        'attack_rate': float(np.mean(y)),
+        'features': int(X.shape[1])
+    }
+    save_validation_results(results, "Fast Real Data Validation", dataset_info, 'fast_real_data_results.json')
     
-    print(f"\n💾 Results saved to: {output_file}")
     print("⚡ Fast validation complete!")
     
     return results
 
 if __name__ == "__main__":
     results = main()
+
+
