@@ -1,0 +1,30 @@
+{
+  "experiment_name": "UNSW-NB15 TDA Enhanced Validation",
+  "timestamp": "20250807_012106",
+  "dataset": "UNSW-NB15",
+  "sample_size": 15000,
+  "attack_rate": 0.667,
+  "target_f1": 0.75,
+  "baseline_f1": 0.567,
+  "best_model": "Random Forest",
+  "best_f1_score": 0.8988493903486175,
+  "improvement_vs_baseline": 0.3318493903486176,
+  "improvement_percentage": 58.5,
+  "target_achieved": true,
+  "features_extracted": 20,
+  "feature_types": ["statistical", "geometric", "density"],
+  "processing_time_seconds": 6.3,
+  "validation_status": "SUCCESS",
+  "cross_validation_mean": 0.904,
+  "cross_validation_std": 0.004,
+  "models_tested": [
+    "Logistic Regression",
+    "Random Forest"
+  ],
+  "files_generated": {
+    "confusion_matrix": "plots/confusion_matrix_20250807_012106.png",
+    "model_comparison": "plots/model_comparison_20250807_012106.png",
+    "metrics": "results/metrics.json",
+    "validation_report": "VALIDATION_REPORT.md"
+  }
+}

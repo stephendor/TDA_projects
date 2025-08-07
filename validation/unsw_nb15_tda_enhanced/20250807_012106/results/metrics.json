@@ -1,0 +1,24 @@
+{
+  "best_model": "Random Forest",
+  "best_f1_score": 0.8988493903486175,
+  "target_f1": 0.75,
+  "baseline_f1": 0.567,
+  "improvement_vs_baseline": 0.3318493903486176,
+  "timestamp": "20250807_012106",
+  "models": {
+    "Logistic Regression": {
+      "f1_score": 0.8446895570183242,
+      "accuracy": 0.806,
+      "cv_mean": 0.8412722868367687,
+      "cv_std": 0.004965703661583148,
+      "training_time": 0.027898073196411133
+    },
+    "Random Forest": {
+      "f1_score": 0.8988493903486175,
+      "accuracy": 0.8691111111111111,
+      "cv_mean": 0.904047368855997,
+      "cv_std": 0.0040375784843845915,
+      "training_time": 0.21537280082702637
+    }
+  }
+}

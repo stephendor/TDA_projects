@@ -1,0 +1,723 @@
+{
+  "timestamp": "2025-08-07T00:03:00.627615",
+  "attack_results": {
+    "Bot": {
+      "attack_type": "Bot",
+      "accuracy": 0.5666666666666667,
+      "feature_importance": "[0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0.\n 0. 0.]",
+      "feature_stats": {
+        "betti_0": {
+          "importance": 0.0,
+          "attack_mean": 0.0,
+          "attack_std": 0.0,
+          "benign_mean": 0.0,
+          "benign_std": 0.0,
+          "separation": 0.0
+        },
+        "betti_1": {
+          "importance": 0.0,
+          "attack_mean": 0.0,
+          "attack_std": 0.0,
+          "benign_mean": 0.0,
+          "benign_std": 0.0,
+          "separation": 0.0
+        },
+        "betti_2": {
+          "importance": 0.0,
+          "attack_mean": 0.0,
+          "attack_std": 0.0,
+          "benign_mean": 0.0,
+          "benign_std": 0.0,
+          "separation": 0.0
+        },
+        "h0_max_persistence": {
+          "importance": 0.0,
+          "attack_mean": 0.0,
+          "attack_std": 0.0,
+          "benign_mean": 0.0,
+          "benign_std": 0.0,
+          "separation": 0.0
+        },
+        "h0_total_persistence": {
+          "importance": 0.0,
+          "attack_mean": 0.0,
+          "attack_std": 0.0,
+          "benign_mean": 0.0,
+          "benign_std": 0.0,
+          "separation": 0.0
+        },
+        "h0_feature_count": {
+          "importance": 0.0,
+          "attack_mean": 0.0,
+          "attack_std": 0.0,
+          "benign_mean": 0.0,
+          "benign_std": 0.0,
+          "separation": 0.0
+        },
+        "h1_max_persistence": {
+          "importance": 0.0,
+          "attack_mean": 0.0,
+          "attack_std": 0.0,
+          "benign_mean": 0.0,
+          "benign_std": 0.0,
+          "separation": 0.0
+        },
+        "h1_total_persistence": {
+          "importance": 0.0,
+          "attack_mean": 0.0,
+          "attack_std": 0.0,
+          "benign_mean": 0.0,
+          "benign_std": 0.0,
+          "separation": 0.0
+        },
+        "h1_feature_count": {
+          "importance": 0.0,
+          "attack_mean": 0.0,
+          "attack_std": 0.0,
+          "benign_mean": 0.0,
+          "benign_std": 0.0,
+          "separation": 0.0
+        },
+        "h2_max_persistence": {
+          "importance": 0.0,
+          "attack_mean": 0.0,
+          "attack_std": 0.0,
+          "benign_mean": 0.0,
+          "benign_std": 0.0,
+          "separation": 0.0
+        },
+        "h2_total_persistence": {
+          "importance": 0.0,
+          "attack_mean": 0.0,
+          "attack_std": 0.0,
+          "benign_mean": 0.0,
+          "benign_std": 0.0,
+          "separation": 0.0
+        },
+        "h2_feature_count": {
+          "importance": 0.0,
+          "attack_mean": 0.0,
+          "attack_std": 0.0,
+          "benign_mean": 0.0,
+          "benign_std": 0.0,
+          "separation": 0.0
+        },
+        "total_features": {
+          "importance": 0.0,
+          "attack_mean": 0.0,
+          "attack_std": 0.0,
+          "benign_mean": 0.0,
+          "benign_std": 0.0,
+          "separation": 0.0
+        },
+        "total_persistence": {
+          "importance": 0.0,
+          "attack_mean": 0.0,
+          "attack_std": 0.0,
+          "benign_mean": 0.0,
+          "benign_std": 0.0,
+          "separation": 0.0
+        },
+        "mapper_nodes": {
+          "importance": 0.0,
+          "attack_mean": 0.0,
+          "attack_std": 0.0,
+          "benign_mean": 0.0,
+          "benign_std": 0.0,
+          "separation": 0.0
+        },
+        "mapper_edges": {
+          "importance": 0.0,
+          "attack_mean": 0.0,
+          "attack_std": 0.0,
+          "benign_mean": 0.0,
+          "benign_std": 0.0,
+          "separation": 0.0
+        },
+        "mapper_density": {
+          "importance": 0.0,
+          "attack_mean": 0.0,
+          "attack_std": 0.0,
+          "benign_mean": 0.0,
+          "benign_std": 0.0,
+          "separation": 0.0
+        },
+        "mapper_euler_char": {
+          "importance": 0.0,
+          "attack_mean": 0.0,
+          "attack_std": 0.0,
+          "benign_mean": 0.0,
+          "benign_std": 0.0,
+          "separation": 0.0
+        },
+        "mapper_avg_node_size": {
+          "importance": 0.0,
+          "attack_mean": 0.0,
+          "attack_std": 0.0,
+          "benign_mean": 0.0,
+          "benign_std": 0.0,
+          "separation": 0.0
+        },
+        "mapper_node_size_std": {
+          "importance": 0.0,
+          "attack_mean": 0.0,
+          "attack_std": 0.0,
+          "benign_mean": 0.0,
+          "benign_std": 0.0,
+          "separation": 0.0
+        },
+        "mapper_size_range": {
+          "importance": 0.0,
+          "attack_mean": 0.0,
+          "attack_std": 0.0,
+          "benign_mean": 0.0,
+          "benign_std": 0.0,
+          "separation": 0.0
+        },
+        "mapper_connected": {
+          "importance": 0.0,
+          "attack_mean": 0.0,
+          "attack_std": 0.0,
+          "benign_mean": 0.0,
+          "benign_std": 0.0,
+          "separation": 0.0
+        },
+        "mapper_cycle_rank": {
+          "importance": 0.0,
+          "attack_mean": 0.0,
+          "attack_std": 0.0,
+          "benign_mean": 0.0,
+          "benign_std": 0.0,
+          "separation": 0.0
+        },
+        "mean_distance": {
+          "importance": 0.0,
+          "attack_mean": 1.1380711874576983,
+          "attack_std": 0.0,
+          "benign_mean": 1.1380711874576983,
+          "benign_std": 0.0,
+          "separation": 0.0
+        },
+        "distance_variance": {
+          "importance": 0.0,
+          "attack_mean": 0.19526214587563503,
+          "attack_std": 2.7755575615628914e-17,
+          "benign_mean": 0.19526214587563506,
+          "benign_std": 0.0,
+          "separation": 2.7755575538591714e-09
+        },
+        "diameter": {
+          "importance": 0.0,
+          "attack_mean": 1.4142135623730951,
+          "attack_std": 0.0,
+          "benign_mean": 1.4142135623730951,
+          "benign_std": 0.0,
+          "separation": 0.0
+        }
+      },
+      "tda_matrix_shape": [
+        120,
+        26
+      ],
+      "non_zero_features": "360",
+      "classification_report": {
+        "0": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1-score": 0.0,
+          "support": 13.0
+        },
+        "1": {
+          "precision": 0.5666666666666667,
+          "recall": 1.0,
+          "f1-score": 0.723404255319149,
+          "support": 17.0
+        },
+        "accuracy": 0.5666666666666667,
+        "macro avg": {
+          "precision": 0.2833333333333333,
+          "recall": 0.5,
+          "f1-score": 0.3617021276595745,
+          "support": 30.0
+        },
+        "weighted avg": {
+          "precision": 0.32111111111111107,
+          "recall": 0.5666666666666667,
+          "f1-score": 0.40992907801418443,
+          "support": 30.0
+        }
+      }
+    },
+    "Infilteration": {
+      "attack_type": "Infilteration",
+      "accuracy": 0.5666666666666667,
+      "feature_importance": "[0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0.\n 0. 0.]",
+      "feature_stats": {
+        "betti_0": {
+          "importance": 0.0,
+          "attack_mean": 0.0,
+          "attack_std": 0.0,
+          "benign_mean": 0.0,
+          "benign_std": 0.0,
+          "separation": 0.0
+        },
+        "betti_1": {
+          "importance": 0.0,
+          "attack_mean": 0.0,
+          "attack_std": 0.0,
+          "benign_mean": 0.0,
+          "benign_std": 0.0,
+          "separation": 0.0
+        },
+        "betti_2": {
+          "importance": 0.0,
+          "attack_mean": 0.0,
+          "attack_std": 0.0,
+          "benign_mean": 0.0,
+          "benign_std": 0.0,
+          "separation": 0.0
+        },
+        "h0_max_persistence": {
+          "importance": 0.0,
+          "attack_mean": 0.0,
+          "attack_std": 0.0,
+          "benign_mean": 0.0,
+          "benign_std": 0.0,
+          "separation": 0.0
+        },
+        "h0_total_persistence": {
+          "importance": 0.0,
+          "attack_mean": 0.0,
+          "attack_std": 0.0,
+          "benign_mean": 0.0,
+          "benign_std": 0.0,
+          "separation": 0.0
+        },
+        "h0_feature_count": {
+          "importance": 0.0,
+          "attack_mean": 0.0,
+          "attack_std": 0.0,
+          "benign_mean": 0.0,
+          "benign_std": 0.0,
+          "separation": 0.0
+        },
+        "h1_max_persistence": {
+          "importance": 0.0,
+          "attack_mean": 0.0,
+          "attack_std": 0.0,
+          "benign_mean": 0.0,
+          "benign_std": 0.0,
+          "separation": 0.0
+        },
+        "h1_total_persistence": {
+          "importance": 0.0,
+          "attack_mean": 0.0,
+          "attack_std": 0.0,
+          "benign_mean": 0.0,
+          "benign_std": 0.0,
+          "separation": 0.0
+        },
+        "h1_feature_count": {
+          "importance": 0.0,
+          "attack_mean": 0.0,
+          "attack_std": 0.0,
+          "benign_mean": 0.0,
+          "benign_std": 0.0,
+          "separation": 0.0
+        },
+        "h2_max_persistence": {
+          "importance": 0.0,
+          "attack_mean": 0.0,
+          "attack_std": 0.0,
+          "benign_mean": 0.0,
+          "benign_std": 0.0,
+          "separation": 0.0
+        },
+        "h2_total_persistence": {
+          "importance": 0.0,
+          "attack_mean": 0.0,
+          "attack_std": 0.0,
+          "benign_mean": 0.0,
+          "benign_std": 0.0,
+          "separation": 0.0
+        },
+        "h2_feature_count": {
+          "importance": 0.0,
+          "attack_mean": 0.0,
+          "attack_std": 0.0,
+          "benign_mean": 0.0,
+          "benign_std": 0.0,
+          "separation": 0.0
+        },
+        "total_features": {
+          "importance": 0.0,
+          "attack_mean": 0.0,
+          "attack_std": 0.0,
+          "benign_mean": 0.0,
+          "benign_std": 0.0,
+          "separation": 0.0
+        },
+        "total_persistence": {
+          "importance": 0.0,
+          "attack_mean": 0.0,
+          "attack_std": 0.0,
+          "benign_mean": 0.0,
+          "benign_std": 0.0,
+          "separation": 0.0
+        },
+        "mapper_nodes": {
+          "importance": 0.0,
+          "attack_mean": 0.0,
+          "attack_std": 0.0,
+          "benign_mean": 0.0,
+          "benign_std": 0.0,
+          "separation": 0.0
+        },
+        "mapper_edges": {
+          "importance": 0.0,
+          "attack_mean": 0.0,
+          "attack_std": 0.0,
+          "benign_mean": 0.0,
+          "benign_std": 0.0,
+          "separation": 0.0
+        },
+        "mapper_density": {
+          "importance": 0.0,
+          "attack_mean": 0.0,
+          "attack_std": 0.0,
+          "benign_mean": 0.0,
+          "benign_std": 0.0,
+          "separation": 0.0
+        },
+        "mapper_euler_char": {
+          "importance": 0.0,
+          "attack_mean": 0.0,
+          "attack_std": 0.0,
+          "benign_mean": 0.0,
+          "benign_std": 0.0,
+          "separation": 0.0
+        },
+        "mapper_avg_node_size": {
+          "importance": 0.0,
+          "attack_mean": 0.0,
+          "attack_std": 0.0,
+          "benign_mean": 0.0,
+          "benign_std": 0.0,
+          "separation": 0.0
+        },
+        "mapper_node_size_std": {
+          "importance": 0.0,
+          "attack_mean": 0.0,
+          "attack_std": 0.0,
+          "benign_mean": 0.0,
+          "benign_std": 0.0,
+          "separation": 0.0
+        },
+        "mapper_size_range": {
+          "importance": 0.0,
+          "attack_mean": 0.0,
+          "attack_std": 0.0,
+          "benign_mean": 0.0,
+          "benign_std": 0.0,
+          "separation": 0.0
+        },
+        "mapper_connected": {
+          "importance": 0.0,
+          "attack_mean": 0.0,
+          "attack_std": 0.0,
+          "benign_mean": 0.0,
+          "benign_std": 0.0,
+          "separation": 0.0
+        },
+        "mapper_cycle_rank": {
+          "importance": 0.0,
+          "attack_mean": 0.0,
+          "attack_std": 0.0,
+          "benign_mean": 0.0,
+          "benign_std": 0.0,
+          "separation": 0.0
+        },
+        "mean_distance": {
+          "importance": 0.0,
+          "attack_mean": 1.1380711874576983,
+          "attack_std": 0.0,
+          "benign_mean": 1.1380711874576983,
+          "benign_std": 0.0,
+          "separation": 0.0
+        },
+        "distance_variance": {
+          "importance": 0.0,
+          "attack_mean": 0.19526214587563503,
+          "attack_std": 2.7755575615628914e-17,
+          "benign_mean": 0.19526214587563506,
+          "benign_std": 0.0,
+          "separation": 2.7755575538591714e-09
+        },
+        "diameter": {
+          "importance": 0.0,
+          "attack_mean": 1.4142135623730951,
+          "attack_std": 0.0,
+          "benign_mean": 1.4142135623730951,
+          "benign_std": 0.0,
+          "separation": 0.0
+        }
+      },
+      "tda_matrix_shape": [
+        120,
+        26
+      ],
+      "non_zero_features": "360",
+      "classification_report": {
+        "0": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1-score": 0.0,
+          "support": 13.0
+        },
+        "1": {
+          "precision": 0.5666666666666667,
+          "recall": 1.0,
+          "f1-score": 0.723404255319149,
+          "support": 17.0
+        },
+        "accuracy": 0.5666666666666667,
+        "macro avg": {
+          "precision": 0.2833333333333333,
+          "recall": 0.5,
+          "f1-score": 0.3617021276595745,
+          "support": 30.0
+        },
+        "weighted avg": {
+          "precision": 0.32111111111111107,
+          "recall": 0.5666666666666667,
+          "f1-score": 0.40992907801418443,
+          "support": 30.0
+        }
+      }
+    }
+  },
+  "feature_analysis": {
+    "betti_0": {
+      "avg_importance": 0.0,
+      "avg_separation": 0.0,
+      "max_importance": 0.0,
+      "consistency": 1.0
+    },
+    "betti_1": {
+      "avg_importance": 0.0,
+      "avg_separation": 0.0,
+      "max_importance": 0.0,
+      "consistency": 1.0
+    },
+    "betti_2": {
+      "avg_importance": 0.0,
+      "avg_separation": 0.0,
+      "max_importance": 0.0,
+      "consistency": 1.0
+    },
+    "h0_max_persistence": {
+      "avg_importance": 0.0,
+      "avg_separation": 0.0,
+      "max_importance": 0.0,
+      "consistency": 1.0
+    },
+    "h0_total_persistence": {
+      "avg_importance": 0.0,
+      "avg_separation": 0.0,
+      "max_importance": 0.0,
+      "consistency": 1.0
+    },
+    "h0_feature_count": {
+      "avg_importance": 0.0,
+      "avg_separation": 0.0,
+      "max_importance": 0.0,
+      "consistency": 1.0
+    },
+    "h1_max_persistence": {
+      "avg_importance": 0.0,
+      "avg_separation": 0.0,
+      "max_importance": 0.0,
+      "consistency": 1.0
+    },
+    "h1_total_persistence": {
+      "avg_importance": 0.0,
+      "avg_separation": 0.0,
+      "max_importance": 0.0,
+      "consistency": 1.0
+    },
+    "h1_feature_count": {
+      "avg_importance": 0.0,
+      "avg_separation": 0.0,
+      "max_importance": 0.0,
+      "consistency": 1.0
+    },
+    "h2_max_persistence": {
+      "avg_importance": 0.0,
+      "avg_separation": 0.0,
+      "max_importance": 0.0,
+      "consistency": 1.0
+    },
+    "h2_total_persistence": {
+      "avg_importance": 0.0,
+      "avg_separation": 0.0,
+      "max_importance": 0.0,
+      "consistency": 1.0
+    },
+    "h2_feature_count": {
+      "avg_importance": 0.0,
+      "avg_separation": 0.0,
+      "max_importance": 0.0,
+      "consistency": 1.0
+    },
+    "total_features": {
+      "avg_importance": 0.0,
+      "avg_separation": 0.0,
+      "max_importance": 0.0,
+      "consistency": 1.0
+    },
+    "total_persistence": {
+      "avg_importance": 0.0,
+      "avg_separation": 0.0,
+      "max_importance": 0.0,
+      "consistency": 1.0
+    },
+    "mapper_nodes": {
+      "avg_importance": 0.0,
+      "avg_separation": 0.0,
+      "max_importance": 0.0,
+      "consistency": 1.0
+    },
+    "mapper_edges": {
+      "avg_importance": 0.0,
+      "avg_separation": 0.0,
+      "max_importance": 0.0,
+      "consistency": 1.0
+    },
+    "mapper_density": {
+      "avg_importance": 0.0,
+      "avg_separation": 0.0,
+      "max_importance": 0.0,
+      "consistency": 1.0
+    },
+    "mapper_euler_char": {
+      "avg_importance": 0.0,
+      "avg_separation": 0.0,
+      "max_importance": 0.0,
+      "consistency": 1.0
+    },
+    "mapper_avg_node_size": {
+      "avg_importance": 0.0,
+      "avg_separation": 0.0,
+      "max_importance": 0.0,
+      "consistency": 1.0
+    },
+    "mapper_node_size_std": {
+      "avg_importance": 0.0,
+      "avg_separation": 0.0,
+      "max_importance": 0.0,
+      "consistency": 1.0
+    },
+    "mapper_size_range": {
+      "avg_importance": 0.0,
+      "avg_separation": 0.0,
+      "max_importance": 0.0,
+      "consistency": 1.0
+    },
+    "mapper_connected": {
+      "avg_importance": 0.0,
+      "avg_separation": 0.0,
+      "max_importance": 0.0,
+      "consistency": 1.0
+    },
+    "mapper_cycle_rank": {
+      "avg_importance": 0.0,
+      "avg_separation": 0.0,
+      "max_importance": 0.0,
+      "consistency": 1.0
+    },
+    "mean_distance": {
+      "avg_importance": 0.0,
+      "avg_separation": 0.0,
+      "max_importance": 0.0,
+      "consistency": 1.0
+    },
+    "distance_variance": {
+      "avg_importance": 0.0,
+      "avg_separation": 2.7755575538591714e-09,
+      "max_importance": 0.0,
+      "consistency": 1.0
+    },
+    "diameter": {
+      "avg_importance": 0.0,
+      "avg_separation": 0.0,
+      "max_importance": 0.0,
+      "consistency": 1.0
+    }
+  },
+  "top_features": {
+    "betti_0": {
+      "avg_importance": 0.0,
+      "avg_separation": 0.0,
+      "max_importance": 0.0,
+      "consistency": 1.0
+    },
+    "betti_1": {
+      "avg_importance": 0.0,
+      "avg_separation": 0.0,
+      "max_importance": 0.0,
+      "consistency": 1.0
+    },
+    "betti_2": {
+      "avg_importance": 0.0,
+      "avg_separation": 0.0,
+      "max_importance": 0.0,
+      "consistency": 1.0
+    },
+    "h0_max_persistence": {
+      "avg_importance": 0.0,
+      "avg_separation": 0.0,
+      "max_importance": 0.0,
+      "consistency": 1.0
+    },
+    "h0_total_persistence": {
+      "avg_importance": 0.0,
+      "avg_separation": 0.0,
+      "max_importance": 0.0,
+      "consistency": 1.0
+    },
+    "h0_feature_count": {
+      "avg_importance": 0.0,
+      "avg_separation": 0.0,
+      "max_importance": 0.0,
+      "consistency": 1.0
+    },
+    "h1_max_persistence": {
+      "avg_importance": 0.0,
+      "avg_separation": 0.0,
+      "max_importance": 0.0,
+      "consistency": 1.0
+    },
+    "h1_total_persistence": {
+      "avg_importance": 0.0,
+      "avg_separation": 0.0,
+      "max_importance": 0.0,
+      "consistency": 1.0
+    },
+    "h1_feature_count": {
+      "avg_importance": 0.0,
+      "avg_separation": 0.0,
+      "max_importance": 0.0,
+      "consistency": 1.0
+    },
+    "h2_max_persistence": {
+      "avg_importance": 0.0,
+      "avg_separation": 0.0,
+      "max_importance": 0.0,
+      "consistency": 1.0
+    }
+  },
+  "accuracy_ranking": {
+    "Bot": 0.5666666666666667,
+    "Infilteration": 0.5666666666666667
+  }
+}
