@@ -1,17 +1,4 @@
 import os
-from dotenv import load_dotenv
-load_dotenv("../../.env")
-
-import os
-from dotenv import load_dotenv
-
-# Force load environment variables BEFORE any CrewAI imports
-load_dotenv('../../.env')
-
-# Ensure the API key is set in the environment
-if not os.getenv('GOOGLE_API_KEY'):
-    raise Exception("GOOGLE_API_KEY not found in environment!")
-
 from crewai import LLM
 from crewai import Agent, Crew, Process, Task
 from crewai.project import CrewBase, agent, crew, task
@@ -51,13 +38,12 @@ class TdaDeepLearningResearchPipelineCrew:
         
         return Agent(
             config=self.agents_config["tda_research_specialist"],
-            # tools=[],
+            tools=[SerplyScholarSearchTool()],
             reasoning=False,
             inject_date=True,
             llm=LLM(
-                model="gemini/gemini-2.5-pro",
+                model="gpt-4o-mini",
                 temperature=0.7,
-            api_key=os.getenv("GOOGLE_API_KEY"),
             ),
         )
     
@@ -66,13 +52,12 @@ class TdaDeepLearningResearchPipelineCrew:
         
         return Agent(
             config=self.agents_config["tda_analysis_engineer"],
-            # tools=[],
+            tools=[ScrapeWebsiteTool()],
             reasoning=False,
             inject_date=True,
             llm=LLM(
-                model="gemini/gemini-2.5-pro",
+                model="gpt-4o-mini",
                 temperature=0.7,
-            api_key=os.getenv("GOOGLE_API_KEY"),
             ),
         )
     
@@ -81,13 +66,12 @@ class TdaDeepLearningResearchPipelineCrew:
         
         return Agent(
             config=self.agents_config["deep_learning_engineer"],
-            # tools=[],
+            tools=[ScrapeWebsiteTool()],
             reasoning=False,
             inject_date=True,
             llm=LLM(
-                model="gemini/gemini-2.5-pro",
+                model="gpt-4o-mini",
                 temperature=0.7,
-            api_key=os.getenv("GOOGLE_API_KEY"),
             ),
         )
     
@@ -100,9 +84,8 @@ class TdaDeepLearningResearchPipelineCrew:
             reasoning=False,
             inject_date=True,
             llm=LLM(
-                model="gemini/gemini-2.5-pro",
+                model="gpt-4o-mini",
                 temperature=0.7,
-            api_key=os.getenv("GOOGLE_API_KEY"),
             ),
         )
     

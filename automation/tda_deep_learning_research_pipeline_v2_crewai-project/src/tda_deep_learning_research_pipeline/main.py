@@ -1,7 +1,12 @@
 #!/usr/bin/env python
 import sys
-from tda_deep_learning_research_pipeline.crew import TdaDeepLearningResearchPipelineCrew
+import os
+from dotenv import load_dotenv
 
+# Load environment variables from .env file (two levels up from current directory)
+load_dotenv('../../.env')
+
+from crew import TdaDeepLearningResearchPipelineCrew
 # This main file is intended to be a way for your to run your
 # crew locally, so refrain from adding unnecessary logic into this file.
 # Replace with inputs you want to test with, it will automatically
