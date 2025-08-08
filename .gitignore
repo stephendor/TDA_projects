@@ -1,6 +1,8 @@
 # Data files and large datasets
 data/
 data/**/*
+validation/
+validation/**/*
 validation/feature_dumps
 
 # Python cache files

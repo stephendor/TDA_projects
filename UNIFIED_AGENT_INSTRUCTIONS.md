@@ -33,13 +33,31 @@ def validate_performance_claim(claimed_f1, method_script):
 ## 🔬 MANDATORY TDA IMPLEMENTATION RULES
 
 ### REAL TOPOLOGICAL ANALYSIS REQUIRED
+
 - **THIS IS A TOPOLOGICAL DATA ANALYSIS PROJECT**: ALL analysis MUST use actual topology
 - **FORBIDDEN**: Using statistical features (mean, std, skew, kurtosis) as "topological proxies"
 - **REQUIRED**: Must use existing TDA infrastructure:
-  - `src.core.persistent_homology.PersistentHomologyAnalyzer` 
+  - `src.core.persistent_homology.PersistentHomologyAnalyzer`
   - `src.core.mapper.MapperAnalyzer`
+  - Deterministic multi-block vector stack in `src.embeddings.vector_stack` (if using stacked topological liftings)
   - Real persistence diagrams, birth/death times, Betti numbers
 - **FORBIDDEN**: Creating custom "extract_basic_topo_features" or similar statistical proxy functions
+
+#### Deterministic Vector Stack (New Module Governance)
+
+When using the vector stack (multi-block deterministic topological liftings):
+
+- Allowed blocks (v1): Persistence Landscapes, Persistence Images (intensity-normalized), Betti Curves, Sliced Wasserstein Projections, Static Kernel Dictionary Responses (k-means++ on train diagrams only)
+- Optional (deferred until explicitly enabled): Persistence Silhouettes
+- Homology dimensions default: H0, H1 (only add H2 after empirical evidence)
+- All blocks must operate directly on raw diagrams `(birth, death)` (converted internally to `(birth, lifetime)` where needed)
+- Per-block normalization (z-score) parameters MUST be fit on training set only (temporal guard: `max(train_time) < min(test_time)`)
+- Kernel dictionary centers & bandwidth base estimates MUST be derived solely from training diagrams
+- NO statistical aggregates (means, stds of lifetimes, counts outside genuine Betti numbers) may be introduced as pseudo-topological features
+- Manifest Requirements: store JSON with block ordering, spans, normalization stats hash (SHA256 over training diagram manifest)
+- Failure Tracking: Any PR-AUC degradation >0.05 vs baseline (current documented PR-AUC ~0.85) must flag the run as FAILURE
+
+Validation scripts must reference `validation/extract_vector_stack.py` (or timestamped variant) for reproducibility.
 
 ### PRE-IMPLEMENTATION VERIFICATION
 Before writing ANY TDA validation code, must provide:
@@ -64,9 +82,15 @@ Before writing ANY TDA validation code, must provide:
 ## 📁 PROJECT STRUCTURE AND ORGANIZATION
 
 ### Directory Structure
-```
+
+```text
 TDA_projects/
 ├── src/                          # Core platform (main development)
+│   ├── embeddings/               # Topological embedding layers
+│   │   ├── perslay_layer.py      # Learnable PersLay variant (documented failure if under baseline)
+│   │   └── vector_stack/         # Deterministic multi-block vector stack implementation
+│   │       ├── __init__.py
+│   │       └── vector_stack.py
 ├── examples/                     # Working examples
 ├── validation/                   # Validation results and scripts
 ├── daily_logs/                   # Session logs and progress tracking
@@ -165,52 +189,52 @@ TDA_projects/
 ## 📝 VALIDATION OUTPUT REQUIREMENTS
 
 ### MANDATORY GRANULAR VALIDATION STRUCTURE
-```
+
+```text
 validation/
-├── method_name_description/           # Descriptive method name
-│   └── YYYYMMDD_HHMMSS/              # Timestamp-based run directory
-│       ├── VALIDATION_REPORT.md      # Main validation report
-│       ├── data/                     # Dataset info and TDA artifacts
-│       │   ├── persistence_diagrams/ # TDA artifacts by attack type
+├── method_name_description/
+│   └── YYYYMMDD_HHMMSS/
+│       ├── VALIDATION_REPORT.md
+│       ├── data/
+│       │   ├── persistence_diagrams/
 │       │   │   ├── normal_H0.json, normal_H1.json
 │       │   │   ├── ddos_H0.json, ddos_H1.json
 │       │   │   └── [attack_type]_H[dim].json
-│       │   └── barcodes/             # Persistence barcodes
-│       ├── plots/                    # All visualization outputs
+│       │   └── barcodes/
+│       ├── plots/
 │       │   ├── confusion_matrix.png
-│       │   ├── roc_curve.png         # New: ROC curve
-│       │   ├── precision_recall_curve.png # New: Precision-Recall curve
-│       │   ├── feature_importance.png # New: Feature importance
-│       │   ├── prediction_distribution.png # New: Distribution of predictions
+│       │   ├── roc_curve.png
+│       │   ├── precision_recall_curve.png
+│       │   ├── feature_importance.png
+│       │   ├── prediction_distribution.png
 │       │   ├── attack_type_performance.png
 │       │   ├── persistence_diagrams.png
 │       │   └── topological_features_comparison.png
-│       ├── raw_output/               # New: Raw console output from validation run
+│       ├── raw_output/
 │       │   └── console_output.log
-│       └── results/                  # Metrics and analysis
-│           ├── metrics.json          # Attack-type breakdown required
-│           ├── topological_analysis.json # TDA-specific metrics
+│       └── results/
+│           ├── metrics.json
+│           ├── topological_analysis.json
 │           └── validation_summary.json
 ```
 
 ### MANDATORY METRICS FORMAT
+
 ```json
 {
   "overall_metrics": {
-    "f1_score": {"mean": float, "std": float}, # New: Include standard deviation
-    "accuracy": {"mean": float, "std": float},
-    "precision": {"mean": float, "std": float},
-    "recall": {"mean": float, "std": float}
+    "f1_score": {"mean": 0.0, "std": 0.0},
+    "accuracy": {"mean": 0.0, "std": 0.0},
+    "precision": {"mean": 0.0, "std": 0.0},
+    "recall": {"mean": 0.0, "std": 0.0}
   },
   "attack_type_metrics": {
-    "Normal": {"f1": {"mean": float, "std": float}, "precision": {"mean": float, "std": float}, "recall": {"mean": float, "std": float}, "support": int},
-    "DDoS": {"f1": {"mean": float, "std": float}, "precision": {"mean": float, "std": float}, "recall": {"mean": float, "std": float}, "support": int},
-    "[AttackType]": {"f1": {"mean": float, "std": float}, "precision": {"mean": float, "std": float}, "recall": {"mean": float, "std": float}, "support": int}
+    "Normal": {"f1": {"mean": 0.0, "std": 0.0}, "precision": {"mean": 0.0, "std": 0.0}, "recall": {"mean": 0.0, "std": 0.0}, "support": 0}
   },
   "topological_analysis": {
-    "homology_dimensions_analyzed": ["H0", "H1", "H2"],
-    "persistence_features_extracted": int,
-    "topological_separability_score": float
+    "homology_dimensions_analyzed": ["H0", "H1"],
+    "persistence_features_extracted": 0,
+    "topological_separability_score": 0.0
   }
 }
 ```
@@ -218,6 +242,7 @@ validation/
 ## 🔄 DEVELOPMENT WORKFLOW
 
 ### Essential Workflow Steps
+
 1. **Status Check**: Read current priorities from project status files
 2. **Implementation**: Write/modify code with TDA focus
 3. **Validation**: Create/run deterministic validation scripts
@@ -225,6 +250,7 @@ validation/
 5. **Update**: Maintain project status and progress tracking
 
 ### Essential Commands
+
 ```bash
 # Environment
 source .venv/bin/activate
@@ -238,9 +264,8 @@ pytest tests/ --cov=src
 black src/ tests/ examples/
 ```
 
-## 📋 REPORTING FORMAT
-
 ### For Successful, Validated Changes
+
 > "Implemented XYZ. Achieved **75.3% ± 0.02 attack detection F1-score** (Validated by: `validation/validate_xyz_unsw.py` with seed=42).
 > **Validation Confirmation**:
 > ✅ Claimed 75.3% vs Validated 75.3% (exact match)
@@ -248,7 +273,8 @@ black src/ tests/ examples/
 > ✅ All mandatory plots generated and saved (confusion matrix, ROC, PR, feature importance, prediction distribution)
 > ✅ Raw console output captured and linked."
 
-### For Failed Experiments  
+### For Failed Experiments
+
 > "Attempted ABC. Attack detection F1: **12.1% ± 0.01**, a 63% regression from baseline. Abandoning approach. Root cause: temporal data sparsity incompatible with method requirements.
 > **Validation Confirmation**:
 > ✅ Reproducible with fixed seed=42
@@ -256,15 +282,16 @@ black src/ tests/ examples/
 > ✅ Raw console output captured and linked."
 
 ## 🛡️ SYSTEMATIC AUDITING PROTOCOL
+
 - **MANDATORY**: All performance claims documented in reports or project files must be systematically audited for reproducibility and accuracy.
 - **AUDIT FREQUENCY**: Audits should be performed regularly, especially before major project milestones or releases.
 - **AUDIT PROCESS**:
-    1. Identify all performance claims (e.g., F1-scores, accuracy).
-    2. Locate the corresponding validation script and specified random seed.
-    3. Re-run the validation script with the exact parameters.
-    4. Compare the re-generated results with the claimed results.
-    5. Verify that all mandatory plots and raw output are generated and match expectations.
-    6. Document the audit outcome (pass/fail) and any discrepancies.
+  1. Identify all performance claims (e.g., F1-scores, accuracy).
+  2. Locate the corresponding validation script and specified random seed.
+  3. Re-run the validation script with the exact parameters.
+  4. Compare the re-generated results with the claimed results.
+  5. Verify that all mandatory plots and raw output are generated and match expectations.
+  6. Document the audit outcome (pass/fail) and any discrepancies.
 - **FAILURE HANDLING**: If an audit fails (e.g., results are not reproducible, plots are missing), the claim must be immediately flagged, investigated, and corrected. No unverified claims are permitted.
 
 ## 🎯 STRATEGIC CONTEXT
@@ -278,12 +305,14 @@ black src/ tests/ examples/
 ## 📚 EXTERNAL LEARNING INTEGRATION
 
 ### Reference Implementation Usage
+
 - **External repos**: For learning patterns and proven approaches
-- **Adaptation**: Create new methods in `src/` inspired by external patterns  
+- **Adaptation**: Create new methods in `src/` inspired by external patterns
 - **Comparison**: Validate our implementations against established benchmarks
 - **Documentation**: Reference external sources in validation reports
 
 ### Guidelines
+
 - ✅ Study external implementations for patterns
 - ✅ Adapt proven techniques to our codebase
 - ✅ Compare results against literature benchmarks  
