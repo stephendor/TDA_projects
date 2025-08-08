@@ -2,7 +2,7 @@
 name: cic_ids_2017
 format: parquet
 # Root directory where daily parquet files reside
-root_path: data/apt_datasets/cic_ids_2017
+root_path: data/apt_datasets/CIC-IDS-2017
 # Glob pattern relative to root for loading files
 file_pattern: "*.parquet"
 # Time column (must be pre-normalized to float seconds or int ns externally)
