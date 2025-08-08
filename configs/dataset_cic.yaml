@@ -1,0 +1,30 @@
+# CIC-IDS2017 dataset configuration (validation-first, no model params)
+name: cic_ids_2017
+format: parquet
+# Root directory where daily parquet files reside
+root_path: data/apt_datasets/cic_ids_2017
+# Glob pattern relative to root for loading files
+file_pattern: "*.parquet"
+# Time column (must be pre-normalized to float seconds or int ns externally)
+time_column: timestamp
+window:
+  seconds: 5
+  overlap: 0.5
+features:
+  numeric:
+    - FlowDuration
+    - TotFwdPkts
+    - TotBwdPkts
+    - TotLenFwdPkts
+    - TotLenBwdPkts
+    - FwdPktLenMean
+    - BwdPktLenMean
+    - FlowByts/s
+    - FlowPkts/s
+  categorical:
+    - Protocol
+    - Flag
+limits:
+  max_vr_points: 2000
+  witness_landmarks: 128
+random_seed: 42

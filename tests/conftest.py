@@ -1,3 +1,10 @@
+# --- Path setup injected for src layout ---
+import os, sys
+_PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+_SRC_PATH = os.path.join(_PROJECT_ROOT, 'src')
+if _SRC_PATH not in sys.path:
+    sys.path.insert(0, _SRC_PATH)
+# ------------------------------------------
 """
 Pytest configuration and shared fixtures for TDA Platform tests.
 """
