@@ -1,0 +1,9 @@
+{
+  "base_feature_length": 159,
+  "components": [
+    "analyzer.extract_features()",
+    "BettiCurveVectorizer(radii_resolution=40,maxdim=2)",
+    "LifetimeStatsVectorizer(top_k=5,maxdim=2)"
+  ],
+  "ordering_note": "Concatenated in listed order"
+}

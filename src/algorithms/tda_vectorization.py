@@ -64,7 +64,7 @@ class TDAVectorizer:
         if birth_persistence_diagram.size == 0:
             return np.zeros(default_output_size)
 
-        image = pim.transform([birth_persistence_diagram])[0][0]
+        image = pim.transform([birth_persistence_diagram])[0][0][0]
         return image.flatten()
 
     def _persistence_landscape_placeholder(self, diagram, **kwargs):
