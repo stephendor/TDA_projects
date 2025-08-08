@@ -31,6 +31,7 @@ from src.tda.vectorizers.diagram_vectorizers import (
     LifetimeStatsConfig, LifetimeStatsVectorizer
 )
 from pathlib import Path
+import hashlib
 
 # ---- Load dataset config ----
 CONFIG_PATH = Path('configs/dataset_cic.yaml')
@@ -74,6 +75,60 @@ _life = LifetimeStatsVectorizer(LifetimeStatsConfig(top_k=5, maxdim=2))
 # Track how many persistence image dimensions we include (H0..Hk)
 _PI_DIMS = 2  # persistence image homology dims included (starting from H0)
 _LAND_DIMS = 2  # landscape homology dims included (H0,H1)
+# Diagram dump configuration (for learnable embeddings downstream)
+DIAGRAM_DUMP_DIR = os.getenv('DIAGRAM_DUMP_DIR', '').strip()
+DIAGRAM_MAX_POINTS_PER_DIM = int(os.getenv('DIAGRAM_MAX_POINTS_PER_DIM', '0'))  # 0 = no cap
+MAX_DUMP_WINDOWS = int(os.getenv('MAX_DUMP_WINDOWS', '0'))  # 0 = no extra cap beyond collection
+_DIAGRAM_ENTRIES = []  # manifest entries
+if DIAGRAM_DUMP_DIR:
+    Path(DIAGRAM_DUMP_DIR).mkdir(parents=True, exist_ok=True)
+    print(f"INFO: Diagram dumping enabled -> {DIAGRAM_DUMP_DIR}")
+
+
+def _truncate_diagram(dgm: np.ndarray) -> np.ndarray:
+    if dgm is None or getattr(dgm, 'size', 0) == 0:
+        return dgm if isinstance(dgm, np.ndarray) else np.empty((0,2))
+    if DIAGRAM_MAX_POINTS_PER_DIM <= 0 or dgm.shape[0] <= DIAGRAM_MAX_POINTS_PER_DIM:
+        return dgm
+    # Keep top lifetimes
+    lifetimes = dgm[:,1] - dgm[:,0]
+    idx = np.argsort(lifetimes)[::-1][:DIAGRAM_MAX_POINTS_PER_DIM]
+    return dgm[idx]
+
+
+def _dump_diagrams(diagrams, label: int, start_time: float, order: int, used_witness: bool):
+    if not DIAGRAM_DUMP_DIR:
+        return
+    if MAX_DUMP_WINDOWS > 0 and order >= MAX_DUMP_WINDOWS:
+        return
+    # Prepare truncated copies (do not mutate originals)
+    stored = {}
+    dims_present = []
+    counts = {}
+    for dim, dgm in enumerate(diagrams):
+        if dgm is None:
+            td = np.empty((0,2))
+        else:
+            td = _truncate_diagram(dgm)
+        stored[f'dgm_H{dim}'] = td
+        dims_present.append(f'H{dim}')
+        counts[f'H{dim}'] = int(td.shape[0])
+    fname = f"window_{order:06d}.npz"
+    fpath = Path(DIAGRAM_DUMP_DIR) / fname
+    try:
+        np.savez_compressed(fpath, **stored)
+        h = hashlib.sha256(fpath.read_bytes()).hexdigest()
+        _DIAGRAM_ENTRIES.append({
+            'order': int(order),
+            'start_time': float(start_time),
+            'label': int(label),
+            'file': fname,
+            'dims': dims_present,
+            'counts': counts,
+            'used_witness': bool(used_witness)
+        })
+    except Exception as e:
+        print(f"WARNING: Failed to dump diagrams for window {order}: {e}")
 
 # ---- Thresholds (env-overridable) ----
 MIN_POINTS_ACCUM = int(os.getenv('MIN_POINTS_ACCUM', '20'))  # minimum raw rows to accumulate before topology
@@ -221,8 +276,11 @@ for w_idx, window_df in enumerate(StreamingWindowLoader(parquet_files, win_cfg).
         _accum_frames.clear(); _accum_rows = 0
         continue
     res = vec.vr.compute(pc) if pc.shape[0] <= vec.cfg.max_vr_points else vec.witness.compute(pc)
+    used_witness = pc.shape[0] > vec.cfg.max_vr_points
     # Augment features with diagram-derived Betti curves + lifetime stats + persistence images
     diagrams = res['diagrams']
+    if DIAGRAM_DUMP_DIR:
+        _dump_diagrams(diagrams, int(majority_label), start_time_val, _accum_counter, used_witness)
     betti_vec = _betti.transform(diagrams)
     life_vec = _life.transform(diagrams)
     # Persistence images per dimension
@@ -332,6 +390,8 @@ if len(X_features) == 0:
             except Exception:
                 continue
             diagrams = res['diagrams']
+            if DIAGRAM_DUMP_DIR:
+                _dump_diagrams(diagrams, int(maj), float(blk[win_cfg.time_column].min()) if win_cfg.time_column in blk.columns else order_counter, order_counter, False)
             betti_vec = _betti.transform(diagrams)
             life_vec = _life.transform(diagrams)
             pimg_vecs = []
@@ -365,14 +425,17 @@ if len(X_features) == 0:
 label_set = set(Y_labels)
 if len(label_set) == 0:
     raise SystemExit("No windows collected.")
+# Added env-configurable parameters for targeted minority acquisition
+TARGET_LOCAL_RADIUS = int(os.getenv('TARGET_LOCAL_RADIUS', '250'))
+TARGET_MAX_PER_FILE = int(os.getenv('TARGET_MAX_PER_FILE', '20'))
 if len(label_set) == 1 or (len(label_set) == 2 and min(pd.Series(Y_labels).value_counts()) < MIN_MINORITY_WINDOWS):
     counts_now = pd.Series(Y_labels).value_counts()
     minority_label = counts_now.idxmin() if len(label_set) == 2 else (1 if list(label_set)[0] == 0 else 0)
     # target additional minority windows until threshold satisfied
-    print(f"INFO: Initiating targeted minority search for label={minority_label}; current minority count={counts_now.get(minority_label,0)} target>={MIN_MINORITY_WINDOWS}.")
+    print(f"INFO: Initiating targeted minority search for label={minority_label}; current minority count={counts_now.get(minority_label,0)} target>={MIN_MINORITY_WINDOWS}. (local_radius={TARGET_LOCAL_RADIUS}, max_per_file={TARGET_MAX_PER_FILE})")
     added_minority_count = 0
-    local_radius = 250
-    max_targets_per_file = 20
+    local_radius = TARGET_LOCAL_RADIUS  # replaced hard-coded 250
+    max_targets_per_file = TARGET_MAX_PER_FILE  # replaced hard-coded 20
     for pf_idx, pf in enumerate(parquet_files):
         if pd.Series(Y_labels).value_counts().get(minority_label,0) >= MIN_MINORITY_WINDOWS:
             break
@@ -407,9 +470,28 @@ if len(label_set) == 1 or (len(label_set) == 2 and min(pd.Series(Y_labels).value
             except Exception:
                 continue
             diagrams = res['diagrams']
+            if DIAGRAM_DUMP_DIR:
+                _dump_diagrams(diagrams, int(minority_label), float(blk[win_cfg.time_column].min()) if win_cfg.time_column in blk.columns else len(WindowTimes), len(WindowOrder), False)
             betti_vec = _betti.transform(diagrams)
             life_vec = _life.transform(diagrams)
-            augmented_features = np.concatenate([res['features'], betti_vec, life_vec])
+            # Added persistence images and landscapes for consistency with main collection path
+            pimg_vecs = []
+            for dim_i in range(min(_PI_DIMS, len(diagrams))):
+                dgm = diagrams[dim_i]
+                if dgm is None or getattr(dgm, 'size', 0) == 0:
+                    pimg_vecs.append(np.zeros(_pimg.cfg.resolution[0]*_pimg.cfg.resolution[1], dtype=float))
+                else:
+                    pimg_vecs.append(_pimg.transform_diagram(dgm))
+            pimg_vec = np.concatenate(pimg_vecs, axis=0) if pimg_vecs else np.array([], dtype=float)
+            land_vecs = []
+            for dim_i in range(min(_LAND_DIMS, len(diagrams))):
+                dgm = diagrams[dim_i]
+                if dgm is None or getattr(dgm, 'size', 0) == 0:
+                    land_vecs.append(np.zeros(_pland.cfg.resolution * _pland.cfg.k_layers, dtype=float))
+                else:
+                    land_vecs.append(_pland.transform_diagram(dgm))
+            land_vec = np.concatenate(land_vecs, axis=0) if land_vecs else np.array([], dtype=float)
+            augmented_features = np.concatenate([res['features'], betti_vec, life_vec, pimg_vec, land_vec])
             X_features.append(augmented_features)
             Y_labels.append(int(minority_label))
             WindowTimes.append(float(blk[win_cfg.time_column].min()) if win_cfg.time_column in blk.columns else len(WindowTimes))
@@ -436,6 +518,25 @@ if len(set(Y_labels)) < 2:
 
 # Build arrays and compute global counts before split
 X = np.vstack(X_features)
+# Before creating feature_manifest, persist diagram manifest if enabled (pre-split)
+if DIAGRAM_DUMP_DIR and _DIAGRAM_ENTRIES:
+    diagram_manifest = {
+        'schema_version': 1,
+        'created_utc': datetime.utcnow().isoformat() + 'Z',
+        'total_windows': len(_DIAGRAM_ENTRIES),
+        'config': {
+            'DIAGRAM_MAX_POINTS_PER_DIM': DIAGRAM_MAX_POINTS_PER_DIM,
+            'MAX_DUMP_WINDOWS': MAX_DUMP_WINDOWS
+        },
+        'entries': _DIAGRAM_ENTRIES
+    }
+    try:
+        mpath = Path(DIAGRAM_DUMP_DIR) / f"diagram_manifest_{datetime.utcnow().strftime('%Y%m%dT%H%M%SZ')}.json"
+        with mpath.open('w') as mf:
+            json.dump(diagram_manifest, mf, indent=2)
+        print(f"INFO: Diagram manifest written to {mpath}")
+    except Exception as e:
+        print(f"WARNING: Failed to write diagram manifest: {e}")
 # Record feature schema manifest (topological components only)
 feature_manifest = {
     'base_feature_length': int(len(X_features[0]) if X_features else 0),

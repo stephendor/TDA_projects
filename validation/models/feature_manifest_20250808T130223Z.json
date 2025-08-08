@@ -1,0 +1,11 @@
+{
+  "base_feature_length": 1031,
+  "components": [
+    "analyzer.extract_features()",
+    "BettiCurveVectorizer(radii_resolution=40,maxdim=2)",
+    "LifetimeStatsVectorizer(top_k=5,maxdim=2)",
+    "PersistenceImageVectorizer(resolution=(16,16),dims=H0..H1)",
+    "PersistenceLandscapeVectorizer(resolution=60,k_layers=3,dims=H0..H1)"
+  ],
+  "ordering_note": "Concatenated in listed order"
+}
