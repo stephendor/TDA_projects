@@ -19,6 +19,7 @@ from ...core import PersistentHomologyAnalyzer, TopologyUtils
 from ...core.mapper import MapperAnalyzer
 from ...utils.database import get_db_manager
 from ...utils.cache import get_cache_manager
+from ..middleware.auth import authenticate_api_key
 
 
 router = APIRouter()
@@ -33,10 +34,21 @@ class PointCloudRequest(BaseModel):
     
     @validator('data')
     def validate_data(cls, v):
+        # Security: Limit input size to prevent DoS attacks
+        max_points = 10000
+        max_dimension = 100
+        
         if len(v) < 3:
             raise ValueError("Point cloud must contain at least 3 points")
+        if len(v) > max_points:
+            raise ValueError(f"Point cloud exceeds maximum allowed points ({max_points})")
+        
         if not all(len(point) == len(v[0]) for point in v):
             raise ValueError("All points must have the same dimension")
+        
+        if len(v[0]) > max_dimension:
+            raise ValueError(f"Point dimension exceeds maximum allowed ({max_dimension})")
+            
         return v
 
 
@@ -120,6 +132,7 @@ class JobStatusResponse(BaseModel):
 async def compute_persistent_homology(
     request: PersistentHomologyRequest,
     background_tasks: BackgroundTasks,
+    authenticated: bool = Depends(authenticate_api_key),
     db=Depends(get_db_manager),
     cache=Depends(get_cache_manager)
 ):
@@ -225,6 +238,7 @@ async def compute_persistent_homology(
 async def compute_mapper(
     request: MapperRequest,
     background_tasks: BackgroundTasks,
+    authenticated: bool = Depends(authenticate_api_key),
     db=Depends(get_db_manager),
     cache=Depends(get_cache_manager)
 ):
@@ -329,6 +343,7 @@ async def compute_mapper(
 async def comprehensive_topology_analysis(
     request: TopologyAnalysisRequest,
     background_tasks: BackgroundTasks,
+    authenticated: bool = Depends(authenticate_api_key),
     db=Depends(get_db_manager),
     cache=Depends(get_cache_manager)
 ):
@@ -474,7 +489,7 @@ async def cancel_job(job_id: str, db=Depends(get_db_manager)):
 def _generate_job_id(request_data: dict) -> str:
     """Generate deterministic job ID from request data."""
     request_json = json.dumps(request_data, sort_keys=True)
-    return hashlib.md5(request_json.encode()).hexdigest()
+    return hashlib.sha256(request_json.encode()).hexdigest()[:32]  # Use SHA-256, truncate for compatibility
 
 
 def _compute_persistence_statistics(persistence_diagram: List[np.ndarray]) -> Dict[str, Any]:

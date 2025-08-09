@@ -512,7 +512,7 @@ def _generate_analysis_id(analysis_type: str, request_data: dict) -> str:
     """Generate analysis ID."""
     timestamp = datetime.utcnow().isoformat()
     combined_data = f"{analysis_type}_{timestamp}_{json.dumps(request_data, sort_keys=True)}"
-    return hashlib.md5(combined_data.encode()).hexdigest()[:16]
+    return hashlib.sha256(combined_data.encode()).hexdigest()[:16]  # Use SHA-256, truncate for compatibility
 
 
 def _determine_threat_severity(apt_percentage: float) -> str:

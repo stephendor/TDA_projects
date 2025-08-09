@@ -23,10 +23,13 @@ class DatabaseManager:
     
     def __init__(self):
         self.pool: Optional[Pool] = None
-        self.database_url = os.getenv(
-            "DATABASE_URL", 
-            "postgresql://tda_user:tda_password@localhost:5432/tda_platform"
-        )
+        self.database_url = os.getenv("DATABASE_URL")
+        
+        if not self.database_url:
+            raise ValueError(
+                "DATABASE_URL environment variable must be set. "
+                "Format: postgresql://user:password@host:port/database"
+            )
     
     async def initialize(self):
         """Initialize database connection pool."""

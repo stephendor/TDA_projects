@@ -1,4 +1,9 @@
 ---
+description: AI rules derived by SpecStory from the project AI interaction history
+globs: *
+---
+
+---
 # TDA Project Rules
 Configuration for AI behavior in Topological Data Analysis project
 
@@ -160,4 +165,14 @@ Configuration for AI behavior when interacting with Codacy's MCP Server
 - If the user accepts, run the `codacy_setup_repository` tool
 - Do not ever try to run the `codacy_setup_repository` tool on your own
 - After setup, immediately retry the action that failed (only retry once)
+
 ---
+
+## DIAGNOSTIC AND TUNING RULES
+- After running a machine learning experiment, ALWAYS summarize the AUC values (PR AUC and ROC AUC) and other relevant metrics in the response.
+- If AUC values are low (ROC AUC < 0.7), recommend a step-back action to revisit the TDA representation pipeline or check for data leakage before further tuning.
+- When the user requests a "fast pass", prioritize quick incremental suggestions like near-zero variance thresholding or feature scaling before more complex techniques.
+- ALWAYS check for temporal and data leakage when performance is unexpectedly low, especially if the user expresses concerns about it.
+
+## WORKFLOW & RELEASE RULES
+- You just need to remember to activate the venv when you open a new terminal, that is all

@@ -29,6 +29,7 @@ from .middleware import (
     RequestLoggingMiddleware,
     ErrorHandlingMiddleware
 )
+from .middleware.auth import authenticate_api_key
 from ..utils.database import DatabaseManager
 from ..utils.cache import CacheManager
 
@@ -118,13 +119,16 @@ def create_app() -> FastAPI:
 def setup_middleware(app: FastAPI) -> None:
     """Configure application middleware."""
     
-    # CORS middleware
+    # CORS middleware - get allowed origins from environment
+    allowed_origins = os.getenv("CORS_ORIGINS", "http://localhost:3000").split(",")
+    allowed_origins = [origin.strip() for origin in allowed_origins if origin.strip()]
+    
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"],  # Configure appropriately for production
+        allow_origins=allowed_origins,
         allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
+        allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        allow_headers=["Authorization", "Content-Type", "Accept"],
     )
     
     # Compression middleware
