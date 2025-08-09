@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "filesystem": {
+      "command": "/home/stephen-dorman/.nvm/versions/node/v22.17.0/bin/npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "/home/stephen-dorman/dev/TDA_projects"]
+    }
+  }
+}

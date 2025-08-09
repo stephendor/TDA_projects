@@ -26,9 +26,9 @@ import hashlib
 from pathlib import Path
 
 # Optional: SciPy for KD-tree nearest neighbor for sigma estimation (fallback pure numpy if absent)
-try:
-    from scipy.spatial import cKDTree  # type: ignore
-    _HAS_SCIPY = True
+try:  # optional dependency
+    from scipy import spatial as _scipy_spatial  # type: ignore
+    _HAS_SCIPY = hasattr(_scipy_spatial, 'cKDTree')
 except Exception:  # pragma: no cover
     _HAS_SCIPY = False
 
@@ -58,12 +58,21 @@ class VectorStackConfig:
     enable_betti: bool = True
     enable_sw: bool = True
     enable_kernels: bool = True
+    # New optional future block (silhouettes scaffold) - not yet implemented
+    enable_silhouettes: bool = False  # placeholder (Task 20 automation)
+    # Verbosity / progress tracking
+    verbose: bool = False
 
 
 # ----------------------- Utility & Determinism ----------------------- #
 
 def _set_rng(seed: int):
     np.random.seed(seed)
+
+
+def _log(msg: str, cfg: Optional[VectorStackConfig]):  # lightweight logger
+    if cfg is not None and getattr(cfg, 'verbose', False):
+        print(f"[VectorStack] {msg}")
 
 
 def _hash_manifest(items: Sequence[str]) -> str:
@@ -291,7 +300,7 @@ def _estimate_sigma_from_points(pts: np.ndarray, k: int = 8) -> float:
     if pts.shape[0] < 2:
         return 0.1
     if _HAS_SCIPY and pts.shape[0] >= k:
-        tree = cKDTree(pts)
+        tree = _scipy_spatial.cKDTree(pts)  # type: ignore[attr-defined]
         dists, _ = tree.query(pts, k=k)
         # dists shape (n,k); ignore self-distance at col0
         vals = dists[:, 1:].reshape(-1)
@@ -317,6 +326,7 @@ def prepare_kernel_dictionaries(train_diagrams_by_dim: Dict[int, List[np.ndarray
                                  out_path: Optional[Path] = None) -> Dict[str, Any]:
     _set_rng(cfg.random_seed)
     dicts: Dict[str, Any] = {}
+    _log("Preparing kernel dictionaries", cfg)
     for scale_name, k, sample_n in [
         ("small", cfg.kernel_small_k, cfg.kernel_sample_small),
         ("large", cfg.kernel_large_k, cfg.kernel_sample_large),
@@ -324,13 +334,15 @@ def prepare_kernel_dictionaries(train_diagrams_by_dim: Dict[int, List[np.ndarray
         diagrams = []
         for dim in cfg.homology_dims:
             diagrams.extend(train_diagrams_by_dim.get(dim, []))
+        _log(f"Sampling up to {sample_n} points for '{scale_name}' scale", cfg)
         pts = _sample_points(diagrams, sample_n)
         if pts.shape[0] == 0:
             centers = np.zeros((k, 2), dtype=float)
             sigma_base = 0.1
+            _log(f"No points available for '{scale_name}', creating zero centers", cfg)
         else:
-            # k-means++ deterministic
             centers = np.zeros((k, 2), dtype=float)
+            # k-means++ deterministic
             # pick first center
             idx0 = np.random.randint(0, pts.shape[0])
             centers[0] = pts[idx0]
@@ -343,15 +355,18 @@ def prepare_kernel_dictionaries(train_diagrams_by_dim: Dict[int, List[np.ndarray
                 new_d2 = ((pts - centers[i]) ** 2).sum(axis=1)
                 d2 = np.minimum(d2, new_d2)
             sigma_base = _estimate_sigma_from_points(pts)
+            _log(f"Built {k} centers for '{scale_name}' (sigma_base≈{sigma_base:.4f})", cfg)
         dicts[f"kernel_{scale_name}"] = {
             'centers': centers,
             'sigma_base': sigma_base,
         }
     if out_path is not None:
+        _log(f"Persisting kernel dictionaries to {out_path}", cfg)
         out_path.parent.mkdir(parents=True, exist_ok=True)
         np.savez_compressed(out_path, **{k: v['centers'] for k, v in dicts.items()})
         with open(out_path.with_suffix('.json'), 'w') as f:
             json.dump({k: {'sigma_base': v['sigma_base']} for k, v in dicts.items()}, f, indent=2)
+    _log("Kernel dictionaries ready", cfg)
     return dicts
 
 
@@ -380,8 +395,10 @@ def compute_block_features(diagrams_by_dim: Dict[int, np.ndarray], cfg: VectorSt
     blocks: Dict[str, np.ndarray] = {}
     spans: Dict[str, Tuple[int, int]] = {}
     cursor = 0
+    _log("Beginning block feature assembly", cfg)
     for dim in cfg.homology_dims:
         dgm = _sanitize_diagram(diagrams_by_dim.get(dim, np.zeros((0, 2), dtype=float)))
+        _log(f"Dim H{dim}: {dgm.shape[0]} points", cfg)
         # Landscapes
         if cfg.enable_landscapes:
             lans = _compute_landscapes(dgm, cfg.landscape_levels, cfg.landscape_resolutions)
@@ -391,6 +408,7 @@ def compute_block_features(diagrams_by_dim: Dict[int, np.ndarray], cfg: VectorSt
                 blocks[key] = flat
                 spans[key] = (cursor, cursor + flat.size)
                 cursor += flat.size
+                _log(f"Added {key} size={flat.size} (cursor={cursor})", cfg)
         # Persistence Images
         if cfg.enable_images:
             finite = dgm[np.isfinite(dgm[:, 1])] if dgm.size > 0 else dgm
@@ -410,6 +428,7 @@ def compute_block_features(diagrams_by_dim: Dict[int, np.ndarray], cfg: VectorSt
                 blocks[key] = flat
                 spans[key] = (cursor, cursor + flat.size)
                 cursor += flat.size
+                _log(f"Added {key} size={flat.size} (cursor={cursor})", cfg)
         # Betti curve
         if cfg.enable_betti:
             betti = _compute_betti_curve(dgm, cfg.betti_resolution)
@@ -417,6 +436,7 @@ def compute_block_features(diagrams_by_dim: Dict[int, np.ndarray], cfg: VectorSt
             blocks[key_betti] = betti
             spans[key_betti] = (cursor, cursor + betti.size)
             cursor += betti.size
+            _log(f"Added {key_betti} size={betti.size} (cursor={cursor})", cfg)
         # SW projections
         if cfg.enable_sw:
             sw = _compute_sliced_wasserstein(dgm, cfg.sw_num_angles, cfg.sw_resolution)['sw']
@@ -424,6 +444,10 @@ def compute_block_features(diagrams_by_dim: Dict[int, np.ndarray], cfg: VectorSt
             blocks[key_sw] = sw.reshape(-1)
             spans[key_sw] = (cursor, cursor + sw.size)
             cursor += sw.size
+            _log(f"Added {key_sw} size={sw.size} (cursor={cursor})", cfg)
+        # Optional silhouettes (not implemented yet)
+        if getattr(cfg, 'enable_silhouettes', False):
+            _log("Silhouette block requested but not yet implemented; skipping (placeholder)", cfg)
         # Kernel dictionaries
         if cfg.enable_kernels:
             for scale in ["kernel_small", "kernel_large"]:
@@ -434,12 +458,14 @@ def compute_block_features(diagrams_by_dim: Dict[int, np.ndarray], cfg: VectorSt
                 blocks[key_k] = resp
                 spans[key_k] = (cursor, cursor + resp.size)
                 cursor += resp.size
+                _log(f"Added {key_k} size={resp.size} (cursor={cursor})", cfg)
+    _log(f"Completed assembly. Total feature length={cursor}", cfg)
     return blocks, spans
 
 
 def stack_and_normalize(blocks: Dict[str, np.ndarray], spans: Dict[str, Tuple[int, int]],
                         norm_stats: Optional[Dict[str, Dict[str, float]]] = None,
-                        fit: bool = False) -> Tuple[np.ndarray, Dict[str, Dict[str, float]]]:
+                        fit: bool = False, cfg: Optional[VectorStackConfig] = None) -> Tuple[np.ndarray, Dict[str, Dict[str, float]]]:
     # Compute / apply per-block z-score using train-only stats
     updated_stats: Dict[str, Dict[str, float]] = {} if fit else (norm_stats or {})
     vector_parts = []
@@ -448,11 +474,13 @@ def stack_and_normalize(blocks: Dict[str, np.ndarray], spans: Dict[str, Tuple[in
             mean = float(arr.mean()) if arr.size > 0 else 0.0
             std = float(arr.std()) if arr.std() > 0 else 1.0
             updated_stats[key] = {'mean': mean, 'std': std}
+            _log(f"Fit norm stats for {key}: mean={mean:.4e} std={std:.4e}", cfg)
         stats = updated_stats[key]
         std = stats['std'] if stats['std'] > 0 else 1.0
         normed = (arr - stats['mean']) / std
         vector_parts.append(normed)
     flat = np.concatenate(vector_parts) if vector_parts else np.zeros(0, dtype=float)
+    _log(f"Stacked vector length={flat.size}", cfg)
     return flat, updated_stats
 
 
@@ -460,7 +488,7 @@ def build_vector_stack(diagrams_by_dim: Dict[int, np.ndarray], cfg: VectorStackC
                        kernel_dicts: Dict[str, Any], norm_stats: Optional[Dict[str, Dict[str, float]]] = None,
                        fit_norm: bool = False) -> Tuple[np.ndarray, Dict[str, Dict[str, float]], Dict[str, Tuple[int, int]]]:
     blocks, spans = compute_block_features(diagrams_by_dim, cfg, kernel_dicts)
-    vec, stats = stack_and_normalize(blocks, spans, norm_stats, fit=fit_norm)
+    vec, stats = stack_and_normalize(blocks, spans, norm_stats, fit=fit_norm, cfg=cfg)
     return vec, stats, spans
 
 
