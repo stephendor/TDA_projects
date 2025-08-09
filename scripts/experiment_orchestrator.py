@@ -267,14 +267,16 @@ def run_experiment(args):
     if vout_base.exists():
         existing_dirs = {p.name for p in vout_base.iterdir() if p.is_dir()}
     cmd = [sys.executable, str(EXTRACT_SCRIPT), '--sw-angles', str(args.sw_angles), '--lr-penalty', args.lr_penalty,
-           '--lr-max-iter', str(args.lr_max_iter), '--svm-max-iter', str(args.svm_max_iter), '--baseline-pr', str(args.baseline_pr)]
+        '--lr-max-iter', str(args.lr_max_iter), '--svm-max-iter', str(args.svm_max_iter), '--baseline-pr', str(args.baseline_pr)]
     if args.skip_ablations:
         cmd.append('--skip-ablations')
     if args.no_calibration:
         cmd.append('--no-calibration')
     start = time.time()
     env = os.environ.copy()
-    proc = subprocess.run(cmd, cwd=ROOT, capture_output=True, text=True)
+    # Ensure project root importable so validation/extract_vector_stack.py can import 'src'
+    env['PYTHONPATH'] = f"{ROOT}:{env.get('PYTHONPATH','')}"
+    proc = subprocess.run(cmd, cwd=ROOT, capture_output=True, text=True, env=env)
     wall = time.time() - start
     (run_dir / 'raw_output').mkdir(exist_ok=True, parents=True)
     (run_dir / 'raw_output' / 'orchestrator_stdout.log').write_text(proc.stdout)
