@@ -172,15 +172,19 @@ Configuration for AI behavior when interacting with Codacy's MCP Server
 - After running a machine learning experiment, ALWAYS summarize the AUC values (PR AUC and ROC AUC) and other relevant metrics in the response.
 - If AUC values are low (ROC AUC < 0.7), recommend a step-back action to revisit the TDA representation pipeline or check for data leakage before further tuning.
 - When the user requests a "fast pass", prioritize quick incremental suggestions like near-zero variance thresholding or feature scaling before more complex techniques.
+- When comparing current progress with aspirational goals, focus on representation and data validation before solver tuning, especially if ROC AUC is significantly below target. If ROC AUC stays below 0.75 after 2-3 representation iterations, consider pivoting or re-extracting data.
 
 ## WORKFLOW & RELEASE RULES
+- **AI Execution Mode**: The AI should generate executable code blocks that are run via a continue/cancel button setup. The AI must monitor the terminal output and respond to failures and errors with appropriate fixes.
 - You MUST remember to activate the venv when you open a new terminal
 - The AI must pause, review what we have done so far and make a markdown file explaining our reasoning and decisions. Datestamp it.
 - The AI must run all commands and monitor terminals for output and errors at all time. The AI should respond to failures and errors with appropriate fixes and then run and monitor those.
+- It is compulsory that you are the one to start all terminals so that you can monitor and respond as appropriate. I do not need to be copying or pasting anything at any point. You are forbidden from presenting code in any other way.
+- You are forbidden from presenting code in any other way than executable code blocks.
 
 ## VIRTUAL ENVIRONMENT
 - You MUST remember to activate the venv when you open a new terminal
-- Python terminals need to have the venv activated with .venv/bin/activate any time you open a fresh terminal
+- Python terminals need to have the venv activated with `source .venv/bin/activate` any time you open a fresh terminal
 
 ## EXTERNAL REPOSITORY ASSESSMENT RULES
 When assessing external repositories:
@@ -236,9 +240,69 @@ When assessing external repositories:
     - mean_points_in
     - mean_points_after_subsample
     - rips_recompute_time_sec
+- Plus: sw_angle_strategy, sw_angles_list, sw_angles_hash, block_compute_time_sec, manifest_hash.
 
 ## ACTION THRESHOLDS FOR FILTRATION VARIANTS
 - PASS (candidate): ΔPR_AUC ≥ +0.005 AND training time multiplier ≤ 1.25× baseline.
 - MARGINAL: +0.003 ≤ ΔPR_AUC < +0.005 → need second confirmation run; otherwise discard.
 - FAIL: ΔPR_AUC < +0.003 OR time cost >1.5× baseline, or feature_dim inflation >20% with no metric gain.
----
+
+## GENERAL BEHAVIOR RULES
+- When the user expresses frustration or questions the AI's memory, the AI should double-check its understanding of the project context and goals, and proactively retrieve relevant information from the repository before proceeding.
+- The AI must remember to activate the venv when you open a new terminal.
+- When a user provides a specific file path (e.g., `validation/vector_stack_outputs/20250810_031323`), the AI should prioritize using that path for subsequent operations and file access.
+
+## COPILOT EXECUTION MODE TROUBLESHOOTING
+
+If the AI is unable to execute code or monitor terminals, consider the following:
+
+1.  **Execution Channel Disabled**:
+    *   Check VS Code settings: Settings > Extensions > GitHub Copilot Chat: enable “Allow Command Execution”.
+    *   Confirm experimental “AI Execution Mode” is ON in settings.json:
+
+    ```json
+    "copilot.chat.executeCommands": true,
+    "copilot.chat.terminalControl": true
+    ```
+
+2.  **MCP / Tool Bridge Not Loaded**:
+    *   Open Output: “GitHub Copilot” & “MCP Servers” – look for errors loading Codacy or command runner.
+    *   If Codacy MCP is missing, re-enable MCP servers at <https://github.com/settings/copilot/features> (organization scope if needed), then reload the window.
+
+3.  **Workspace Trust Reset**:
+    *   Command: “Workspaces: Manage Workspace Trust” → mark the workspace as trusted. Without trust, command/terminal orchestration is blocked.
+
+4.  **Terminal Session Mismatch**:
+    *   The Copilot may be trying to reuse a disposed terminal. Close all extra terminals, then ask Copilot to “open a managed terminal” again.
+    *   Confirm .venv exists:
+
+    ```bash
+    ls -1 .venv/bin/activate
+    ```
+
+5.  **Conflict with Another Extension**:
+    *   Temporarily disable other AI/automation extensions (e.g., Code Runner) that might hijack command execution.
+
+6.  **Chat Context Downgraded**:
+    *   If you started a “plain chat” instead of the orchestration-enabled view, commands won’t execute. Use the Copilot “/terminal” or “/workspace” slash commands to see if they register. If they autocomplete only as plain text, you’re not in the execution context.
+
+7.  **Missing Internal Capability Flag**:
+    *   Run Developer: Toggle Developer Tools; check console for errors beginning with “[Copilot][orchestrator]”.
+
+**Recovery Procedure (Systematic)**:
+
+A.  Reload the window (Developer: Reload Window).
+B.  Trust the workspace.
+C.  Re-enable MCP servers & command execution settings.
+D.  Close all terminals; create a new terminal manually; then request Copilot to run a trivial command:
+
+```bash
+echo COPILOT_TEST && python -V
+```
+
+E.  If still failing, sign out/in of GitHub in VS Code.
+
+If the failure persists:
+
+*   Capture logs: Output > GitHub Copilot (last 200 lines).
+*   Provide any error lines starting with “ERR” to proceed with deeper remediation (e.g., auth scope, rate limit).
