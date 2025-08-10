@@ -41,6 +41,7 @@ class VectorStackConfig:
     image_grids: Sequence[Tuple[int, int]] = ((16, 16), (32, 32))
     betti_resolution: int = 300
     sw_num_angles: int = 32
+    sw_angle_strategy: str = 'golden'  # {'golden','equidistant','halton','random'} deterministic if seed fixed
     sw_resolution: int = 300
     kernel_small_k: int = 32
     kernel_large_k: int = 32
@@ -230,8 +231,42 @@ def _compute_betti_curve(dgm: np.ndarray, resolution: int) -> np.ndarray:
 
 # ----------------------- Block: Sliced Wasserstein Projections ----------------------- #
 
-def _generate_angles(m: int) -> np.ndarray:
-    # Golden angle sequence for deterministic coverage
+def _halton_sequence(size: int, base: int = 2) -> np.ndarray:
+    """Simple 1D Halton sequence (low-discrepancy) in (0,1)."""
+    seq = np.zeros(size, dtype=float)
+    for i in range(size):
+        f = 1.0
+        r = 0.0
+        n = i + 1  # start at 1
+        while n > 0:
+            f /= base
+            r += f * (n % base)
+            n //= base
+        seq[i] = r
+    return seq
+
+
+def _generate_angles(m: int, strategy: str, seed: int) -> np.ndarray:
+    """Generate deterministic angle set in [0, 2π) following chosen strategy.
+
+    Strategies:
+      golden: golden angle modular sequence (default)
+      equidistant: uniform spacing over [0,2π)
+      halton: low-discrepancy Halton sequence scaled to [0,2π)
+      random: pseudo-random (but seeded for determinism)
+    """
+    strategy = (strategy or 'golden').lower()
+    if m <= 0:
+        return np.zeros(0, dtype=float)
+    if strategy == 'equidistant':
+        # exclude endpoint to avoid duplicate angle 0 and 2π
+        return np.linspace(0, 2 * math.pi, m, endpoint=False, dtype=float)
+    if strategy == 'halton':
+        return _halton_sequence(m, base=2) * 2 * math.pi
+    if strategy == 'random':
+        rng = np.random.default_rng(seed)
+        return rng.random(m) * 2 * math.pi
+    # default: golden angle modular sequence
     angles = np.zeros(m, dtype=float)
     golden = math.pi * (3 - math.sqrt(5))
     for i in range(m):
@@ -239,7 +274,7 @@ def _generate_angles(m: int) -> np.ndarray:
     return angles
 
 
-def _compute_sliced_wasserstein(dgm: np.ndarray, num_angles: int, resolution: int) -> Dict[str, np.ndarray]:
+def _compute_sliced_wasserstein(dgm: np.ndarray, num_angles: int, resolution: int, angles: Optional[np.ndarray] = None) -> Dict[str, np.ndarray]:
     out: Dict[str, np.ndarray] = {}
     if dgm.size == 0:
         out['sw'] = np.zeros((num_angles, resolution), dtype=float)
@@ -255,7 +290,8 @@ def _compute_sliced_wasserstein(dgm: np.ndarray, num_angles: int, resolution: in
     if max_d <= min_b:
         max_d = min_b + 1e-6
     grid = np.linspace(min_b, max_d, resolution)
-    angles = _generate_angles(num_angles)
+    if angles is None:
+        angles = _generate_angles(num_angles, 'golden', seed=1337)
     proj_stack = np.zeros((num_angles, resolution), dtype=float)
     pts = finite
     for ai, ang in enumerate(angles):
@@ -439,7 +475,8 @@ def compute_block_features(diagrams_by_dim: Dict[int, np.ndarray], cfg: VectorSt
             _log(f"Added {key_betti} size={betti.size} (cursor={cursor})", cfg)
         # SW projections
         if cfg.enable_sw:
-            sw = _compute_sliced_wasserstein(dgm, cfg.sw_num_angles, cfg.sw_resolution)['sw']
+            angles = _generate_angles(cfg.sw_num_angles, cfg.sw_angle_strategy, cfg.random_seed)
+            sw = _compute_sliced_wasserstein(dgm, cfg.sw_num_angles, cfg.sw_resolution, angles=angles)['sw']
             key_sw = f"H{dim}_sw"
             blocks[key_sw] = sw.reshape(-1)
             spans[key_sw] = (cursor, cursor + sw.size)

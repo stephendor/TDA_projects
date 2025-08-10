@@ -44,7 +44,7 @@ Before writing ANY TDA validation code, must provide:
 
 ### VALIDATION-FIRST DEVELOPMENT PRINCIPLE
 - **ACCURACY > PROGRESS**: Accurate reporting is INFINITELY more valuable than artificial progress claims
-- **FAILURE IS PROGRESS**: Finding methods that don't work is as valuable as finding ones that do
+- **FAILURE IS PROGRESS**: Finding methods that don't work is as valuable as finding ones do
 - **VALIDATE IMMEDIATELY**: Every performance claim must be validated with independent reproduction script
 - **NO CLAIMS WITHOUT PROOF**: Zero tolerance for unvalidated performance assertions
 
@@ -176,3 +176,42 @@ Configuration for AI behavior when interacting with Codacy's MCP Server
 
 ## WORKFLOW & RELEASE RULES
 - You just need to remember to activate the venv when you open a new terminal, that is all
+- You MUST remember to activate the venv when you open a new terminal
+- The AI must pause, review what we have done so far and make a markdown file explaining our reasoning and decisions. Datestamp it.
+
+## VIRTUAL ENVIRONMENT
+- You MUST remember to activate the venv when you open a new terminal
+
+## EXTERNAL REPOSITORY ASSESSMENT RULES
+When assessing external repositories:
+- Summarize each proposed enhancement.
+- Map proposal to actual external repo capabilities present.
+- Evaluate technical feasibility within the current vector stack architecture.
+- Identify data/infra prerequisites and missing components.
+- Quantify realistic benefit vs claimed benefit (evidence-based risk).
+- Prioritize with go/defer/reject recommendations and rationale.
+- Provide a risk matrix (leakage, complexity, compute cost, validation burden).
+- Suggest minimal safe experimental path (validation-first) for any "Go" items.
+
+## NEW EXTERNAL REPOSITORY ASSESSMENT RULES
+- When assessing external repositories, adhere to the following process:
+  - Summarize each proposed enhancement.
+  - Map proposal to actual external repo capabilities present.
+  - Evaluate technical feasibility within the current vector stack architecture.
+  - Identify data/infra prerequisites and missing components.
+  - Quantify realistic benefit vs claimed benefit (evidence-based risk).
+  - Prioritize with go/defer/reject recommendations and rationale.
+  - Provide a risk matrix (leakage, complexity, compute cost, validation burden).
+  - Suggest minimal safe experimental path (validation-first) for any "Go" items.
+  - Forbid statistical features as topological proxies. Reject proposals using mean/variance counts.
+  - Implement SW angle strategy flag & deterministic generators.
+  - Implement sparse Rips parameter in diagram builder.
+  - Hook DTM-Rips option (with fallback if Gudhi class missing).
+  - Extend diagnostics.json with new topology config fields.
+  - Add diagnostics fields: sw_angle_strategy, sw_angles_list, rips_mode, rips_sparse_param, compute_time_subsections (per block).
+  - Generate a hash of angle set & filtration type in manifest_hash augmentation to prevent mixing outputs downstream.
+  - Run baseline (current) -> metrics_baseline.json.
+  - Run with enhancement -> metrics_enh.json.
+  - Compute delta: ΔPR, ΔROC, ΔBrier, timing, feature_dim difference.
+  - If ΔPR < +0.005 and compute cost > +25%, mark as FAIL (document in graveyard).
+  - Persist comparative JSON: enhancement_eval_<timestamp>.json.
