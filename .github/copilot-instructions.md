@@ -166,7 +166,6 @@ Configuration for AI behavior when interacting with Codacy's MCP Server
 - If the user accepts, run the `codacy_setup_repository` tool
 - Do not ever try to run the `codacy_setup_repository` tool on your own
 - After setup, immediately retry the action that failed (only retry once)
-
 ---
 
 ## DIAGNOSTIC AND TUNING RULES
@@ -214,3 +213,30 @@ When assessing external repositories:
   - Compute delta: ΔPR, ΔROC, ΔBrier, timing, feature_dim difference.
   - If ΔPR < +0.005 and compute cost > +25%, mark as FAIL (document in graveyard).
   - Persist comparative JSON: enhancement_eval_<timestamp>.json.
+
+## FILTRATION MODE EXPERIMENTATION RULES
+- When experimenting with filtration modes (DTM, Sparse, Standard):
+  - Run a controlled experiment matrix with strict success criteria and early abort logic to avoid sunk cost. Either surface a measurable, justified improvement (with reproducibility artifacts) or confidently retire the avenue.
+  - If point cloud coverage is incomplete, abort variant.
+  - If gudhi is missing, record FAIL and skip.
+  - If any degradation >0.01 PR AUC or leakage flag flips to true, CRITICAL FAIL.
+  - Sparse mode success: reduce compute time OR dimension with ≤ negligible metric drop (<0.003 PR AUC). Can accept: slight metric loss but ≥25% faster or ≥20% smaller feature set.
+
+## DIAGNOSTICS CAPTURE REQUIREMENTS
+- The `filtration_recompute` section in diagnostics MUST include:
+    - attempted_count
+    - success_count
+    - skipped_no_pointcloud
+    - skipped_no_gudhi
+    - failed_exception
+    - mode
+    - params: {dtm_k|sparse_param}
+    - mean_points_in
+    - mean_points_after_subsample
+    - rips_recompute_time_sec
+
+## ACTION THRESHOLDS FOR FILTRATION VARIANTS
+- PASS (candidate): ΔPR_AUC ≥ +0.005 AND training time multiplier ≤ 1.25× baseline.
+- MARGINAL: +0.003 ≤ ΔPR_AUC < +0.005 → need second confirmation run; otherwise discard.
+- FAIL: ΔPR_AUC < +0.003 OR time cost >1.5× baseline, or feature_dim inflation >20% with no metric gain.
+---
