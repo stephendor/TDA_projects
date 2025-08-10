@@ -176,9 +176,11 @@ Configuration for AI behavior when interacting with Codacy's MCP Server
 ## WORKFLOW & RELEASE RULES
 - You MUST remember to activate the venv when you open a new terminal
 - The AI must pause, review what we have done so far and make a markdown file explaining our reasoning and decisions. Datestamp it.
+- The AI must run all commands and monitor terminals for output and errors at all time. The AI should respond to failures and errors with appropriate fixes and then run and monitor those.
 
 ## VIRTUAL ENVIRONMENT
 - You MUST remember to activate the venv when you open a new terminal
+- Python terminals need to have the venv activated with .venv/bin/activate any time you open a fresh terminal
 
 ## EXTERNAL REPOSITORY ASSESSMENT RULES
 When assessing external repositories:
