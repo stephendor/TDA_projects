@@ -22,6 +22,7 @@ from typing import Dict, List, Tuple, Sequence, Any, Optional
 import numpy as np
 import math
 import json
+import time
 import hashlib
 from pathlib import Path
 
@@ -63,6 +64,13 @@ class VectorStackConfig:
     enable_silhouettes: bool = False  # placeholder (Task 20 automation)
     # Verbosity / progress tracking
     verbose: bool = False
+    # Filtration / topology enhancement parameters (placeholders for future integration)
+    rips_mode: str = 'standard'  # {'standard','dtm','sparse'}
+    rips_sparse_param: float = 2.0  # sparse approximation parameter (1/(1-eps))
+    dtm_k: int = 2  # k for DTM-Rips (if implemented upstream)
+
+# Global last-run block timing store
+LAST_BLOCK_TIMINGS: Dict[str, float] = {}
 
 
 # ----------------------- Utility & Determinism ----------------------- #
@@ -432,11 +440,13 @@ def compute_block_features(diagrams_by_dim: Dict[int, np.ndarray], cfg: VectorSt
     spans: Dict[str, Tuple[int, int]] = {}
     cursor = 0
     _log("Beginning block feature assembly", cfg)
+    timings: Dict[str, float] = {}
     for dim in cfg.homology_dims:
         dgm = _sanitize_diagram(diagrams_by_dim.get(dim, np.zeros((0, 2), dtype=float)))
         _log(f"Dim H{dim}: {dgm.shape[0]} points", cfg)
         # Landscapes
         if cfg.enable_landscapes:
+            t0 = time.perf_counter()
             lans = _compute_landscapes(dgm, cfg.landscape_levels, cfg.landscape_resolutions)
             for name, arr in lans.items():
                 flat = arr.reshape(-1)
@@ -445,8 +455,10 @@ def compute_block_features(diagrams_by_dim: Dict[int, np.ndarray], cfg: VectorSt
                 spans[key] = (cursor, cursor + flat.size)
                 cursor += flat.size
                 _log(f"Added {key} size={flat.size} (cursor={cursor})", cfg)
+            timings[f"H{dim}_landscapes"] = time.perf_counter() - t0
         # Persistence Images
         if cfg.enable_images:
+            t0 = time.perf_counter()
             finite = dgm[np.isfinite(dgm[:, 1])] if dgm.size > 0 else dgm
             if finite.size > 0:
                 births = finite[:, 0]
@@ -465,16 +477,20 @@ def compute_block_features(diagrams_by_dim: Dict[int, np.ndarray], cfg: VectorSt
                 spans[key] = (cursor, cursor + flat.size)
                 cursor += flat.size
                 _log(f"Added {key} size={flat.size} (cursor={cursor})", cfg)
+            timings[f"H{dim}_images"] = time.perf_counter() - t0
         # Betti curve
         if cfg.enable_betti:
+            t0 = time.perf_counter()
             betti = _compute_betti_curve(dgm, cfg.betti_resolution)
             key_betti = f"H{dim}_betti"
             blocks[key_betti] = betti
             spans[key_betti] = (cursor, cursor + betti.size)
             cursor += betti.size
             _log(f"Added {key_betti} size={betti.size} (cursor={cursor})", cfg)
+            timings[f"H{dim}_betti"] = time.perf_counter() - t0
         # SW projections
         if cfg.enable_sw:
+            t0 = time.perf_counter()
             angles = _generate_angles(cfg.sw_num_angles, cfg.sw_angle_strategy, cfg.random_seed)
             sw = _compute_sliced_wasserstein(dgm, cfg.sw_num_angles, cfg.sw_resolution, angles=angles)['sw']
             key_sw = f"H{dim}_sw"
@@ -482,11 +498,13 @@ def compute_block_features(diagrams_by_dim: Dict[int, np.ndarray], cfg: VectorSt
             spans[key_sw] = (cursor, cursor + sw.size)
             cursor += sw.size
             _log(f"Added {key_sw} size={sw.size} (cursor={cursor})", cfg)
+            timings[f"H{dim}_sw"] = time.perf_counter() - t0
         # Optional silhouettes (not implemented yet)
         if getattr(cfg, 'enable_silhouettes', False):
             _log("Silhouette block requested but not yet implemented; skipping (placeholder)", cfg)
         # Kernel dictionaries
         if cfg.enable_kernels:
+            t0 = time.perf_counter()
             for scale in ["kernel_small", "kernel_large"]:
                 centers = kernel_dicts[scale]['centers']
                 sigma_base = kernel_dicts[scale]['sigma_base']
@@ -496,7 +514,11 @@ def compute_block_features(diagrams_by_dim: Dict[int, np.ndarray], cfg: VectorSt
                 spans[key_k] = (cursor, cursor + resp.size)
                 cursor += resp.size
                 _log(f"Added {key_k} size={resp.size} (cursor={cursor})", cfg)
+            timings[f"H{dim}_kernels"] = time.perf_counter() - t0
     _log(f"Completed assembly. Total feature length={cursor}", cfg)
+    # Persist timings globally for diagnostics retrieval
+    global LAST_BLOCK_TIMINGS
+    LAST_BLOCK_TIMINGS = timings
     return blocks, spans
 
 
@@ -535,4 +557,5 @@ __all__ = [
     'compute_block_features',
     'stack_and_normalize',
     'build_vector_stack',
+    'LAST_BLOCK_TIMINGS'
 ]

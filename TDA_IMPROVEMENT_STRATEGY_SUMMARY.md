@@ -185,3 +185,13 @@ This breakthrough provides a solid foundation for production-ready TDA-based int
 - `test_improved_strategy_real_data.py` - Comprehensive testing framework
 
 **Performance:** 0.567 → 0.771 F1-score (+36.1% improvement) ✅
+\n+## Recent Vector Stack Enhancement Decisions (2025-08)
+\n+| Item | Decision | Rationale | Diagnostics |
+|------|----------|-----------|-------------|
+| SW Angle Strategies | Added `--sw-angle-strategy` (golden/equidistant/halton/random) | Controlled diversity & reproducibility | `sw_angles_list`, `sw_angles_hash` |
+| Filtration Modes | Implemented `--rips-mode {standard,dtm,sparse}` with sidecar point cloud recompute | Exploratory robustness & sparsity without altering originals | `filtration_recompute` counts |
+| Timing Instrumentation | Per-block timing added | Identify bottlenecks pre-pruning | `block_compute_time_sec` |
+| Manifest Hash Augmentation | Include filtration + angle hash | Prevent cross-run cache collisions | `manifest_hash` |
+| Enhancement Delta Script | `scripts/enhancement_delta_eval.py` | Rapid run-to-run quantitative comparison | delta JSON output |
+\n+DTM mode applies a k-NN distance inflation heuristic; sparse mode uses farthest point subsampling (target size ≈ N / sparse_param). Both gracefully fall back if `gudhi` or sidecar point clouds are absent.
+\n+Next: run baseline vs dtm vs sparse, capture deltas, feed into pruning & calibration reassessment.

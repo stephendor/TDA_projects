@@ -199,6 +199,32 @@ TDA_projects/
 - [ ] Financial risk platform for 3-5 mid-market institutions
 - [ ] Comprehensive testing and validation
 
+## Vector Stack Enhancements (Recent)
+
+The validation pipeline `validation/extract_vector_stack.py` now includes:
+
+- `--sw-angle-strategy {golden,equidistant,halton,random}`: Deterministic sliced Wasserstein angle generation strategies (baseline golden modular sequence).
+- `--rips-mode {standard,dtm,sparse}`: Alternative Rips filtration recomputation when sidecar point clouds are available.
+  - `standard`: Use precomputed diagrams as-is.
+  - `dtm`: Recompute diagrams using a heuristic distance-to-measure style adjustment (k-NN distance expansion) controlled by `--dtm-k` (default 2).
+  - `sparse`: Farthest point subsampling approximation; granularity controlled by `--rips-sparse-param` (acts as 1/(1-eps) style factor). Larger values -> stronger sparsification.
+- `--rips-sparse-param FLOAT`: Controls subsample target size (effective target ~ N / param).
+- `--dtm-k INT`: k for DTM heuristic (>=2).
+
+When recomputation is attempted, the script searches for sidecar point cloud files adjacent to each diagram (suffixes: `_points.npy`, `_pointcloud.npy`, `_pc.npy`). If unavailable or `gudhi` is missing, original diagrams are retained. Diagnostics report counts under `filtration_recompute`.
+
+Per-block compute timings and SW angle lists/hashes are recorded in `results/diagnostics.json` (`block_compute_time_sec`, `sw_angles_list`, `sw_angles_hash`).
+
+### Enhancement Delta Evaluation
+
+Use `scripts/enhancement_delta_eval.py` to compare baseline vs enhanced runs:
+
+```bash
+python scripts/enhancement_delta_eval.py --baseline validation/vector_stack_outputs/<runA> --enhanced validation/vector_stack_outputs/<runB> --out delta.json
+```
+
+Outputs absolute and relative deltas for key metrics and feature dimensionality.
+
 ### Phase 2: Market Expansion (12-24 months)
 - [ ] Supply chain risk assessment (NIS 2 compliance)
 - [ ] Cryptocurrency derivatives analysis

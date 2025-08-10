@@ -32,6 +32,7 @@ This file contains Copilot-specific extensions and integrations.
 - REQUIRED: Must verify actual temporal overlap between attack and benign samples
 - FORBIDDEN: Using temporally separated data (e.g., Feb 14 benign vs Feb 28 attacks)
 - REQUIRED: Show timestamp analysis proving co-occurring samples
+- ALWAYS check for temporal and data leakage when performance is unexpectedly low, especially if the user expresses concerns about it.
 
 ## PRE-IMPLEMENTATION VERIFICATION
 Before writing ANY TDA validation code, must provide:
@@ -172,10 +173,8 @@ Configuration for AI behavior when interacting with Codacy's MCP Server
 - After running a machine learning experiment, ALWAYS summarize the AUC values (PR AUC and ROC AUC) and other relevant metrics in the response.
 - If AUC values are low (ROC AUC < 0.7), recommend a step-back action to revisit the TDA representation pipeline or check for data leakage before further tuning.
 - When the user requests a "fast pass", prioritize quick incremental suggestions like near-zero variance thresholding or feature scaling before more complex techniques.
-- ALWAYS check for temporal and data leakage when performance is unexpectedly low, especially if the user expresses concerns about it.
 
 ## WORKFLOW & RELEASE RULES
-- You just need to remember to activate the venv when you open a new terminal, that is all
 - You MUST remember to activate the venv when you open a new terminal
 - The AI must pause, review what we have done so far and make a markdown file explaining our reasoning and decisions. Datestamp it.
 
