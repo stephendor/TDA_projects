@@ -185,6 +185,8 @@ Configuration for AI behavior when interacting with Codacy's MCP Server
 ## VIRTUAL ENVIRONMENT
 - You MUST remember to activate the venv when you open a new terminal
 - Python terminals need to have the venv activated with `source .venv/bin/activate` any time you open a fresh terminal
+- The AI must activate the venv using `source .venv/bin/activate` before running any python commands.
+- The AI should not hunt around for the venv activation command; it's always `source .venv/bin/activate`.
 
 ## EXTERNAL REPOSITORY ASSESSMENT RULES
 When assessing external repositories:

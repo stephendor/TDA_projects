@@ -353,7 +353,95 @@ No, you don't need to hunt around for it. It's the same fucking command every ti
 
 _**Assistant**_
 
-Activating the virtual environment and launching the DTM filtration run in one shell invocation to ensure the correct interpreter is used. 
+Activating the virtual environment and launching the DTM filtration run in one shell invocation to ensure the correct interpreter is used. Inspecting the new DTM variant output directory metrics and diagnostics for delta computation. Reading metrics and diagnostics from the latest DTM run directory 20250810_130007. Listing files inside the new run directory to locate metrics and diagnostics filenames. Listing results subdirectory to find metrics and diagnostics JSON files. Reading new run metrics_with_flags.json and diagnostics.json for delta calculation. Collecting baseline diagnostics/metrics to ensure fair comparison and identify needed flags before re-running DTM with pruning enabled. Searching for the diagnostics construction block to patch in filtration effectiveness warning. Running sparse filtration variant with venv activated and matching baseline pruning/standardization flags for cleaner comparison. Listing new sparse run output directory to collect metrics and diagnostics for delta computation. Inspecting sparse run results folder contents. Listing results subdirectory for metrics and diagnostics filenames. Reading metrics_with_flags and diagnostics to compute deltas vs baseline and DTM. Reading first 400 lines of diagnostics for sparse run to capture filtration recompute stats and feature dims. Gathering baseline and DTM metrics plus locating point cloud loading logic for root cause of zero recompute attempts. Reading DTM run diagnostics header for recompute stats. Collecting baseline diagnostics, creating enhancement evaluation JSON, then running Codacy analysis on the new file. Investigating why filtration recompute has zero attempts by searching code and inspecting manifest for point cloud references. Searching for recompute function name usage to inspect implementation. Searching for 'rips-mode' flag definition to locate filtration code segment. Trying broader search for 'sparse_param' to locate code region. Need to open extraction script to inspect missing filtration logic (first 400 lines). Verifying lack of point cloud sidecar files by inspecting manifest and adjacent files. Reading DTM metrics to capture exact values for enhancement evaluation JSON. [object Object]
+
+---
+
+_**User**_
+
+@agent Continue: "Continue to iterate?"
+
+---
+
+_**Assistant**_
+
+Sparse run done; results & deltas computed.
+
+Summary:
+- Baseline (20250810_031323): LR PR AUC 0.81766, ROC 0.71048, train_time 1045.22s, features 22618 (pruned).
+- DTM (20250810_130007): LR PR AUC 0.78060 (Δ -0.03706), ROC 0.65240, train_time 1587.82s (+52%), features 34488 (not pruned), recompute attempted_count 0.
+- Sparse (20250810_172832): LR PR AUC 0.81766 (Δ 0), ROC 0.71048 (Δ 0), train_time 935.27s (-10.5%), features 22618, recompute attempted_count 0.
+- Filtration recompute stats (DTM & Sparse): attempted_count 0, success_count 0, skipped_no_pointcloud 23798 → no point clouds found.
+
+Classification:
+- DTM: FAIL (metric degradation + extra cost + no filtration effect).
+- Sparse: NOOP (identical metrics; zero recompute).
+Early abort criterion met (no variant improves PR AUC) → recommend halting further filtration sweeps until root cause fixed.
+
+Root cause:
+_sidecar point clouds absent_. _load_point_cloud_candidates() looks for *_points.npy / *_pointcloud.npy / *_pc.npy next to each .npz diagram; none exist, so recompute path never runs.
+
+Implications:
+- Current “filtration variants” are effectively toggling flags without altering diagrams; sparse speedup from slightly faster LR convergence due to randomness, not filtration change.
+- DTM comparison unfair (no pruning); rerunning with pruning would not fix absence of point clouds.
+
+Recommended next actions (pick one path):
+A. Enable real filtration recompute:
+  1. Modify upstream diagram generation to also dump raw point cloud arrays with one of the expected suffixes.
+  2. Regenerate a SMALL subset (e.g., 200 windows) with point clouds to validate recompute stats (attempted_count > 0, success_count > 0).
+  3. Re-run DTM (k=10) and sparse (param=10) on that subset; inspect mean_points_in / after_subsample & timing before scaling up.
+B. If point clouds unavailable soon, pivot effort:
+  - Optimize SW projections (angle scheduling or learned projections).
+  - Dimensionality reduction / block reweighting (e.g., per-block standardization + L1).
+  - Explore learned persistence summaries (autoencoder on landscapes/images).
+
+Minimal fixes to implement for path A:
+- Confirm where original point clouds live (if still accessible) and save alongside diagrams.
+- Optionally add a --force-filtration-test flag to log a warning if attempted_count remains 0 after N diagrams (early fail-fast).
+
+Let me know: generate patch to add warning & fail-fast, or start point cloud sidecar generation script?
+
+---
+
+_**User**_
+
+Let's do those minimal fixes first
+
+---
+
+_**Assistant**_
+
+Reading remainder of `extract_vector_stack.py` to identify diagnostics assembly and main execution flow for patch insertion. Reading remainder to find diagnostics save and recompute stats injection point. Implementing minimal fixes: add CLI flag and fail-fast/warning logic for zero filtration recompute attempts; then run Codacy analysis on modified file. 
+```
+
+```
+Running Codacy analysis on modified file to ensure no new issues. Analyzing updated file with Codacy CLI for quality issues. Added fail-fast & warning logic for inactive filtration recompute.
+
+Checklist:
+- Add CLI flag --fail-if-no-filtration ✔
+- Emit warning when non-standard mode yields 0 attempts ✔
+- Optionally raise RuntimeError if flag set ✔
+- Persist warning into `diagnostics.json` (filtration_warning) ✔
+- Run Codacy analysis on modified file ✔ (no issues)
+
+Next options:
+1. Re-run a non-standard mode with --fail-if-no-filtration to verify early failure (will currently warn but not fail without flag).
+2. Implement sidecar point cloud dumping upstream so recompute becomes active.
+3. Proceed to create a small point-cloud regeneration script for a subset.
+
+Tell me which you want next (1: verify warning/fail, 2: add point cloud exporter, 3: both).
+
+---
+
+_**User**_
+
+OKay, do all three for now
+
+---
+
+_**Assistant**_
+
+
 
 ---
 
