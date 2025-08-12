@@ -1,0 +1,79 @@
+{
+  "name": "Cybercrime_Forensics",
+  "file_count": 1,
+  "total_samples": 7400,
+  "feature_count": 11,
+  "feature_types": {
+    "numerical": 3,
+    "categorical": 8,
+    "temporal": 1,
+    "network_flow": 0
+  },
+  "missing_values": {
+    "columns_with_missing": [
+      "File_Name",
+      "Action",
+      "Login_Attempts",
+      "File_Size",
+      "Anomaly_Type"
+    ],
+    "total_missing_percentage": 25.702702702702698
+  },
+  "feature_details": {
+    "Timestamp": {
+      "dtype": "object",
+      "unique_values": 7400,
+      "missing_percentage": 0.0
+    },
+    "User_ID": {
+      "dtype": "int64",
+      "unique_values": 5031,
+      "missing_percentage": 0.0
+    },
+    "IP_Address": {
+      "dtype": "object",
+      "unique_values": 7353,
+      "missing_percentage": 0.0
+    },
+    "Activity_Type": {
+      "dtype": "object",
+      "unique_values": 7,
+      "missing_percentage": 0.0
+    },
+    "Resource_Accessed": {
+      "dtype": "object",
+      "unique_values": 36,
+      "missing_percentage": 0.0
+    },
+    "File_Name": {
+      "dtype": "object",
+      "unique_values": 6,
+      "missing_percentage": 56.81081081081081
+    },
+    "Action": {
+      "dtype": "object",
+      "unique_values": 6,
+      "missing_percentage": 14.216216216216216
+    },
+    "Login_Attempts": {
+      "dtype": "float64",
+      "unique_values": 10,
+      "missing_percentage": 71.55405405405405
+    },
+    "File_Size": {
+      "dtype": "float64",
+      "unique_values": 2382,
+      "missing_percentage": 56.81081081081081
+    },
+    "Anomaly_Type": {
+      "dtype": "object",
+      "unique_values": 4,
+      "missing_percentage": 83.33783783783784
+    },
+    "Label": {
+      "dtype": "object",
+      "unique_values": 2,
+      "missing_percentage": 0.0
+    }
+  }
+}

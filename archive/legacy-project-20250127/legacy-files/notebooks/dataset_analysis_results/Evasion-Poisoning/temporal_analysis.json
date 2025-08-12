@@ -1,0 +1,7 @@
+{
+  "has_timestamps": true,
+  "timestamp_columns": [
+    "Time_To_Live"
+  ],
+  "co_occurrence_verified": false
+}

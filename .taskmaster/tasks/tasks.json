@@ -1,0 +1,596 @@
+{
+  "master": {
+    "tasks": [
+      {
+        "id": 1,
+        "title": "Implement Core Persistent Homology Algorithms",
+        "description": "Develop the foundational persistent homology computation engine to calculate topological features from point cloud data, as specified in FR-CORE-001.",
+        "details": "Implement support for Vietoris-Rips, Alpha, Čech, and DTM filtrations using performance-critical C++ and libraries like GUDHI or Ripser. The engine must compute Betti numbers for dimensions 0-3 and generate persistence diagrams and barcodes. It should be optimized to handle point clouds with over 100,000 points efficiently.",
+        "testStrategy": "Validate correctness by comparing outputs against established TDA libraries on benchmark datasets. Implement unit tests for all core algorithms and filtration methods. Conduct performance testing to ensure it meets the criteria in ST-101 (processing >1M points in <60s).",
+        "priority": "high",
+        "dependencies": [],
+        "status": "todo",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Setup C++ Environment and Integrate Core TDA Library",
+            "description": "Establish the C++ development environment, including the build system (CMake), and integrate the chosen third-party TDA library (e.g., GUDHI) as a core dependency for all subsequent development.",
+            "dependencies": [],
+            "details": "Configure the project structure, compiler flags for performance (-O3), and a basic continuous integration pipeline. Write a 'hello world' TDA example to confirm the library is correctly linked and functional by computing persistence for a small, known point cloud.",
+            "status": "pending",
+            "testStrategy": "Compile and run a basic example that computes persistence for a 2D point cloud sampling a circle. Verify the library linkage and that the output correctly identifies one 0-dimensional and one 1-dimensional feature."
+          },
+          {
+            "id": 2,
+            "title": "Implement Vietoris-Rips (VR) Filtration and Persistence Computation",
+            "description": "Implement the core logic to construct a Vietoris-Rips filtration from input point cloud data and compute its persistent homology up to dimension 3.",
+            "dependencies": [
+              "1.1"
+            ],
+            "details": "Develop a C++ class that takes a point cloud (as a matrix or vector of vectors) and a maximum filtration radius. Use the integrated GUDHI/Ripser library to build the VR complex and run the persistence algorithm.",
+            "status": "pending",
+            "testStrategy": "Unit test with simple geometric shapes (e.g., circle, sphere, torus) and compare the output persistence pairs against known theoretical values. Validate against the chosen library's standalone examples on benchmark datasets."
+          },
+          {
+            "id": 3,
+            "title": "Implement Alpha Complex Filtration and Persistence Computation",
+            "description": "Implement the logic to construct an Alpha complex filtration from input point cloud data and compute its persistent homology up to dimension 3.",
+            "dependencies": [
+              "1.1"
+            ],
+            "details": "Develop a C++ module for Alpha complex construction, which requires an interface with a computational geometry library (e.g., CGAL, a dependency of GUDHI). The function will take a point cloud and compute persistence based on the Alpha filtration.",
+            "status": "pending",
+            "testStrategy": "Validate the implementation on benchmark datasets where Alpha complexes are well-suited. Compare results with other TDA software that supports Alpha complexes to ensure correctness. Test edge cases with co-planar or co-linear points."
+          },
+          {
+            "id": 4,
+            "title": "Implement Čech and DTM Filtrations",
+            "description": "Add support for computing persistent homology using Čech complex and Distance-To-Measure (DTM) filtrations to handle different data properties like noise.",
+            "dependencies": [
+              "1.1"
+            ],
+            "details": "Implement the Čech complex, likely using an approximation for efficiency. Implement the DTM filtration, which requires computing a distance-to-measure function on the point cloud before building a Rips-like filtration based on the new metric.",
+            "status": "pending",
+            "testStrategy": "For Čech, test on small point clouds where exact computation is feasible and compare with theoretical results. For DTM, test on noisy point clouds and verify its robustness compared to standard VR, comparing against reference implementations."
+          },
+          {
+            "id": 5,
+            "title": "Implement Persistence Diagram and Barcode Data Structure Generation",
+            "description": "Develop data structures and serialization functions to represent and export the computed persistence pairs as persistence diagrams and barcodes.",
+            "dependencies": [
+              "1.2",
+              "1.3",
+              "1.4"
+            ],
+            "details": "Create C++ structs/classes to store persistence pairs (birth, death, dimension). Write functions to format this data into a standardized, serializable format (e.g., JSON or a binary format) for both diagrams (list of [dim, birth, death] points) and barcodes (list of [dim, birth, death] intervals).",
+            "status": "pending",
+            "testStrategy": "Verify that for a given input, the generated data structures correctly represent the output of the persistence algorithm. Write unit tests to check the serialization/deserialization process for correctness, completeness, and format compliance."
+          },
+          {
+            "id": 6,
+            "title": "Implement Betti Number Calculation Utility",
+            "description": "Create a utility to compute Betti numbers (β₀, β₁, β₂, β₃) from the generated persistence diagrams for a given filtration value.",
+            "dependencies": [
+              "1.5"
+            ],
+            "details": "Implement a function that takes a persistence diagram and a filtration value (epsilon) as input. It must count the number of persistence intervals [b, d) for each dimension k such that b <= epsilon < d to calculate the Betti number βₖ(epsilon).",
+            "status": "pending",
+            "testStrategy": "Unit test the Betti number calculation against manually computed values for simple diagrams. For a point cloud of a torus, verify that β₀=1, β₁=2, and β₂=1 within the correct epsilon ranges."
+          },
+          {
+            "id": 7,
+            "title": "Optimize Engine for Large-Scale Point Clouds (>1M points)",
+            "description": "Profile and optimize the performance of all implemented filtration methods to meet the ST-101 requirement of processing over 1 million points in under 60 seconds.",
+            "dependencies": [
+              "1.2",
+              "1.3",
+              "1.4"
+            ],
+            "details": "Use profiling tools (e.g., gprof, Valgrind/Callgrind) to identify bottlenecks. Implement optimizations such as multi-threading for complex construction, sparse matrix representations, and memory pooling. Investigate and implement approximation algorithms like sparse Rips filtrations.",
+            "status": "pending",
+            "testStrategy": "Create a performance test suite with point clouds of increasing size (100k, 500k, 1M, 1.5M). Benchmark execution time and memory usage for each filtration type. The test passes if a 1M point cloud is processed in under 60 seconds on target hardware."
+          },
+          {
+            "id": 8,
+            "title": "Develop C++ API and Python Bindings for the Homology Engine",
+            "description": "Design and implement a clean C++ API for the engine and create Python bindings to allow other services (like Task 2) to call the C++ code.",
+            "dependencies": [
+              "1.6",
+              "1.7"
+            ],
+            "details": "Define a stable C++ API that exposes functions for computing persistence with different filtrations and retrieving results. Use pybind11 to wrap the C++ API, enabling efficient data transfer between Python (NumPy arrays) and C++ (Eigen matrices or std::vector).",
+            "status": "pending",
+            "testStrategy": "Write Python-based integration tests that call the C++ engine via the bindings. Verify that passing a NumPy array from Python, computing persistence in C++, and returning the results to Python works correctly and efficiently. Test error handling across the language boundary."
+          }
+        ]
+      },
+      {
+        "id": 2,
+        "title": "Develop Basic Topological Feature Vectorization and Storage",
+        "description": "Create deterministic vectorization methods and establish a database schema for storing and retrieving topological features.",
+        "details": "Implement the deterministic vector-stack method including persistence landscapes, images, and Betti curves (FR-CORE-002). Design and implement a database schema using PostgreSQL and MongoDB for storing persistence diagrams, barcodes, and vectorized features. The schema must support efficient indexing and versioning as per ST-301.",
+        "testStrategy": "Verify that vectorization outputs are correct and consistent for given inputs. Test database performance for write throughput and query latency on stored topological features. Ensure the schema correctly supports versioning and similarity searches.",
+        "priority": "high",
+        "dependencies": [
+          1
+        ],
+        "status": "todo",
+        "subtasks": []
+      },
+      {
+        "id": 3,
+        "title": "Build Backend API and Initial Streaming Infrastructure",
+        "description": "Set up the core backend services, including a Python API for orchestration and a data streaming pipeline for real-time processing.",
+        "details": "Develop a Python API (e.g., using FastAPI) to expose and orchestrate the C++ TDA computations. Configure Apache Kafka for high-throughput event streaming and set up an initial Apache Flink project for stream processing to support future real-time features like FR-CYB-001.",
+        "testStrategy": "Conduct unit and integration testing for all API endpoints. Verify the streaming pipeline by testing message production and consumption through Kafka. Run a simple Flink job to confirm the stream processing setup is functional.",
+        "priority": "high",
+        "dependencies": [
+          1
+        ],
+        "status": "todo",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Design and Implement FastAPI Application with C++ TDA Core Integration",
+            "description": "Create the initial FastAPI project structure and implement the mechanism to call the C++ persistent homology algorithms developed in Task 1.",
+            "dependencies": [],
+            "details": "Set up a FastAPI application. Develop Python bindings using pybind11 or a subprocess-based wrapper to invoke the C++ TDA engine. Create a preliminary API endpoint to test the invocation of a C++ computation (e.g., Vietoris-Rips) and confirm that results can be passed back to the Python layer. This subtask is dependent on the completion of the C++ engine from Task 1.",
+            "status": "pending",
+            "testStrategy": "Unit test the C++ wrapper/binding to ensure it correctly passes data and receives results. Create an integration test for the initial API endpoint to confirm it can trigger a C++ computation and handle the output."
+          },
+          {
+            "id": 2,
+            "title": "Develop API Endpoints for TDA Computation Orchestration",
+            "description": "Implement the full set of RESTful API endpoints required to manage the lifecycle of TDA computations, from data submission to result retrieval.",
+            "dependencies": [
+              "3.1"
+            ],
+            "details": "Create endpoints for: 1) Uploading point cloud data. 2) Initiating an asynchronous TDA computation job, specifying the algorithm and its parameters. 3) Checking the status of a running job. 4) Retrieving computation results (e.g., persistence diagrams, Betti numbers) once complete. These endpoints will orchestrate the C++ core via the integration layer from subtask 3.1.",
+            "status": "pending",
+            "testStrategy": "Implement unit tests for each endpoint's logic (validation, job queuing). Conduct integration tests to verify the end-to-end workflow from data submission to result retrieval, mocking the C++ execution time."
+          },
+          {
+            "id": 3,
+            "title": "Install and Configure Apache Kafka Cluster",
+            "description": "Set up a foundational Apache Kafka cluster to serve as the backbone for high-throughput, real-time event streaming.",
+            "dependencies": [],
+            "details": "Deploy a Kafka cluster using Docker Compose for a reproducible development environment. Configure brokers and ZooKeeper. Create the initial topics required for the data pipeline (e.g., `raw_data_events`, `tda_feature_results`) and define their partition and replication strategies to support future scalability needs.",
+            "status": "pending",
+            "testStrategy": "Use Kafka's command-line tools to manually produce and consume messages from the created topics to verify the cluster is operational and topics are configured correctly. Check cluster health via JMX metrics or management tools."
+          },
+          {
+            "id": 4,
+            "title": "Integrate Kafka Producer into the Backend API",
+            "description": "Implement functionality within the Python API to produce messages to the Kafka cluster, enabling real-time event publishing.",
+            "dependencies": [
+              "3.1",
+              "3.3"
+            ],
+            "details": "Add a Kafka client library (e.g., `kafka-python`) to the FastAPI application. Create a service or utility function that allows API endpoints to publish events. For example, when a TDA computation is completed, the API will publish the resulting features to the `tda_feature_results` topic.",
+            "status": "pending",
+            "testStrategy": "Write integration tests that trigger an API endpoint and verify that the corresponding message is successfully published to the correct Kafka topic. Monitor the topic to confirm message format, content, and headers."
+          },
+          {
+            "id": 5,
+            "title": "Set Up Initial Apache Flink Project for Stream Consumption",
+            "description": "Create a basic Flink stream processing application that consumes data from Kafka to validate the end-to-end streaming infrastructure.",
+            "dependencies": [
+              "3.3"
+            ],
+            "details": "Set up a Flink development environment. Create a simple Flink job (using Python's DataStream API) that connects to the Kafka cluster as a source, reads messages from a topic (e.g., `tda_feature_results`), performs a trivial transformation (e.g., logging the message or counting features), and writes the output to a log sink. This confirms the Flink-Kafka connector is working.",
+            "status": "pending",
+            "testStrategy": "Deploy and run the Flink job. Produce messages to the source Kafka topic (either manually or via the API from subtask 3.4) and verify that the Flink job processes them and produces the expected output in the configured sink (e.g., Flink's logs)."
+          }
+        ]
+      },
+      {
+        "id": 4,
+        "title": "Develop Prototype UI for Core Analysis Workflow",
+        "description": "Create a basic user interface for running analyses and visualizing the primary results of persistent homology.",
+        "details": "Build a React frontend application that allows users to upload a dataset, configure and trigger a persistent homology computation via the backend API, and view the resulting persistence diagram. Use Three.js or D3.js for interactive 2D/3D visualization of diagrams.",
+        "testStrategy": "Perform end-to-end testing of the primary user workflow: data upload, analysis execution, and result visualization. Conduct initial usability testing on the prototype to gather feedback on the workflow and interface clarity.",
+        "priority": "medium",
+        "dependencies": [
+          3
+        ],
+        "status": "todo",
+        "subtasks": []
+      },
+      {
+        "id": 5,
+        "title": "Implement Advanced Learnable Topological Features",
+        "description": "Develop and integrate learnable topological feature extraction methods to be used in deep learning models, as per FR-CORE-002.",
+        "details": "Implement novel TDA layers in PyTorch, including persistence attention mechanisms, hierarchical clustering features, and TDA-GNN embeddings. These layers should be designed to integrate seamlessly into existing deep learning architectures.",
+        "testStrategy": "Unit test each new layer for mathematical correctness, output shape, and proper gradient flow. Integrate the layers into a sample model and verify performance improvement over baseline methods on a benchmark classification or regression task.",
+        "priority": "high",
+        "dependencies": [
+          2
+        ],
+        "status": "todo",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Design and Implement a Base `TDALayer` in PyTorch",
+            "description": "Create a foundational, abstract PyTorch `nn.Module` to serve as the base class for all learnable TDA layers, ensuring a common interface and compatibility with the PyTorch ecosystem.",
+            "dependencies": [],
+            "details": "The base layer must define a common interface for handling persistence diagrams or other topological data structures as input. It should manage learnable parameters and ensure full compatibility with PyTorch's autograd engine. This includes implementing utility functions for preprocessing inputs and ensuring it can be seamlessly subclassed.",
+            "status": "pending",
+            "testStrategy": "Unit test the base class for correct initialization, parameter registration, and its ability to handle dummy input tensors without errors. Verify that it can be subclassed successfully and that gradients can flow through it in a simple test case."
+          },
+          {
+            "id": 2,
+            "title": "Implement Persistence Attention Layer",
+            "description": "Develop a PyTorch layer that applies a learnable attention mechanism over persistence diagrams to dynamically weigh the importance of different topological features.",
+            "dependencies": [
+              "5.1"
+            ],
+            "details": "This layer will take a batch of persistence diagrams as input. It will implement a self-attention mechanism where keys, queries, and values are derived from the birth-death-dimension tuples of persistence points. The output should be a fixed-size vector embedding suitable for downstream tasks.",
+            "status": "pending",
+            "testStrategy": "Unit test for correct output dimensions, non-zero gradients for all learnable parameters, and mathematical correctness of the attention score computation using a small, known example diagram. Validate batch processing capabilities."
+          },
+          {
+            "id": 3,
+            "title": "Implement Learnable Hierarchical Clustering Feature Layer",
+            "description": "Create a layer that extracts learnable features from the hierarchical clustering structure (dendrogram) associated with 0-dimensional persistence.",
+            "dependencies": [
+              "5.1"
+            ],
+            "details": "This layer will process the single-linkage clustering hierarchy derived from point cloud data, which is equivalent to the 0-dimensional persistence diagram. It will use learnable functions to embed the structure of the dendrogram, for example by learning weights for different merge events or branch structures to produce a feature vector.",
+            "status": "pending",
+            "testStrategy": "Verify the layer correctly processes dendrogram-like inputs (e.g., linkage matrices). Test for proper gradient flow through the learnable components. Check output stability and shape consistency across different input sizes."
+          },
+          {
+            "id": 4,
+            "title": "Implement TDA-GNN Embedding Layer",
+            "description": "Develop a layer that combines Topological Data Analysis (TDA) with Graph Neural Networks (GNNs) to produce powerful structural embeddings from data.",
+            "dependencies": [
+              "5.1"
+            ],
+            "details": "The layer will first construct a graph from a topological complex (e.g., the 1-skeleton of a Vietoris-Rips complex) at a specific filtration value. It will then apply a GNN (e.g., GCN or GAT) on this graph to learn node embeddings, which are then aggregated to produce a single graph-level representation.",
+            "status": "pending",
+            "testStrategy": "Unit test the graph construction logic from input data. Verify that the GNN component integrates correctly with libraries like PyTorch Geometric and that gradients flow back from the aggregated output to the GNN parameters. Test with a simple, known graph structure."
+          },
+          {
+            "id": 5,
+            "title": "Integrate TDA Layers into a Benchmark Model Architecture",
+            "description": "Integrate the newly developed TDA layers into a standard deep learning model to demonstrate their use and verify their seamless integration.",
+            "dependencies": [
+              "5.2",
+              "5.3",
+              "5.4"
+            ],
+            "details": "Select a benchmark dataset (e.g., ModelNet10 for 3D shape classification). Create a new PyTorch model architecture that incorporates one or more of the TDA layers. The output of the TDA layer(s) will be concatenated with features from other standard layers (e.g., convolutional or fully connected) before the final classification head.",
+            "status": "pending",
+            "testStrategy": "Verify that the end-to-end model can be instantiated and that a full forward and backward pass completes without shape mismatches or runtime errors. Confirm that all parameters, including those in the TDA layers, are correctly registered in the model's optimizer."
+          },
+          {
+            "id": 6,
+            "title": "Benchmark and Validate TDA Layers Performance",
+            "description": "Conduct a comparative performance analysis of the TDA-enhanced model against a baseline model on a benchmark dataset to quantify the performance improvement.",
+            "dependencies": [
+              "5.5"
+            ],
+            "details": "Train both the TDA-enhanced model and a comparable baseline model (without TDA layers) on the chosen benchmark dataset. Track key metrics such as classification accuracy, loss curves, and training time. Document the results and analyze the performance lift provided by the topological features.",
+            "status": "pending",
+            "testStrategy": "Run multiple training trials with different random seeds for both models to ensure statistical significance. Validate on a held-out test set. The primary success criterion is a statistically significant improvement in the main evaluation metric over the baseline model."
+          }
+        ]
+      },
+      {
+        "id": 6,
+        "title": "Build Finance Module for Market Regime Detection",
+        "description": "Implement the features required for financial market regime detection as specified in FR-FIN-001 and ST-102.",
+        "details": "Create a dedicated module that uses topological features (from tasks 1, 2, 5) to analyze financial time-series data. Develop models to identify topological transitions in market structure, quantify regime stability, and generate configurable early warning signals for multiple asset classes.",
+        "testStrategy": "Backtest the module on historical financial data (equities, crypto) to validate accuracy (>85%) and latency (<100ms). Compare the model's detections against known historical market events and established financial indicators.",
+        "priority": "high",
+        "dependencies": [
+          5
+        ],
+        "status": "todo",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Setup Financial Data Ingestion and Time-Series Preprocessing Pipeline",
+            "description": "Establish data connectors for multiple asset classes (equities, crypto) and implement a preprocessing pipeline to convert raw time-series data into point clouds using sliding window embedding, as required for topological analysis.",
+            "dependencies": [],
+            "details": "Implement connectors for financial data APIs (e.g., Polygon, Binance). The preprocessing step must handle data cleaning (missing values, outliers), normalization, and configurable sliding window embedding to generate point clouds from time-series price data.",
+            "status": "pending",
+            "testStrategy": "Verify data integrity and timeliness from APIs. Test the preprocessing pipeline to ensure correct, deterministic point cloud generation for various time-series inputs and window configurations."
+          },
+          {
+            "id": 2,
+            "title": "Integrate Topological Feature Extraction Services",
+            "description": "Create an interface within the finance module to consume topological features from the core TDA engine (Task 1), deterministic vectorizers (Task 2), and advanced learnable layers (Task 5).",
+            "dependencies": [
+              "6.1"
+            ],
+            "details": "Develop a unified service layer within the module to request topological features (e.g., persistence diagrams, landscapes, TDA-GNN embeddings) for a given preprocessed financial point cloud. This will abstract the underlying implementations from dependent tasks.",
+            "status": "pending",
+            "testStrategy": "Unit test the integration points to ensure the finance module can correctly request and receive features from the other components. Validate the format, content, and consistency of the received features against expected outputs."
+          },
+          {
+            "id": 3,
+            "title": "Develop Unsupervised Model for Topological Transition Detection",
+            "description": "Implement an unsupervised learning model that analyzes sequences of topological features to identify significant structural changes, corresponding to market regime transitions as specified in FR-FIN-001.",
+            "dependencies": [
+              "6.2"
+            ],
+            "details": "Explore and implement techniques such as change point detection on persistence landscape norms, or clustering on the space of persistence diagrams using Wasserstein distance. The model must output timestamps or periods corresponding to detected transitions.",
+            "status": "pending",
+            "testStrategy": "Apply the model to synthetic data with known transition points to verify detection capability. Run on historical data and qualitatively compare detected transitions with major known market events (e.g., 2008 crisis, COVID-19 crash)."
+          },
+          {
+            "id": 4,
+            "title": "Implement Regime Stability Quantification Metric",
+            "description": "Develop and implement a metric to quantify the stability of an identified market regime based on the statistical properties of its topological features over time.",
+            "dependencies": [
+              "6.3"
+            ],
+            "details": "The metric will be calculated based on the variance of topological features within a regime identified by the transition model. For example, use the variance of persistence landscape norms or the average pairwise distance between consecutive persistence diagrams.",
+            "status": "pending",
+            "testStrategy": "Test the metric on different historical periods (e.g., a stable bull market vs. a volatile sideways market) to ensure it produces intuitive and meaningful stability scores that correlate with market volatility."
+          },
+          {
+            "id": 5,
+            "title": "Build Configurable Early Warning Signal (EWS) Generator",
+            "description": "Create a system that generates configurable early warning signals for potential regime shifts based on the outputs of the transition detection and stability models, as per ST-102.",
+            "dependencies": [
+              "6.3",
+              "6.4"
+            ],
+            "details": "The system will allow users to configure signal triggers based on thresholds, such as a rapid decrease in the stability metric or the model's confidence score for an impending transition. Signals must be taggable by asset class.",
+            "status": "pending",
+            "testStrategy": "Backtest the EWS generator to evaluate its predictive power. Measure lead time, precision, and recall for historical market events. Verify that user-defined configurations are correctly applied to the signal logic."
+          },
+          {
+            "id": 6,
+            "title": "Develop Backtesting and Performance Validation Framework",
+            "description": "Build a comprehensive backtesting framework to validate the regime detection module's performance against historical data and established financial indicators, ensuring it meets accuracy and latency requirements.",
+            "dependencies": [
+              "6.5"
+            ],
+            "details": "The framework must automate running the entire module on historical datasets for equities and crypto. It will compute accuracy (>85%) against a labeled event dataset, end-to-end latency (<100ms), and compare signal timing against benchmarks like the VIX.",
+            "status": "pending",
+            "testStrategy": "Run the framework on a small, well-understood dataset to verify that the metric calculations (accuracy, latency, etc.) are correct. The framework itself will be unit tested for its data handling and calculation logic."
+          },
+          {
+            "id": 7,
+            "title": "Package Module and Expose Endpoints for Regime Analysis",
+            "description": "Package the entire set of features into a self-contained, deployable finance module and expose its functionality through well-defined API endpoints.",
+            "dependencies": [
+              "6.6"
+            ],
+            "details": "Create RESTful API endpoints for: (1) triggering an analysis on new data, (2) querying for the latest detected regime and its stability score for a given asset, and (3) retrieving historical transitions and warning signals. The module will be packaged as a Docker container.",
+            "status": "pending",
+            "testStrategy": "Write integration tests for all API endpoints to ensure they handle valid and invalid requests correctly. Perform load testing on the endpoints to verify they meet the <100ms latency requirement under expected production load."
+          }
+        ]
+      },
+      {
+        "id": 7,
+        "title": "Build Cybersecurity Module for Anomaly Detection",
+        "description": "Implement features for real-time network traffic analysis and threat detection as per FR-CYB-001, FR-CYB-002, and ST-103.",
+        "details": "Utilize the streaming architecture (Task 3) to process network packet streams in real-time. Implement sliding window analysis to extract topological features from traffic data. Develop models to detect deviations from baseline topological signatures and classify common attack patterns (DDoS, SQL injection).",
+        "testStrategy": "Test the module with captured network traffic datasets (e.g., CIC-IDS2017). Conduct red team exercises to validate detection capabilities against live attacks. Measure and optimize for a false positive rate below 50% and classification accuracy above 75%.",
+        "priority": "high",
+        "dependencies": [
+          3,
+          5
+        ],
+        "status": "todo",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Integrate with Real-time Network Packet Stream",
+            "description": "Connect the cybersecurity module to the streaming architecture defined in Task 3 to consume real-time network packet data.",
+            "dependencies": [],
+            "details": "Implement a Kafka consumer or equivalent client to subscribe to the network traffic topic provided by the streaming architecture. Ensure robust data ingestion, deserialization, and error handling for a continuous, high-throughput data flow as per ST-103.",
+            "status": "pending",
+            "testStrategy": "Unit test the consumer's connection and data parsing logic. Verify in a staging environment that the module correctly receives data from the streaming pipeline."
+          },
+          {
+            "id": 2,
+            "title": "Implement Sliding Window and Packet Preprocessing",
+            "description": "Develop the logic for segmenting the incoming network stream into time-based sliding windows and preprocess the raw packet data within each window.",
+            "dependencies": [
+              "7.1"
+            ],
+            "details": "Define a configurable window size and slide interval. For each window, convert raw packet information (source/destination IPs, ports, protocols, payload size) into a numerical format suitable for topological feature extraction, such as point clouds or graph adjacency matrices.",
+            "status": "pending",
+            "testStrategy": "Verify that windowing logic correctly segments the data stream without data loss. Test the preprocessing step to ensure packet data is consistently and correctly transformed into the target numerical representation."
+          },
+          {
+            "id": 3,
+            "title": "Extract Topological Features from Traffic Windows",
+            "description": "Apply topological data analysis to the preprocessed data in each sliding window to generate topological signatures for network traffic.",
+            "dependencies": [
+              "7.2"
+            ],
+            "details": "Utilize the core TDA engine (Task 1) and advanced learnable features (Task 5) to compute persistence diagrams, Betti numbers, and other relevant topological features for each window of network traffic. This forms the basis for the baseline and detection models.",
+            "status": "pending",
+            "testStrategy": "For a given preprocessed window, validate that the output topological features are deterministic and match expected values. Check for performance and memory usage during feature extraction."
+          },
+          {
+            "id": 4,
+            "title": "Develop Baseline Traffic Profile Model",
+            "description": "Create a model that learns the topological signatures of normal, non-malicious network traffic to establish a behavioral baseline.",
+            "dependencies": [
+              "7.3"
+            ],
+            "details": "Train an unsupervised model (e.g., clustering, density estimation, or an autoencoder) on topological features extracted from a known 'clean' portion of a dataset like CIC-IDS2017. This model will define the signature of \"normal\" network behavior.",
+            "status": "pending",
+            "testStrategy": "Train the model on a clean dataset and ensure it converges. Evaluate the model's ability to reconstruct or represent known normal traffic samples with low error."
+          },
+          {
+            "id": 5,
+            "title": "Implement Anomaly Deviation Detection Algorithm",
+            "description": "Develop the algorithm to detect significant deviations from the established baseline traffic profile in real-time.",
+            "dependencies": [
+              "7.4"
+            ],
+            "details": "Implement a mechanism to compare the topological signature of each new traffic window against the baseline model. Use a statistical measure (e.g., Wasserstein distance) or model output score to flag windows that are anomalous. Tune the sensitivity threshold.",
+            "status": "pending",
+            "testStrategy": "Test the algorithm with both normal and anomalous samples from a labeled dataset. Measure the initial true positive and false positive rates."
+          },
+          {
+            "id": 6,
+            "title": "Develop Attack Pattern Classification Model",
+            "description": "Build and train a supervised machine learning model to classify detected anomalies into specific attack types as per FR-CYB-002 (DDoS, SQL injection).",
+            "dependencies": [
+              "7.3"
+            ],
+            "details": "Using a labeled dataset (e.g., CIC-IDS2017), train a supervised classifier (e.g., Gradient Boosting, GNN, or a custom deep learning model) on the topological features to distinguish between different attack patterns and normal traffic.",
+            "status": "pending",
+            "testStrategy": "Train and validate the model on a held-out test set from the labeled dataset. Measure classification accuracy, precision, and recall for each attack class."
+          },
+          {
+            "id": 7,
+            "title": "Offline Performance Evaluation and Optimization",
+            "description": "Systematically test and optimize the anomaly detection and classification models using the full CIC-IDS2017 dataset to meet performance requirements.",
+            "dependencies": [
+              "7.5",
+              "7.6"
+            ],
+            "details": "Run the entire detection and classification pipeline on the benchmark dataset. Measure and log performance metrics, iterating on model parameters, feature selection, and detection thresholds to achieve a false positive rate below 50% and classification accuracy above 75%.",
+            "status": "pending",
+            "testStrategy": "Execute a suite of automated tests that report on all required metrics. Document the final performance on the benchmark dataset."
+          },
+          {
+            "id": 8,
+            "title": "Red Team Exercise and Live System Validation",
+            "description": "Validate the module's effectiveness against simulated live attacks in a controlled environment and perform final tuning.",
+            "dependencies": [
+              "7.7"
+            ],
+            "details": "Collaborate with a red team to conduct controlled attack simulations (DDoS, SQL injection) against the deployed module in a staging environment. Monitor the module's real-time detection and classification performance, and refine alerting thresholds based on the results.",
+            "status": "pending",
+            "testStrategy": "Define a set of red team scenarios. The test passes if the module detects and correctly classifies the simulated attacks within the latency requirements of ST-103, and the findings are used to improve the system."
+          }
+        ]
+      },
+      {
+        "id": 8,
+        "title": "Optimize for Performance and Scalability",
+        "description": "Enhance the platform to handle enterprise-scale workloads and meet stringent performance requirements from ST-401 and ST-402.",
+        "details": "Refactor critical algorithms for distributed computation using Apache Spark/Flink. Optimize C++ code for GPU acceleration via CUDA. Implement horizontal scaling for the API using Kubernetes and a load balancer. Ensure the system can process datasets >20GB and handle streaming data rates >10,000 events/sec.",
+        "testStrategy": "Conduct comprehensive load testing to verify horizontal scaling and latency under load (<100ms). Benchmark performance on large datasets (>1M points, >20GB) to confirm efficiency goals. Profile memory usage to ensure it remains bounded during stream processing.",
+        "priority": "high",
+        "dependencies": [
+          6,
+          7
+        ],
+        "status": "todo",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Refactor Core Algorithms for Distributed Processing with Spark/Flink",
+            "description": "Identify and refactor computationally intensive algorithms from the Finance (Task 6) and Cybersecurity (Task 7) modules to run on a distributed computing framework like Apache Spark or Flink, enabling parallel execution.",
+            "dependencies": [],
+            "details": "Analyze algorithms for topological feature extraction, market regime detection, and anomaly detection. Rewrite the core logic using Spark/Flink APIs (e.g., DataFrames, DataStream API) to distribute the computational load across a cluster. This is the foundation for handling large datasets and high-velocity streams.",
+            "status": "pending",
+            "testStrategy": "Verify functional equivalence of the refactored algorithms against the original implementations using a controlled dataset. Unit test the distributed components to ensure correct logic."
+          },
+          {
+            "id": 2,
+            "title": "Optimize C++ Components with CUDA for GPU Acceleration",
+            "description": "Profile performance-critical C++ code sections within the analysis pipeline and rewrite them using CUDA to leverage GPU hardware for acceleration.",
+            "dependencies": [],
+            "details": "Identify computational bottlenecks in the C++ codebase, likely related to numerical calculations or graph algorithms. Implement custom CUDA kernels for these sections. Manage data transfer and memory synchronization between the CPU (host) and GPU (device) to maximize performance gains.",
+            "status": "pending",
+            "testStrategy": "Benchmark the CUDA-accelerated functions against the original CPU-only versions to quantify the speedup. Validate the numerical precision and correctness of the GPU-based calculations."
+          },
+          {
+            "id": 3,
+            "title": "Implement Horizontal API Scaling with Kubernetes",
+            "description": "Containerize the platform's API services and configure a Kubernetes environment to enable automated horizontal scaling and load balancing.",
+            "dependencies": [],
+            "details": "Create Dockerfiles for the API services. Develop Kubernetes Deployment and Service manifests. Implement a Horizontal Pod Autoscaler (HPA) to automatically adjust the number of running pods based on real-time CPU or memory metrics. Configure an Ingress controller to manage and distribute incoming traffic.",
+            "status": "pending",
+            "testStrategy": "Deploy the services to a staging Kubernetes cluster. Conduct a basic scaling test by manually increasing the replica count and verifying traffic is balanced. Test the HPA by simulating load and observing pod scaling."
+          },
+          {
+            "id": 4,
+            "title": "Optimize Streaming Pipeline for High-Throughput Ingestion",
+            "description": "Tune the end-to-end streaming architecture to reliably process and analyze data streams at rates exceeding 10,000 events per second.",
+            "dependencies": [
+              "8.1"
+            ],
+            "details": "Optimize the configuration of the message broker (e.g., Kafka partitions, replication). Tune the Spark/Flink streaming application's parameters, such as batch intervals, watermarking, and state management backends. Evaluate and implement efficient data serialization formats like Avro or Protobuf.",
+            "status": "pending",
+            "testStrategy": "Use a dedicated load generation tool to push data streams at and above the target rate of 10,000 events/sec. Monitor end-to-end latency, processing lag, and system stability over an extended period."
+          },
+          {
+            "id": 5,
+            "title": "Optimize Batch Processing Jobs for Large Datasets",
+            "description": "Ensure the refactored distributed algorithms can efficiently process static datasets larger than 20GB within defined performance SLOs.",
+            "dependencies": [
+              "8.1"
+            ],
+            "details": "Fine-tune Spark/Flink job configurations for large-scale batch processing. Optimize memory allocation (executor memory, overhead), data partitioning strategies, and shuffle operations. Implement efficient data read/write patterns for the underlying storage system (e.g., HDFS, S3).",
+            "status": "pending",
+            "testStrategy": "Execute the batch processing jobs against benchmark datasets exceeding 20GB. Profile job execution to identify and mitigate bottlenecks related to memory, I/O, or CPU. Measure and record total runtime and resource consumption."
+          },
+          {
+            "id": 6,
+            "title": "Conduct Full-Scale Performance and Load Testing",
+            "description": "Execute a comprehensive suite of benchmark and load tests to validate that the optimized system meets all specified performance requirements, including latency, throughput, and data volume.",
+            "dependencies": [
+              "8.2",
+              "8.3",
+              "8.4",
+              "8.5"
+            ],
+            "details": "Design and run load tests against the horizontally-scaled API to verify latency remains below 100ms under heavy concurrent load. Execute the optimized batch jobs on >20GB datasets to confirm performance goals. Stress test the streaming pipeline with sustained traffic >10,000 events/sec. Profile memory usage to ensure it remains bounded.",
+            "status": "pending",
+            "testStrategy": "This task is the final validation. A performance test report will be generated, comparing results against the requirements from ST-401 and ST-402. Any identified regressions or failures will be documented for remediation."
+          }
+        ]
+      },
+      {
+        "id": 9,
+        "title": "Implement Security, Authentication, and Auditing",
+        "description": "Harden the platform by implementing security and compliance features as specified in user stories ST-201 and ST-202.",
+        "details": "Integrate an authentication provider supporting multi-factor authentication (MFA). Implement role-based access control (RBAC) for all API endpoints and data access. Create a comprehensive logging system that produces an immutable audit trail for all analyses, parameters, and data access events. Encrypt all sensitive data at rest and in transit.",
+        "testStrategy": "Perform penetration testing to identify and remediate security vulnerabilities. Conduct a security audit to verify that RBAC rules are correctly enforced and that the audit trail is complete and tamper-proof. Validate encryption standards.",
+        "priority": "high",
+        "dependencies": [
+          4
+        ],
+        "status": "todo",
+        "subtasks": []
+      },
+      {
+        "id": 10,
+        "title": "Finalize UI/UX and Implement Mapper Algorithm",
+        "description": "Enhance the user interface based on beta feedback and implement the Mapper algorithm with its interactive visualization as per FR-CORE-003.",
+        "details": "Refine the UI/UX based on design principles and user feedback, focusing on domain-specific workflows. Implement the Mapper algorithm with customizable filter functions and clustering options (DBSCAN, k-means). Develop the interactive Mapper graph explorer using D3.js or Plotly for visualization. Ensure the UI meets WCAG 2.1 AA accessibility standards.",
+        "testStrategy": "Conduct usability testing with target users (quantitative analysts, cybersecurity analysts) to validate the new workflows. Verify the Mapper implementation against known examples from academic literature. Use automated tools and manual checks to validate accessibility compliance.",
+        "priority": "medium",
+        "dependencies": [
+          4,
+          8
+        ],
+        "status": "todo",
+        "subtasks": []
+      },
+      {
+        "id": 11,
+        "title": "Setup C++23 Development Environment and Toolchain",
+        "description": "Establish a modern C++23 development environment for the TDA platform, including updating compilers, build systems, and dependencies, to enable the use of new language and library features.",
+        "details": "This foundational task involves several key steps. First, update all CI/CD pipeline configurations (e.g., GitHub Actions, Jenkins) to use and enforce GCC 13+ or Clang 16+. This includes updating the base Docker images or build agents. Second, modify the project's build scripts. In the root CMakeLists.txt, set `set(CMAKE_CXX_STANDARD 23)` and `set(CMAKE_CXX_STANDARD_REQUIRED ON)`. Third, audit all C++ dependencies (e.g., GUDHI, Ripser, Boost, Eigen) to verify C++23 compatibility and update them as necessary via the package manager (Conan/vcpkg). Finally, prepare and conduct a mandatory training session for the development team covering key C++23 features, including `std::mdspan` for multi-dimensional views, `std::ranges` for improved algorithm composition, `std::expected` for error handling, and `std::generator` for creating coroutines.",
+        "testStrategy": "Verification will be multi-faceted. Create a new, minimal C++ project that uses a C++23 feature (e.g., `std::expected`) and add it to the CI pipeline; the build must pass. Conversely, configure a pipeline job to use an older compiler (e.g., GCC 11) to ensure it fails, thereby validating the compiler version enforcement. Re-compile all existing C++ modules against the new toolchain to confirm they build without errors. Write a small test program that links a core dependency (like GUDHI) and uses a C++23 feature to ensure library compatibility. The success of the team training will be assessed via a short coding exercise requiring the use of the new features.",
+        "status": "pending",
+        "dependencies": [
+          1
+        ],
+        "priority": "high",
+        "subtasks": []
+      }
+    ],
+    "metadata": {
+      "created": "2025-08-12T11:51:27.261Z",
+      "updated": "2025-08-12T12:40:29.859Z",
+      "description": "Tasks for master context"
+    }
+  }
+}

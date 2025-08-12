@@ -1,0 +1,11 @@
+{
+  "tda_suitable_features": [
+    "User_ID",
+    "File_Size"
+  ],
+  "total_tda_features": 2,
+  "graph_constructible": false,
+  "graph_features": [],
+  "time_series_constructible": true,
+  "tda_readiness_score": 2
+}

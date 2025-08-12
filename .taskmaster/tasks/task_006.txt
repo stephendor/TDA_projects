@@ -1,0 +1,55 @@
+# Task ID: 6
+# Title: Build Finance Module for Market Regime Detection
+# Status: todo
+# Dependencies: 5
+# Priority: high
+# Description: Implement the features required for financial market regime detection as specified in FR-FIN-001 and ST-102.
+# Details:
+Create a dedicated module that uses topological features (from tasks 1, 2, 5) to analyze financial time-series data. Develop models to identify topological transitions in market structure, quantify regime stability, and generate configurable early warning signals for multiple asset classes.
+
+# Test Strategy:
+Backtest the module on historical financial data (equities, crypto) to validate accuracy (>85%) and latency (<100ms). Compare the model's detections against known historical market events and established financial indicators.
+
+# Subtasks:
+## 1. Setup Financial Data Ingestion and Time-Series Preprocessing Pipeline [pending]
+### Dependencies: None
+### Description: Establish data connectors for multiple asset classes (equities, crypto) and implement a preprocessing pipeline to convert raw time-series data into point clouds using sliding window embedding, as required for topological analysis.
+### Details:
+Implement connectors for financial data APIs (e.g., Polygon, Binance). The preprocessing step must handle data cleaning (missing values, outliers), normalization, and configurable sliding window embedding to generate point clouds from time-series price data.
+
+## 2. Integrate Topological Feature Extraction Services [pending]
+### Dependencies: 6.1
+### Description: Create an interface within the finance module to consume topological features from the core TDA engine (Task 1), deterministic vectorizers (Task 2), and advanced learnable layers (Task 5).
+### Details:
+Develop a unified service layer within the module to request topological features (e.g., persistence diagrams, landscapes, TDA-GNN embeddings) for a given preprocessed financial point cloud. This will abstract the underlying implementations from dependent tasks.
+
+## 3. Develop Unsupervised Model for Topological Transition Detection [pending]
+### Dependencies: 6.2
+### Description: Implement an unsupervised learning model that analyzes sequences of topological features to identify significant structural changes, corresponding to market regime transitions as specified in FR-FIN-001.
+### Details:
+Explore and implement techniques such as change point detection on persistence landscape norms, or clustering on the space of persistence diagrams using Wasserstein distance. The model must output timestamps or periods corresponding to detected transitions.
+
+## 4. Implement Regime Stability Quantification Metric [pending]
+### Dependencies: 6.3
+### Description: Develop and implement a metric to quantify the stability of an identified market regime based on the statistical properties of its topological features over time.
+### Details:
+The metric will be calculated based on the variance of topological features within a regime identified by the transition model. For example, use the variance of persistence landscape norms or the average pairwise distance between consecutive persistence diagrams.
+
+## 5. Build Configurable Early Warning Signal (EWS) Generator [pending]
+### Dependencies: 6.3, 6.4
+### Description: Create a system that generates configurable early warning signals for potential regime shifts based on the outputs of the transition detection and stability models, as per ST-102.
+### Details:
+The system will allow users to configure signal triggers based on thresholds, such as a rapid decrease in the stability metric or the model's confidence score for an impending transition. Signals must be taggable by asset class.
+
+## 6. Develop Backtesting and Performance Validation Framework [pending]
+### Dependencies: 6.5
+### Description: Build a comprehensive backtesting framework to validate the regime detection module's performance against historical data and established financial indicators, ensuring it meets accuracy and latency requirements.
+### Details:
+The framework must automate running the entire module on historical datasets for equities and crypto. It will compute accuracy (>85%) against a labeled event dataset, end-to-end latency (<100ms), and compare signal timing against benchmarks like the VIX.
+
+## 7. Package Module and Expose Endpoints for Regime Analysis [pending]
+### Dependencies: 6.6
+### Description: Package the entire set of features into a self-contained, deployable finance module and expose its functionality through well-defined API endpoints.
+### Details:
+Create RESTful API endpoints for: (1) triggering an analysis on new data, (2) querying for the latest detected regime and its stability score for a given asset, and (3) retrieving historical transitions and warning signals. The module will be packaged as a Docker container.
+

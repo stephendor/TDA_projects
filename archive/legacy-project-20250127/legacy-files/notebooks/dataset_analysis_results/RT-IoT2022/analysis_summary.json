@@ -1,0 +1,11 @@
+{
+  "dataset_name": "RT-IoT2022",
+  "total_samples": 123117,
+  "tda_readiness_score": 2,
+  "key_findings": [
+    "No label column found",
+    "TDA suitable features: 72",
+    "Temporal co-occurrence: False",
+    "Data leakage risks: 0 risky features"
+  ]
+}

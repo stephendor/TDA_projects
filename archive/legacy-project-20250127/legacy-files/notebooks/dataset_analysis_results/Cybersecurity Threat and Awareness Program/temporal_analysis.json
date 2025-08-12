@@ -1,0 +1,7 @@
+{
+  "has_timestamps": true,
+  "timestamp_columns": [
+    "Date"
+  ],
+  "co_occurrence_verified": true
+}

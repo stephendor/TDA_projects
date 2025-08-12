@@ -1,0 +1,15 @@
+{
+  "dataset_name": "UNSW-NB15",
+  "analysis_date": "2025-08-07",
+  "checkpoints_passed": 1,
+  "recommendation": "CAUTION - Address failed checkpoints before proceeding",
+  "total_samples": 257673,
+  "tda_readiness_score": 2,
+  "key_findings": [
+    "Dataset has 257,673 samples with 36 features",
+    "Class imbalance severity: severe",
+    "TDA suitable features: 2",
+    "Temporal co-occurrence: False",
+    "Data leakage risks: 1 risky features"
+  ]
+}

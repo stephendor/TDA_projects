@@ -1,0 +1,29 @@
+{
+  "tda_suitable_features": [
+    " Destination Port",
+    " Flow Duration",
+    " Total Fwd Packets",
+    " Total Backward Packets",
+    "Total Length of Fwd Packets",
+    " Total Length of Bwd Packets",
+    " Fwd Packet Length Max",
+    " Fwd Packet Length Min",
+    " Fwd Packet Length Mean",
+    " Fwd Packet Length Std",
+    "Bwd Packet Length Max",
+    " Bwd Packet Length Min",
+    " Bwd Packet Length Mean",
+    " Bwd Packet Length Std",
+    "Flow Bytes/s",
+    " Flow Packets/s",
+    " Flow IAT Mean",
+    " Flow IAT Std",
+    " Flow IAT Max",
+    " Flow IAT Min"
+  ],
+  "total_tda_features": 60,
+  "graph_constructible": false,
+  "graph_features": [],
+  "time_series_constructible": true,
+  "tda_readiness_score": 2
+}

@@ -1,0 +1,11 @@
+{
+  "dataset_name": "NF-ToN-IoT-v3",
+  "total_samples": 27520313,
+  "tda_readiness_score": 2,
+  "key_findings": [
+    "Class imbalance severity: balanced",
+    "TDA suitable features: 0",
+    "Temporal co-occurrence: False",
+    "Data leakage risks: 0 risky features"
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "ids_detection_features": [],
+  "future_information": [
+    "response_body_len"
+  ],
+  "temporal_ordering_issues": true,
+  "train_test_temporal_overlap": true,
+  "recommended_split_strategy": "stratified_random",
+  "high_risk_features_to_remove": [
+    "response_body_len"
+  ]
+}

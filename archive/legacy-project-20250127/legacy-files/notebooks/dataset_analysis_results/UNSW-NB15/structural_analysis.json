@@ -1,0 +1,198 @@
+{
+  "name": "UNSW-NB15",
+  "file_count": 2,
+  "total_samples": 257673,
+  "feature_count": 36,
+  "feature_types": {
+    "numerical": 2,
+    "categorical": 2,
+    "temporal": 1,
+    "network_flow": 7
+  },
+  "missing_values": {
+    "columns_with_missing": [],
+    "total_missing_percentage": 0.0
+  },
+  "feature_details": {
+    "dur": {
+      "dtype": "float32",
+      "unique_values": 46612,
+      "missing_percentage": 0.0
+    },
+    "proto": {
+      "dtype": "object",
+      "unique_values": 132,
+      "missing_percentage": 0.0
+    },
+    "service": {
+      "dtype": "category",
+      "unique_values": 13,
+      "missing_percentage": 0.0
+    },
+    "state": {
+      "dtype": "object",
+      "unique_values": 7,
+      "missing_percentage": 0.0
+    },
+    "spkts": {
+      "dtype": "int16",
+      "unique_values": 418,
+      "missing_percentage": 0.0
+    },
+    "dpkts": {
+      "dtype": "int16",
+      "unique_values": 417,
+      "missing_percentage": 0.0
+    },
+    "sbytes": {
+      "dtype": "int32",
+      "unique_values": 5197,
+      "missing_percentage": 0.0
+    },
+    "dbytes": {
+      "dtype": "int32",
+      "unique_values": 4792,
+      "missing_percentage": 0.0
+    },
+    "rate": {
+      "dtype": "float32",
+      "unique_values": 47662,
+      "missing_percentage": 0.0
+    },
+    "sload": {
+      "dtype": "float32",
+      "unique_values": 50383,
+      "missing_percentage": 0.0
+    },
+    "dload": {
+      "dtype": "float32",
+      "unique_values": 47704,
+      "missing_percentage": 0.0
+    },
+    "sloss": {
+      "dtype": "int16",
+      "unique_values": 295,
+      "missing_percentage": 0.0
+    },
+    "dloss": {
+      "dtype": "int16",
+      "unique_values": 317,
+      "missing_percentage": 0.0
+    },
+    "sinpkt": {
+      "dtype": "float32",
+      "unique_values": 47109,
+      "missing_percentage": 0.0
+    },
+    "dinpkt": {
+      "dtype": "float32",
+      "unique_values": 45185,
+      "missing_percentage": 0.0
+    },
+    "sjit": {
+      "dtype": "float32",
+      "unique_values": 47258,
+      "missing_percentage": 0.0
+    },
+    "djit": {
+      "dtype": "float32",
+      "unique_values": 46123,
+      "missing_percentage": 0.0
+    },
+    "swin": {
+      "dtype": "int16",
+      "unique_values": 10,
+      "missing_percentage": 0.0
+    },
+    "stcpb": {
+      "dtype": "int64",
+      "unique_values": 45713,
+      "missing_percentage": 0.0
+    },
+    "dtcpb": {
+      "dtype": "int64",
+      "unique_values": 45595,
+      "missing_percentage": 0.0
+    },
+    "dwin": {
+      "dtype": "int16",
+      "unique_values": 5,
+      "missing_percentage": 0.0
+    },
+    "tcprtt": {
+      "dtype": "float32",
+      "unique_values": 28859,
+      "missing_percentage": 0.0
+    },
+    "synack": {
+      "dtype": "float32",
+      "unique_values": 27447,
+      "missing_percentage": 0.0
+    },
+    "ackdat": {
+      "dtype": "float32",
+      "unique_values": 26109,
+      "missing_percentage": 0.0
+    },
+    "smean": {
+      "dtype": "int16",
+      "unique_values": 1300,
+      "missing_percentage": 0.0
+    },
+    "dmean": {
+      "dtype": "int16",
+      "unique_values": 1271,
+      "missing_percentage": 0.0
+    },
+    "trans_depth": {
+      "dtype": "int16",
+      "unique_values": 11,
+      "missing_percentage": 0.0
+    },
+    "response_body_len": {
+      "dtype": "int32",
+      "unique_values": 1554,
+      "missing_percentage": 0.0
+    },
+    "ct_src_dport_ltm": {
+      "dtype": "int8",
+      "unique_values": 52,
+      "missing_percentage": 0.0
+    },
+    "ct_dst_sport_ltm": {
+      "dtype": "int8",
+      "unique_values": 34,
+      "missing_percentage": 0.0
+    },
+    "is_ftp_login": {
+      "dtype": "int8",
+      "unique_values": 4,
+      "missing_percentage": 0.0
+    },
+    "ct_ftp_cmd": {
+      "dtype": "int8",
+      "unique_values": 4,
+      "missing_percentage": 0.0
+    },
+    "ct_flw_http_mthd": {
+      "dtype": "int8",
+      "unique_values": 11,
+      "missing_percentage": 0.0
+    },
+    "is_sm_ips_ports": {
+      "dtype": "int8",
+      "unique_values": 2,
+      "missing_percentage": 0.0
+    },
+    "attack_cat": {
+      "dtype": "category",
+      "unique_values": 10,
+      "missing_percentage": 0.0
+    },
+    "label": {
+      "dtype": "int8",
+      "unique_values": 2,
+      "missing_percentage": 0.0
+    }
+  }
+}

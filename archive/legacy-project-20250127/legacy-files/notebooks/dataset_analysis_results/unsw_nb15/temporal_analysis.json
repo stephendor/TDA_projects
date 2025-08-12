@@ -1,0 +1,9 @@
+{
+  "has_timestamps": false,
+  "timestamp_columns": [],
+  "time_span": {},
+  "temporal_resolution": null,
+  "temporal_gaps": [],
+  "attack_temporal_distribution": {},
+  "co_occurrence_verified": false
+}

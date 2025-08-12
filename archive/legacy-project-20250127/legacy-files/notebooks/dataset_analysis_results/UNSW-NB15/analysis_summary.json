@@ -1,0 +1,11 @@
+{
+  "dataset_name": "UNSW-NB15",
+  "total_samples": 257673,
+  "tda_readiness_score": 2,
+  "key_findings": [
+    "Class imbalance severity: severe",
+    "TDA suitable features: 2",
+    "Temporal co-occurrence: False",
+    "Data leakage risks: 1 risky features"
+  ]
+}

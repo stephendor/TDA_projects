@@ -1,0 +1,11 @@
+{
+  "dataset_name": "CIC-IDS-2017",
+  "total_samples": 2830743,
+  "tda_readiness_score": 2,
+  "key_findings": [
+    "No label column found",
+    "TDA suitable features: 60",
+    "Temporal co-occurrence: False",
+    "Data leakage risks: 0 risky features"
+  ]
+}

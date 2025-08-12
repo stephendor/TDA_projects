@@ -1,9 +1,0 @@
-{
-  "accuracy": 0.9666666666666667,
-  "f1_score": 0.9502824858757062,
-  "random_seed": 42,
-  "timestamp": "20250806_201438",
-  "experiment_name": "hybrid_baseline_real_validation",
-  "roc_auc": 0.9655172413793104,
-  "pr_auc": 0.25
-}

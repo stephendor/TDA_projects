@@ -1,9 +1,0 @@
-{
-  "accuracy": 0.75,
-  "f1_score": 0.7649572649572649,
-  "random_seed": 42,
-  "timestamp": "20250806_143310",
-  "experiment_name": "real_data_deep_tda_breakthrough",
-  "roc_auc": 0.7466666666666667,
-  "pr_auc": 0.4470851974112844
-}

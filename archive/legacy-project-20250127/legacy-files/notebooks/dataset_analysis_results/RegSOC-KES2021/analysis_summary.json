@@ -1,0 +1,11 @@
+{
+  "dataset_name": "RegSOC-KES2021",
+  "total_samples": 12960,
+  "tda_readiness_score": 0,
+  "key_findings": [
+    "No label column found",
+    "TDA suitable features: 0",
+    "Temporal co-occurrence: False",
+    "Data leakage risks: 1 risky features"
+  ]
+}

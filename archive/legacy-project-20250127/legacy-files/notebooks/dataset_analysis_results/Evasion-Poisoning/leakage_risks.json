@@ -1,0 +1,10 @@
+{
+  "ids_detection_features": [],
+  "future_information": [
+    "http_response_body_len"
+  ],
+  "temporal_ordering_issues": true,
+  "high_risk_features_to_remove": [
+    "http_response_body_len"
+  ]
+}

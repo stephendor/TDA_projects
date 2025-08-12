@@ -1,0 +1,11 @@
+# Task ID: 2
+# Title: Develop Basic Topological Feature Vectorization and Storage
+# Status: todo
+# Dependencies: 1
+# Priority: high
+# Description: Create deterministic vectorization methods and establish a database schema for storing and retrieving topological features.
+# Details:
+Implement the deterministic vector-stack method including persistence landscapes, images, and Betti curves (FR-CORE-002). Design and implement a database schema using PostgreSQL and MongoDB for storing persistence diagrams, barcodes, and vectorized features. The schema must support efficient indexing and versioning as per ST-301.
+
+# Test Strategy:
+Verify that vectorization outputs are correct and consistent for given inputs. Test database performance for write throughput and query latency on stored topological features. Ensure the schema correctly supports versioning and similarity searches.

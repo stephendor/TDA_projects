@@ -1,0 +1,669 @@
+# TDA Platform Development Guidelines
+
+## Project Overview
+This is a breakthrough Topological Data Analysis (TDA) platform that applies advanced mathematical topology and deep learning techniques to finance and cybersecurity. The platform implements multiple advanced algorithms including vector-stack methods, persistence attention mechanisms, hierarchical clustering features, and TDA-GNN embeddings.
+
+## Core Architecture Principles
+
+### 1. **Performance-First Design**
+- **C++ Core**: All performance-critical TDA computations must be implemented in C++ 23
+- **Python Orchestration**: Use Python 3.9+ for API, orchestration, and high-level logic
+- **GPU Acceleration**: Implement CUDA kernels for numerical computations and graph algorithms
+- **Memory Efficiency**: Use streaming processing for datasets >20GB, memory-mapped files
+
+### 2. **Mathematical Rigor**
+- **TDA Correctness**: All topological algorithms must be mathematically validated
+- **Persistence Diagrams**: Support Vietoris-Rips, Alpha, Čech, and DTM filtrations
+- **Betti Numbers**: Compute dimensions 0-3 with configurable filtration parameters
+- **Vectorization**: Implement deterministic vector-stack with landscapes, images, Betti curves, Sliced Wasserstein, kernel dictionaries
+
+### 3. **Real-Time Capabilities**
+- **Streaming Architecture**: Apache Kafka + Flink for real-time processing
+- **Latency Requirements**: <100ms for real-time analysis, <60s for 1M point datasets
+- **Throughput**: Handle >10,000 events/second with bounded memory usage
+- **Sliding Windows**: Configurable window sizes and slide intervals for temporal analysis
+
+## Code Organization & Structure
+
+### Directory Structure
+```
+src/
+├── core/           # Core TDA algorithms (C++ bindings)
+├── algorithms/     # Algorithm implementations
+├── embeddings/     # Feature vectorization and TDA embeddings
+├── models/         # Deep learning models and TDA layers
+├── api/           # FastAPI endpoints and orchestration
+├── data/          # Data processing and streaming
+├── finance/       # Financial market analysis modules
+├── cybersecurity/ # Cybersecurity threat detection
+├── evaluation/    # Model evaluation and validation
+└── utils/         # Shared utilities and helpers
+```
+
+### Module Dependencies
+- **Task 1** (Core TDA) → **Task 2** (Vectorization) → **Task 5** (Advanced Features)
+- **Task 1** → **Task 3** (Backend API) → **Task 4** (UI)
+- **Task 5** → **Task 6** (Finance) + **Task 7** (Cybersecurity)
+- **Tasks 6,7** → **Task 8** (Performance Optimization)
+
+## Implementation Standards
+
+### 1. **C++23 Development (Core TDA Engine)**
+```cpp
+// ✅ DO: Use modern C++23 features for maximum performance and safety
+#include <memory>
+#include <mdspan>
+#include <expected>
+#include <ranges>
+#include <generator>
+
+class PersistentHomologyEngine {
+public:
+    // Use mdspan for efficient multi-dimensional data handling
+    using PointCloud = std::mdspan<const double, extents<dynamic_extent, 3>>;
+    using DistanceMatrix = std::mdspan<const double, extents<dynamic_extent, dynamic_extent>>;
+    
+    // Use expected for robust error handling without exceptions
+    std::expected<PersistenceDiagram, ComputationError> computePersistence(
+        const PointCloud& cloud, 
+        FiltrationType type,
+        int maxDimension = 3
+    );
+    
+    // Use ranges for functional-style data processing
+    auto computeBettiNumbers(const PersistenceDiagram& diagram, double epsilon) {
+        return diagram 
+            | std::views::filter([epsilon](const auto& feature) { 
+                return feature.birth <= epsilon && epsilon < feature.death; 
+            })
+            | std::views::transform([](const auto& feature) { 
+                return feature.dimension; 
+            });
+    }
+    
+    // Use generators for memory-efficient streaming
+    std::generator<Simplex> buildFiltration(const PointCloud& cloud, double maxRadius) {
+        auto pairs = computeClosePairs(cloud, maxRadius);
+        for (const auto& pair : pairs) {
+            co_yield Simplex{pair.first, pair.second};
+        }
+    }
+};
+
+// ❌ DON'T: Use raw pointers or manual memory management
+// ❌ DON'T: Use std::optional when std::expected provides better error context
+// ❌ DON'T: Use nested loops when std::ranges can express the same logic more clearly
+```
+
+### 2. **Python API Development**
+```python
+# ✅ DO: Use FastAPI with proper typing
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
+from typing import List, Optional
+import numpy as np
+
+class TDAComputationRequest(BaseModel):
+    point_cloud: List[List[float]]
+    filtration_type: str
+    max_dimension: int = 3
+    parameters: Optional[dict] = None
+
+class TDAComputationResponse(BaseModel):
+    job_id: str
+    status: str
+    persistence_diagram: Optional[dict] = None
+    betti_numbers: Optional[dict] = None
+
+@app.post("/tda/compute", response_model=TDAComputationResponse)
+async def compute_persistence(request: TDAComputationRequest):
+    try:
+        # Validate input
+        if len(request.point_cloud) > 1_000_000:
+            raise HTTPException(status_code=400, detail="Point cloud too large")
+        
+        # Process computation
+        result = await tda_engine.compute(request)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+```
+
+### 3. **TDA Feature Vectorization**
+```python
+# ✅ DO: Implement configurable vectorization blocks
+class VectorStack:
+    def __init__(self, config: VectorStackConfig):
+        self.config = config
+        self.blocks = self._initialize_blocks()
+    
+    def _initialize_blocks(self):
+        blocks = []
+        
+        if self.config.enable_persistence_images:
+            blocks.append(PersistenceImageBlock(
+                resolution=self.config.image_resolution,
+                intensity_normalize=self.config.intensity_normalize_images,
+                use_log_lifetime=self.config.use_log_lifetime_images
+            ))
+        
+        if self.config.enable_landscapes:
+            blocks.append(PersistenceLandscapeBlock(
+                resolution=self.config.landscape_resolution,
+                global_range=self.config.global_landscape_range  # ✅ Use global ranges
+            ))
+        
+        if self.config.enable_sliced_wasserstein:
+            blocks.append(SlicedWassersteinBlock(
+                num_angles=self.config.sw_num_angles,
+                angle_strategy='halton',  # ✅ Use low-discrepancy sequences
+                resolution=self.config.sw_resolution
+            ))
+        
+        return blocks
+    
+    def vectorize(self, persistence_diagram: PersistenceDiagram) -> np.ndarray:
+        features = []
+        for block in self.blocks:
+            block_features = block.compute(persistence_diagram)
+            features.append(block_features)
+        
+        return np.concatenate(features, axis=0)
+```
+
+### 4. **Deep Learning Integration**
+```python
+# ✅ DO: Create PyTorch TDA layers
+import torch
+import torch.nn as nn
+
+class TDALayer(nn.Module):
+    """Base class for all TDA layers"""
+    
+    def __init__(self, input_dim: int, output_dim: int):
+        super().__init__()
+        self.input_dim = input_dim
+        self.output_dim = output_dim
+        
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        raise NotImplementedError
+
+class PersistenceAttentionLayer(TDALayer):
+    """Learnable attention over persistence diagrams"""
+    
+    def __init__(self, feature_dim: int, num_heads: int = 8):
+        super().__init__(feature_dim, feature_dim)
+        self.attention = nn.MultiheadAttention(
+            embed_dim=feature_dim,
+            num_heads=num_heads,
+            batch_first=True
+        )
+        
+    def forward(self, persistence_features: torch.Tensor) -> torch.Tensor:
+        # persistence_features: [batch_size, num_points, feature_dim]
+        attended_features, _ = self.attention(
+            persistence_features, persistence_features, persistence_features
+        )
+        return attended_features.mean(dim=1)  # Global pooling
+
+class TDAEnhancedModel(nn.Module):
+    """Model combining TDA features with standard deep learning"""
+    
+    def __init__(self, tda_dim: int, other_dim: int, num_classes: int):
+        super().__init__()
+        self.tda_processor = PersistenceAttentionLayer(tda_dim)
+        self.other_processor = nn.Linear(other_dim, 128)
+        self.classifier = nn.Sequential(
+            nn.Linear(tda_dim + 128, 256),
+            nn.ReLU(),
+            nn.Dropout(0.3),
+            nn.Linear(256, num_classes)
+        )
+    
+    def forward(self, tda_features: torch.Tensor, other_features: torch.Tensor):
+        tda_processed = self.tda_processor(tda_features)
+        other_processed = self.other_processor(other_features)
+        combined = torch.cat([tda_processed, other_processed], dim=1)
+        return self.classifier(combined)
+```
+
+## Performance Optimization Guidelines
+
+### 1. **Memory Management**
+```python
+# ✅ DO: Use streaming for large datasets
+class StreamingTDAPipeline:
+    def __init__(self, window_size: int, slide_size: int):
+        self.window_size = window_size
+        self.slide_size = slide_size
+        self.buffer = []
+    
+    def process_stream(self, data_stream):
+        for data_point in data_stream:
+            self.buffer.append(data_point)
+            
+            if len(self.buffer) >= self.window_size:
+                # Process window
+                window_data = self.buffer[:self.window_size]
+                features = self.extract_topological_features(window_data)
+                
+                # Slide window
+                self.buffer = self.buffer[self.slide_size:]
+                
+                yield features
+
+# ❌ DON'T: Load entire dataset into memory
+# ❌ DON'T: Use inefficient data structures for large datasets
+```
+
+### 2. **GPU Acceleration**
+```python
+# ✅ DO: Implement CUDA kernels for numerical operations
+import torch
+
+class CUDATDALayer(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        x = x.to(self.device)
+        # Implement CUDA-optimized operations
+        return self._cuda_compute(x)
+    
+    def _cuda_compute(self, x: torch.Tensor) -> torch.Tensor:
+        # Use torch.cuda.amp for mixed precision
+        with torch.cuda.amp.autocast():
+            return self._compute_topological_features(x)
+```
+
+### 3. **Distributed Computing**
+```python
+# ✅ DO: Use Spark/Flink for distributed TDA
+from pyspark.sql import SparkSession
+from pyspark.ml.feature import VectorAssembler
+
+class DistributedTDAPipeline:
+    def __init__(self, spark: SparkSession):
+        self.spark = spark
+    
+    def process_large_dataset(self, data_rdd):
+        # Distribute TDA computations across cluster
+        return (data_rdd
+                .mapPartitions(self._compute_topological_features)
+                .map(self._vectorize_features)
+                .collect())
+    
+    def _compute_topological_features(self, partition):
+        # Each partition runs TDA independently
+        for data_point in partition:
+            yield self.tda_engine.compute_persistence(data_point)
+```
+
+## Testing & Validation Standards
+
+### 1. **Mathematical Validation**
+```python
+# ✅ DO: Test against known theoretical results
+import pytest
+import numpy as np
+
+class TestTDAAlgorithms:
+    def test_circle_persistence(self):
+        """Test that circle generates correct persistence diagram"""
+        # Create points on a circle
+        theta = np.linspace(0, 2*np.pi, 100)
+        circle_points = np.column_stack([np.cos(theta), np.sin(theta)])
+        
+        # Compute persistence
+        persistence = self.tda_engine.compute_persistence(circle_points)
+        
+        # Should have 1 connected component (H0) and 1 hole (H1)
+        assert len(persistence.h0_features) == 1  # One connected component
+        assert len(persistence.h1_features) == 1  # One hole
+        
+        # H0 should have infinite death time
+        assert persistence.h0_features[0].death == float('inf')
+        
+        # H1 should have finite death time (circle closes)
+        assert persistence.h1_features[0].death < float('inf')
+
+    def test_performance_requirements(self):
+        """Test that 1M points can be processed in <60 seconds"""
+        large_point_cloud = np.random.rand(1_000_000, 3)
+        
+        start_time = time.time()
+        persistence = self.tda_engine.compute_persistence(large_point_cloud)
+        end_time = time.time()
+        
+        processing_time = end_time - start_time
+        assert processing_time < 60, f"Processing took {processing_time:.2f}s, expected <60s"
+```
+
+### 2. **Integration Testing**
+```python
+# ✅ DO: Test end-to-end workflows
+class TestEndToEndWorkflow:
+    def test_finance_regime_detection(self):
+        """Test complete finance workflow from data ingestion to regime detection"""
+        # 1. Ingest financial data
+        data = self.finance_ingester.load_data("SPY", "2023-01-01", "2023-12-31")
+        
+        # 2. Preprocess into point clouds
+        point_clouds = self.preprocessor.create_sliding_windows(data, window_size=256)
+        
+        # 3. Extract topological features
+        features = []
+        for cloud in point_clouds:
+            persistence = self.tda_engine.compute_persistence(cloud)
+            vectorized = self.vectorizer.vectorize(persistence)
+            features.append(vectorized)
+        
+        # 4. Detect regime changes
+        regime_detector = self.regime_detector.fit(features)
+        regimes = regime_detector.detect_regimes(features)
+        
+        # 5. Validate results
+        assert len(regimes) > 0, "Should detect at least one regime"
+        assert all(r.confidence > 0.8 for r in regimes), "High confidence detections"
+```
+
+## Security & Compliance
+
+### 1. **Data Security**
+```python
+# ✅ DO: Implement proper authentication and authorization
+from fastapi import Depends, HTTPException, status
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+
+security = HTTPBearer()
+
+async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    token = credentials.credentials
+    user = await authenticate_token(token)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid authentication credentials"
+        )
+    return user
+
+@app.post("/tda/compute")
+async def compute_persistence(
+    request: TDAComputationRequest,
+    current_user: User = Depends(get_current_user)
+):
+    # Check user permissions
+    if not current_user.can_access_tda_computation():
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Insufficient permissions"
+        )
+    
+    # Log access for audit
+    await audit_log.log_access(
+        user_id=current_user.id,
+        action="tda_computation",
+        data_size=len(request.point_cloud)
+    )
+    
+    return await process_computation(request)
+```
+
+### 2. **Audit Trail**
+```python
+# ✅ DO: Maintain comprehensive audit logs
+class AuditLogger:
+    def __init__(self, db_connection):
+        self.db = db_connection
+    
+    async def log_computation(self, user_id: str, request: dict, result: dict):
+        await self.db.audit_logs.insert_one({
+            "timestamp": datetime.utcnow(),
+            "user_id": user_id,
+            "action": "tda_computation",
+            "request": request,
+            "result_summary": {
+                "point_count": len(request.get("point_cloud", [])),
+                "filtration_type": request.get("filtration_type"),
+                "computation_time": result.get("computation_time"),
+                "memory_usage": result.get("memory_usage")
+            },
+            "ip_address": request.get("client_ip"),
+            "user_agent": request.get("user_agent")
+        })
+```
+
+## Documentation Standards
+
+### 1. **Code Documentation**
+```python
+# ✅ DO: Document all public interfaces with detailed examples
+class PersistentHomologyEngine:
+    """
+    High-performance persistent homology computation engine.
+    
+    This engine implements multiple filtration methods for computing persistent
+    homology from point cloud data. It's optimized for large-scale datasets
+    and provides both CPU and GPU acceleration.
+    
+    Examples:
+        >>> engine = PersistentHomologyEngine()
+        >>> points = np.random.rand(1000, 3)
+        >>> persistence = engine.compute_persistence(
+        ...     points, 
+        ...     filtration_type="vietoris_rips",
+        ...     max_dimension=2
+        ... )
+        >>> print(f"Found {len(persistence.h0_features)} connected components")
+        >>> print(f"Found {len(persistence.h1_features)} holes")
+    
+    Performance:
+        - 1M points: <60 seconds on standard hardware
+        - Memory usage: O(n²) for Vietoris-Rips, O(n log n) for Alpha complex
+        - GPU acceleration: 2-5x speedup for large datasets
+    
+    Thread Safety:
+        This class is thread-safe for concurrent computations.
+    """
+    
+    def compute_persistence(
+        self, 
+        point_cloud: np.ndarray, 
+        filtration_type: str = "vietoris_rips",
+        max_dimension: int = 3,
+        **kwargs
+    ) -> PersistenceDiagram:
+        """
+        Compute persistent homology for a point cloud.
+        
+        Args:
+            point_cloud: Array of shape (n_points, n_dimensions)
+            filtration_type: One of ["vietoris_rips", "alpha", "cech", "dtm"]
+            max_dimension: Maximum homology dimension to compute (0-3)
+            **kwargs: Additional parameters for specific filtration types
+        
+        Returns:
+            PersistenceDiagram containing birth/death pairs for each dimension
+        
+        Raises:
+            ValueError: If point_cloud is empty or invalid
+            NotImplementedError: If filtration_type is not supported
+            MemoryError: If dataset is too large for available memory
+        """
+```
+
+### 2. **API Documentation**
+```python
+# ✅ DO: Use OpenAPI/Swagger for comprehensive API docs
+from fastapi import FastAPI
+from fastapi.openapi.utils import get_openapi
+
+app = FastAPI(
+    title="TDA Platform API",
+    description="""
+    Topological Data Analysis Platform for Finance and Cybersecurity
+    
+    This API provides access to advanced topological analysis capabilities:
+    - Persistent homology computation with multiple filtration methods
+    - Real-time streaming analysis for cybersecurity threat detection
+    - Financial market regime detection using topological features
+    - High-performance vectorization of persistence diagrams
+    
+    ## Performance Requirements
+    - Real-time analysis: <100ms latency
+    - Batch processing: 1M points in <60 seconds
+    - Streaming: >10,000 events/second
+    
+    ## Authentication
+    All endpoints require valid JWT tokens with appropriate permissions.
+    """,
+    version="1.0.0",
+    contact={
+        "name": "TDA Platform Team",
+        "email": "tda-platform@company.com"
+    },
+    license_info={
+        "name": "MIT",
+        "url": "https://opensource.org/licenses/MIT"
+    }
+)
+```
+
+## Deployment & Operations
+
+### 1. **Containerization**
+```dockerfile
+# ✅ DO: Use multi-stage builds for optimized containers
+FROM python:3.9-slim as base
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    cmake \
+    libboost-all-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Python dependencies
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy application code
+COPY src/ /app/src/
+COPY .taskmaster/ /app/.taskmaster/
+
+# Set working directory
+WORKDIR /app
+
+# Expose API port
+EXPOSE 8000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:8000/health || exit 1
+
+# Run application
+CMD ["uvicorn", "src.api.main:app", "--host", "0.0.0.0", "--port", "8000"]
+```
+
+### 2. **Monitoring & Observability**
+```python
+# ✅ DO: Implement comprehensive monitoring
+import prometheus_client
+from prometheus_client import Counter, Histogram, Gauge
+import time
+
+# Metrics
+TDA_COMPUTATIONS = Counter('tda_computations_total', 'Total TDA computations')
+COMPUTATION_DURATION = Histogram('tda_computation_duration_seconds', 'Computation duration')
+ACTIVE_COMPUTATIONS = Gauge('tda_active_computations', 'Currently active computations')
+MEMORY_USAGE = Gauge('tda_memory_usage_bytes', 'Memory usage in bytes')
+
+class MonitoredTDAEngine:
+    def __init__(self, base_engine):
+        self.engine = base_engine
+    
+    async def compute_persistence(self, *args, **kwargs):
+        ACTIVE_COMPUTATIONS.inc()
+        start_time = time.time()
+        
+        try:
+            result = await self.engine.compute_persistence(*args, **kwargs)
+            
+            # Record metrics
+            TDA_COMPUTATIONS.inc()
+            COMPUTATION_DURATION.observe(time.time() - start_time)
+            
+            return result
+        finally:
+            ACTIVE_COMPUTATIONS.dec()
+```
+
+## Development Workflow
+
+### 1. **Task Implementation Order**
+1. **Foundation First**: Complete Task 1 (Core TDA) before moving to dependent tasks
+2. **Parallel Development**: Tasks 3 (Backend) and 5 (Advanced Features) can be developed in parallel
+3. **Integration Testing**: Test each module independently before integration
+4. **Performance Validation**: Validate performance requirements at each stage
+
+### 2. **Code Review Checklist**
+- [ ] Mathematical correctness of TDA algorithms
+- [ ] Performance requirements met (<100ms latency, <60s for 1M points)
+- [ ] Memory efficiency for large datasets
+- [ ] Proper error handling and validation
+- [ ] Comprehensive test coverage
+- [ ] Security and audit requirements met
+- [ ] Documentation updated
+
+### 3. **Testing Strategy**
+- **Unit Tests**: Test individual components and algorithms
+- **Integration Tests**: Test module interactions and data flow
+- **Performance Tests**: Validate latency and throughput requirements
+- **Security Tests**: Verify authentication, authorization, and audit logging
+- **End-to-End Tests**: Test complete workflows from data ingestion to results
+
+## C++23 Adoption Strategy
+
+### 1. **Immediate C++23 Integration Requirements**
+- **Compiler**: Mandate GCC 13+ or Clang 16+ for all C++ development
+- **CI/CD**: Update build pipelines to enforce C++23 standard
+- **Dependencies**: Ensure all C++ libraries support C++23 features
+- **Team Training**: Conduct focused workshops on `std::mdspan`, `std::ranges`, `std::expected`
+
+### 2. **C++23 Feature Mapping to Tasks**
+- **`std::mdspan`**: Core data structures in Tasks 1, 2, 5, 8
+- **`std::ranges`**: Algorithm implementations in Tasks 1, 2, 7
+- **`std::expected`**: Error handling in Tasks 1, 3, 6, 7
+- **`std::generator`**: Streaming in Tasks 3, 7, 8
+
+### 3. **Performance Benefits**
+- **Memory Safety**: Eliminate buffer overflows and pointer arithmetic errors
+- **GPU Interop**: Seamless data exchange with CUDA kernels via `std::mdspan`
+- **Streaming Efficiency**: Coroutines reduce memory overhead for >10,000 events/sec
+- **Functional Clarity**: Ranges make complex TDA algorithms more readable and optimizable
+
+## Key Implementation Notes
+
+### 1. **Vector Stack Optimization** (from GPT5THOUGHTS)
+- **Global Axes**: Use global training ranges for all grid-based blocks to fix cross-sample misalignment
+- **Persistence Images**: Disable intensity normalization to retain point-count signal, enable log-lifetime domain
+- **Sliced Wasserstein**: Use low-discrepancy sequences (halton) instead of random angles, reduce resolution to 200
+- **Silhouettes**: Implement weighted landscapes block for additional discriminative power
+
+### 2. **Filtration Experiments**
+- **DTM-Rips**: Test k in {5, 10, 20} for modest PR AUC gains
+- **Sparse Rips**: Test parameters in {5, 10, 20} for speed/size optimization
+- **Witness Complex**: Consider landmarks via maxmin for best compute vs signal tradeoff
+
+### 3. **Performance Targets**
+- **Accuracy**: >85% for regime detection, >75% for attack classification
+- **Latency**: <100ms for real-time, <60s for 1M points
+- **Throughput**: >10,000 events/second for streaming
+- **Scalability**: Linear performance up to 32 nodes
+
+This comprehensive guide ensures your TDA platform development follows best practices for performance, security, and maintainability while meeting the ambitious requirements outlined in your PRD.
+description:
+globs:
+alwaysApply: false
+---

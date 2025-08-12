@@ -1,0 +1,49 @@
+# Task ID: 5
+# Title: Implement Advanced Learnable Topological Features
+# Status: todo
+# Dependencies: 2
+# Priority: high
+# Description: Develop and integrate learnable topological feature extraction methods to be used in deep learning models, as per FR-CORE-002.
+# Details:
+Implement novel TDA layers in PyTorch, including persistence attention mechanisms, hierarchical clustering features, and TDA-GNN embeddings. These layers should be designed to integrate seamlessly into existing deep learning architectures.
+
+# Test Strategy:
+Unit test each new layer for mathematical correctness, output shape, and proper gradient flow. Integrate the layers into a sample model and verify performance improvement over baseline methods on a benchmark classification or regression task.
+
+# Subtasks:
+## 1. Design and Implement a Base `TDALayer` in PyTorch [pending]
+### Dependencies: None
+### Description: Create a foundational, abstract PyTorch `nn.Module` to serve as the base class for all learnable TDA layers, ensuring a common interface and compatibility with the PyTorch ecosystem.
+### Details:
+The base layer must define a common interface for handling persistence diagrams or other topological data structures as input. It should manage learnable parameters and ensure full compatibility with PyTorch's autograd engine. This includes implementing utility functions for preprocessing inputs and ensuring it can be seamlessly subclassed.
+
+## 2. Implement Persistence Attention Layer [pending]
+### Dependencies: 5.1
+### Description: Develop a PyTorch layer that applies a learnable attention mechanism over persistence diagrams to dynamically weigh the importance of different topological features.
+### Details:
+This layer will take a batch of persistence diagrams as input. It will implement a self-attention mechanism where keys, queries, and values are derived from the birth-death-dimension tuples of persistence points. The output should be a fixed-size vector embedding suitable for downstream tasks.
+
+## 3. Implement Learnable Hierarchical Clustering Feature Layer [pending]
+### Dependencies: 5.1
+### Description: Create a layer that extracts learnable features from the hierarchical clustering structure (dendrogram) associated with 0-dimensional persistence.
+### Details:
+This layer will process the single-linkage clustering hierarchy derived from point cloud data, which is equivalent to the 0-dimensional persistence diagram. It will use learnable functions to embed the structure of the dendrogram, for example by learning weights for different merge events or branch structures to produce a feature vector.
+
+## 4. Implement TDA-GNN Embedding Layer [pending]
+### Dependencies: 5.1
+### Description: Develop a layer that combines Topological Data Analysis (TDA) with Graph Neural Networks (GNNs) to produce powerful structural embeddings from data.
+### Details:
+The layer will first construct a graph from a topological complex (e.g., the 1-skeleton of a Vietoris-Rips complex) at a specific filtration value. It will then apply a GNN (e.g., GCN or GAT) on this graph to learn node embeddings, which are then aggregated to produce a single graph-level representation.
+
+## 5. Integrate TDA Layers into a Benchmark Model Architecture [pending]
+### Dependencies: 5.2, 5.3, 5.4
+### Description: Integrate the newly developed TDA layers into a standard deep learning model to demonstrate their use and verify their seamless integration.
+### Details:
+Select a benchmark dataset (e.g., ModelNet10 for 3D shape classification). Create a new PyTorch model architecture that incorporates one or more of the TDA layers. The output of the TDA layer(s) will be concatenated with features from other standard layers (e.g., convolutional or fully connected) before the final classification head.
+
+## 6. Benchmark and Validate TDA Layers Performance [pending]
+### Dependencies: 5.5
+### Description: Conduct a comparative performance analysis of the TDA-enhanced model against a baseline model on a benchmark dataset to quantify the performance improvement.
+### Details:
+Train both the TDA-enhanced model and a comparable baseline model (without TDA layers) on the chosen benchmark dataset. Track key metrics such as classification accuracy, loss curves, and training time. Document the results and analyze the performance lift provided by the topological features.
+

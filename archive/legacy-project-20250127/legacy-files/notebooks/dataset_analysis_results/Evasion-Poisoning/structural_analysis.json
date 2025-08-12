@@ -1,0 +1,953 @@
+{
+  "name": "Evasion-Poisoning",
+  "file_count": 3,
+  "total_samples": 3122801,
+  "feature_count": 163,
+  "feature_types": {
+    "numerical": 0,
+    "categorical": 0,
+    "temporal": 3,
+    "network_flow": 48
+  },
+  "missing_values": {
+    "columns_with_missing": [
+      "Header_Length",
+      "Protocol Type",
+      "Time_To_Live",
+      "Rate",
+      "fin_flag_number",
+      "syn_flag_number",
+      "rst_flag_number",
+      "psh_flag_number",
+      "ack_flag_number",
+      "ece_flag_number",
+      "cwr_flag_number",
+      "ack_count",
+      "syn_count",
+      "fin_count",
+      "rst_count",
+      "HTTP",
+      "HTTPS",
+      "DNS",
+      "Telnet",
+      "SMTP",
+      "SSH",
+      "IRC",
+      "TCP",
+      "UDP",
+      "DHCP",
+      "ARP",
+      "ICMP",
+      "IGMP",
+      "IPv",
+      "LLC",
+      "Tot sum",
+      "Min",
+      "Max",
+      "AVG",
+      "Std",
+      "Tot size",
+      "IAT",
+      "Number",
+      "Variance",
+      "Label",
+      " Destination Port",
+      " Flow Duration",
+      " Total Fwd Packets",
+      " Total Backward Packets",
+      "Total Length of Fwd Packets",
+      " Total Length of Bwd Packets",
+      " Fwd Packet Length Max",
+      " Fwd Packet Length Min",
+      " Fwd Packet Length Mean",
+      " Fwd Packet Length Std",
+      "Bwd Packet Length Max",
+      " Bwd Packet Length Min",
+      " Bwd Packet Length Mean",
+      " Bwd Packet Length Std",
+      "Flow Bytes/s",
+      " Flow Packets/s",
+      " Flow IAT Mean",
+      " Flow IAT Std",
+      " Flow IAT Max",
+      " Flow IAT Min",
+      "Fwd IAT Total",
+      " Fwd IAT Mean",
+      " Fwd IAT Std",
+      " Fwd IAT Max",
+      " Fwd IAT Min",
+      "Bwd IAT Total",
+      " Bwd IAT Mean",
+      " Bwd IAT Std",
+      " Bwd IAT Max",
+      " Bwd IAT Min",
+      "Fwd PSH Flags",
+      " Bwd PSH Flags",
+      " Fwd URG Flags",
+      " Bwd URG Flags",
+      " Fwd Header Length",
+      " Bwd Header Length",
+      "Fwd Packets/s",
+      " Bwd Packets/s",
+      " Min Packet Length",
+      " Max Packet Length",
+      " Packet Length Mean",
+      " Packet Length Std",
+      " Packet Length Variance",
+      "FIN Flag Count",
+      " SYN Flag Count",
+      " RST Flag Count",
+      " PSH Flag Count",
+      " ACK Flag Count",
+      " URG Flag Count",
+      " CWE Flag Count",
+      " ECE Flag Count",
+      " Down/Up Ratio",
+      " Average Packet Size",
+      " Avg Fwd Segment Size",
+      " Avg Bwd Segment Size",
+      " Fwd Header Length.1",
+      "Fwd Avg Bytes/Bulk",
+      " Fwd Avg Packets/Bulk",
+      " Fwd Avg Bulk Rate",
+      " Bwd Avg Bytes/Bulk",
+      " Bwd Avg Packets/Bulk",
+      "Bwd Avg Bulk Rate",
+      "Subflow Fwd Packets",
+      " Subflow Fwd Bytes",
+      " Subflow Bwd Packets",
+      " Subflow Bwd Bytes",
+      "Init_Win_bytes_forward",
+      " Init_Win_bytes_backward",
+      " act_data_pkt_fwd",
+      " min_seg_size_forward",
+      "Active Mean",
+      " Active Std",
+      " Active Max",
+      " Active Min",
+      "Idle Mean",
+      " Idle Std",
+      " Idle Max",
+      " Idle Min",
+      " Label"
+    ],
+    "total_missing_percentage": 73.00613496932516
+  },
+  "feature_details": {
+    "Header_Length": {
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
+    },
+    "Protocol Type": {
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
+    },
+    "Time_To_Live": {
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
+    },
+    "Rate": {
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
+    },
+    "fin_flag_number": {
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
+    },
+    "syn_flag_number": {
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
+    },
+    "rst_flag_number": {
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
+    },
+    "psh_flag_number": {
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
+    },
+    "ack_flag_number": {
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
+    },
+    "ece_flag_number": {
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
+    },
+    "cwr_flag_number": {
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
+    },
+    "ack_count": {
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
+    },
+    "syn_count": {
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
+    },
+    "fin_count": {
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
+    },
+    "rst_count": {
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
+    },
+    "HTTP": {
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
+    },
+    "HTTPS": {
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
+    },
+    "DNS": {
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
+    },
+    "Telnet": {
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
+    },
+    "SMTP": {
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
+    },
+    "SSH": {
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
+    },
+    "IRC": {
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
+    },
+    "TCP": {
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
+    },
+    "UDP": {
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
+    },
+    "DHCP": {
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
+    },
+    "ARP": {
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
+    },
+    "ICMP": {
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
+    },
+    "IGMP": {
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
+    },
+    "IPv": {
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
+    },
+    "LLC": {
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
+    },
+    "Tot sum": {
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
+    },
+    "Min": {
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
+    },
+    "Max": {
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
+    },
+    "AVG": {
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
+    },
+    "Std": {
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
+    },
+    "Tot size": {
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
+    },
+    "IAT": {
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
+    },
+    "Number": {
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
+    },
+    "Variance": {
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
+    },
+    "Label": {
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
+    },
+    " Destination Port": {
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
+    },
+    " Flow Duration": {
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
+    },
+    " Total Fwd Packets": {
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
+    },
+    " Total Backward Packets": {
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
+    },
+    "Total Length of Fwd Packets": {
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
+    },
+    " Total Length of Bwd Packets": {
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
+    },
+    " Fwd Packet Length Max": {
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
+    },
+    " Fwd Packet Length Min": {
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
+    },
+    " Fwd Packet Length Mean": {
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
+    },
+    " Fwd Packet Length Std": {
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
+    },
+    "Bwd Packet Length Max": {
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
+    },
+    " Bwd Packet Length Min": {
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
+    },
+    " Bwd Packet Length Mean": {
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
+    },
+    " Bwd Packet Length Std": {
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
+    },
+    "Flow Bytes/s": {
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
+    },
+    " Flow Packets/s": {
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
+    },
+    " Flow IAT Mean": {
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
+    },
+    " Flow IAT Std": {
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
+    },
+    " Flow IAT Max": {
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
+    },
+    " Flow IAT Min": {
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
+    },
+    "Fwd IAT Total": {
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
+    },
+    " Fwd IAT Mean": {
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
+    },
+    " Fwd IAT Std": {
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
+    },
+    " Fwd IAT Max": {
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
+    },
+    " Fwd IAT Min": {
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
+    },
+    "Bwd IAT Total": {
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
+    },
+    " Bwd IAT Mean": {
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
+    },
+    " Bwd IAT Std": {
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
+    },
+    " Bwd IAT Max": {
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
+    },
+    " Bwd IAT Min": {
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
+    },
+    "Fwd PSH Flags": {
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
+    },
+    " Bwd PSH Flags": {
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
+    },
+    " Fwd URG Flags": {
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
+    },
+    " Bwd URG Flags": {
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
+    },
+    " Fwd Header Length": {
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
+    },
+    " Bwd Header Length": {
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
+    },
+    "Fwd Packets/s": {
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
+    },
+    " Bwd Packets/s": {
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
+    },
+    " Min Packet Length": {
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
+    },
+    " Max Packet Length": {
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
+    },
+    " Packet Length Mean": {
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
+    },
+    " Packet Length Std": {
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
+    },
+    " Packet Length Variance": {
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
+    },
+    "FIN Flag Count": {
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
+    },
+    " SYN Flag Count": {
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
+    },
+    " RST Flag Count": {
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
+    },
+    " PSH Flag Count": {
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
+    },
+    " ACK Flag Count": {
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
+    },
+    " URG Flag Count": {
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
+    },
+    " CWE Flag Count": {
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
+    },
+    " ECE Flag Count": {
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
+    },
+    " Down/Up Ratio": {
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
+    },
+    " Average Packet Size": {
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
+    },
+    " Avg Fwd Segment Size": {
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
+    },
+    " Avg Bwd Segment Size": {
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
+    },
+    " Fwd Header Length.1": {
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
+    },
+    "Fwd Avg Bytes/Bulk": {
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
+    },
+    " Fwd Avg Packets/Bulk": {
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
+    },
+    " Fwd Avg Bulk Rate": {
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
+    },
+    " Bwd Avg Bytes/Bulk": {
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
+    },
+    " Bwd Avg Packets/Bulk": {
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
+    },
+    "Bwd Avg Bulk Rate": {
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
+    },
+    "Subflow Fwd Packets": {
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
+    },
+    " Subflow Fwd Bytes": {
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
+    },
+    " Subflow Bwd Packets": {
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
+    },
+    " Subflow Bwd Bytes": {
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
+    },
+    "Init_Win_bytes_forward": {
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
+    },
+    " Init_Win_bytes_backward": {
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
+    },
+    " act_data_pkt_fwd": {
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
+    },
+    " min_seg_size_forward": {
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
+    },
+    "Active Mean": {
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
+    },
+    " Active Std": {
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
+    },
+    " Active Max": {
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
+    },
+    " Active Min": {
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
+    },
+    "Idle Mean": {
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
+    },
+    " Idle Std": {
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
+    },
+    " Idle Max": {
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
+    },
+    " Idle Min": {
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
+    },
+    " Label": {
+      "dtype": "string",
+      "unique_values": 0,
+      "missing_percentage": 100.0
+    },
+    "src_ip": {
+      "dtype": "string",
+      "unique_values": 49,
+      "missing_percentage": 0.0
+    },
+    "src_port": {
+      "dtype": "string",
+      "unique_values": 22597,
+      "missing_percentage": 0.0
+    },
+    "dst_ip": {
+      "dtype": "string",
+      "unique_values": 584,
+      "missing_percentage": 0.0
+    },
+    "dst_port": {
+      "dtype": "string",
+      "unique_values": 1960,
+      "missing_percentage": 0.0
+    },
+    "proto": {
+      "dtype": "string",
+      "unique_values": 3,
+      "missing_percentage": 0.0
+    },
+    "service": {
+      "dtype": "string",
+      "unique_values": 9,
+      "missing_percentage": 0.0
+    },
+    "duration": {
+      "dtype": "string",
+      "unique_values": 35804,
+      "missing_percentage": 0.0
+    },
+    "src_bytes": {
+      "dtype": "string",
+      "unique_values": 1691,
+      "missing_percentage": 0.0
+    },
+    "dst_bytes": {
+      "dtype": "string",
+      "unique_values": 1721,
+      "missing_percentage": 0.0
+    },
+    "conn_state": {
+      "dtype": "string",
+      "unique_values": 13,
+      "missing_percentage": 0.0
+    },
+    "missed_bytes": {
+      "dtype": "string",
+      "unique_values": 393,
+      "missing_percentage": 0.0
+    },
+    "src_pkts": {
+      "dtype": "string",
+      "unique_values": 201,
+      "missing_percentage": 0.0
+    },
+    "src_ip_bytes": {
+      "dtype": "string",
+      "unique_values": 2642,
+      "missing_percentage": 0.0
+    },
+    "dst_pkts": {
+      "dtype": "string",
+      "unique_values": 123,
+      "missing_percentage": 0.0
+    },
+    "dst_ip_bytes": {
+      "dtype": "string",
+      "unique_values": 2298,
+      "missing_percentage": 0.0
+    },
+    "dns_query": {
+      "dtype": "string",
+      "unique_values": 576,
+      "missing_percentage": 0.0
+    },
+    "dns_qclass": {
+      "dtype": "string",
+      "unique_values": 3,
+      "missing_percentage": 0.0
+    },
+    "dns_qtype": {
+      "dtype": "string",
+      "unique_values": 12,
+      "missing_percentage": 0.0
+    },
+    "dns_rcode": {
+      "dtype": "string",
+      "unique_values": 4,
+      "missing_percentage": 0.0
+    },
+    "dns_AA": {
+      "dtype": "string",
+      "unique_values": 3,
+      "missing_percentage": 0.0
+    },
+    "dns_RD": {
+      "dtype": "string",
+      "unique_values": 3,
+      "missing_percentage": 0.0
+    },
+    "dns_RA": {
+      "dtype": "string",
+      "unique_values": 3,
+      "missing_percentage": 0.0
+    },
+    "dns_rejected": {
+      "dtype": "string",
+      "unique_values": 3,
+      "missing_percentage": 0.0
+    },
+    "ssl_version": {
+      "dtype": "string",
+      "unique_values": 4,
+      "missing_percentage": 0.0
+    },
+    "ssl_cipher": {
+      "dtype": "string",
+      "unique_values": 6,
+      "missing_percentage": 0.0
+    },
+    "ssl_resumed": {
+      "dtype": "string",
+      "unique_values": 3,
+      "missing_percentage": 0.0
+    },
+    "ssl_established": {
+      "dtype": "string",
+      "unique_values": 3,
+      "missing_percentage": 0.0
+    },
+    "ssl_subject": {
+      "dtype": "string",
+      "unique_values": 4,
+      "missing_percentage": 0.0
+    },
+    "ssl_issuer": {
+      "dtype": "string",
+      "unique_values": 4,
+      "missing_percentage": 0.0
+    },
+    "http_trans_depth": {
+      "dtype": "string",
+      "unique_values": 10,
+      "missing_percentage": 0.0
+    },
+    "http_method": {
+      "dtype": "string",
+      "unique_values": 4,
+      "missing_percentage": 0.0
+    },
+    "http_uri": {
+      "dtype": "string",
+      "unique_values": 61,
+      "missing_percentage": 0.0
+    },
+    "http_version": {
+      "dtype": "string",
+      "unique_values": 2,
+      "missing_percentage": 0.0
+    },
+    "http_request_body_len": {
+      "dtype": "string",
+      "unique_values": 5,
+      "missing_percentage": 0.0
+    },
+    "http_response_body_len": {
+      "dtype": "string",
+      "unique_values": 52,
+      "missing_percentage": 0.0
+    },
+    "http_status_code": {
+      "dtype": "string",
+      "unique_values": 7,
+      "missing_percentage": 0.0
+    },
+    "http_user_agent": {
+      "dtype": "string",
+      "unique_values": 22,
+      "missing_percentage": 0.0
+    },
+    "http_orig_mime_types": {
+      "dtype": "string",
+      "unique_values": 3,
+      "missing_percentage": 0.0
+    },
+    "http_resp_mime_types": {
+      "dtype": "string",
+      "unique_values": 10,
+      "missing_percentage": 0.0
+    },
+    "weird_name": {
+      "dtype": "string",
+      "unique_values": 9,
+      "missing_percentage": 0.0
+    },
+    "weird_addl": {
+      "dtype": "string",
+      "unique_values": 2,
+      "missing_percentage": 0.0
+    },
+    "weird_notice": {
+      "dtype": "string",
+      "unique_values": 2,
+      "missing_percentage": 0.0
+    },
+    "label": {
+      "dtype": "string",
+      "unique_values": 2,
+      "missing_percentage": 0.0
+    },
+    "type": {
+      "dtype": "string",
+      "unique_values": 10,
+      "missing_percentage": 0.0
+    }
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "dataset_name": "NetflowV3",
+  "total_samples": 2365477,
+  "tda_readiness_score": 2,
+  "key_findings": [
+    "Class imbalance severity: balanced",
+    "TDA suitable features: 0",
+    "Temporal co-occurrence: False",
+    "Data leakage risks: 0 risky features"
+  ]
+}

@@ -1,0 +1,443 @@
+{
+  "name": "RT-IoT2022",
+  "file_count": 1,
+  "total_samples": 123117,
+  "feature_count": 85,
+  "feature_types": {
+    "numerical": 82,
+    "categorical": 3,
+    "temporal": 1,
+    "network_flow": 9
+  },
+  "missing_values": {
+    "columns_with_missing": [],
+    "total_missing_percentage": 0.0
+  },
+  "feature_details": {
+    "no": {
+      "dtype": "int64",
+      "unique_values": 78511,
+      "missing_percentage": 0.0
+    },
+    "id.orig_p": {
+      "dtype": "int64",
+      "unique_values": 59105,
+      "missing_percentage": 0.0
+    },
+    "id.resp_p": {
+      "dtype": "int64",
+      "unique_values": 1758,
+      "missing_percentage": 0.0
+    },
+    "proto": {
+      "dtype": "object",
+      "unique_values": 3,
+      "missing_percentage": 0.0
+    },
+    "service": {
+      "dtype": "object",
+      "unique_values": 10,
+      "missing_percentage": 0.0
+    },
+    "flow_duration": {
+      "dtype": "float64",
+      "unique_values": 13397,
+      "missing_percentage": 0.0
+    },
+    "fwd_pkts_tot": {
+      "dtype": "int64",
+      "unique_values": 144,
+      "missing_percentage": 0.0
+    },
+    "bwd_pkts_tot": {
+      "dtype": "int64",
+      "unique_values": 156,
+      "missing_percentage": 0.0
+    },
+    "fwd_data_pkts_tot": {
+      "dtype": "int64",
+      "unique_values": 102,
+      "missing_percentage": 0.0
+    },
+    "bwd_data_pkts_tot": {
+      "dtype": "int64",
+      "unique_values": 138,
+      "missing_percentage": 0.0
+    },
+    "fwd_pkts_per_sec": {
+      "dtype": "float64",
+      "unique_values": 13065,
+      "missing_percentage": 0.0
+    },
+    "bwd_pkts_per_sec": {
+      "dtype": "float64",
+      "unique_values": 12668,
+      "missing_percentage": 0.0
+    },
+    "flow_pkts_per_sec": {
+      "dtype": "float64",
+      "unique_values": 13237,
+      "missing_percentage": 0.0
+    },
+    "down_up_ratio": {
+      "dtype": "float64",
+      "unique_values": 417,
+      "missing_percentage": 0.0
+    },
+    "fwd_header_size_tot": {
+      "dtype": "int64",
+      "unique_values": 320,
+      "missing_percentage": 0.0
+    },
+    "fwd_header_size_min": {
+      "dtype": "int64",
+      "unique_values": 7,
+      "missing_percentage": 0.0
+    },
+    "fwd_header_size_max": {
+      "dtype": "int64",
+      "unique_values": 8,
+      "missing_percentage": 0.0
+    },
+    "bwd_header_size_tot": {
+      "dtype": "int64",
+      "unique_values": 316,
+      "missing_percentage": 0.0
+    },
+    "bwd_header_size_min": {
+      "dtype": "int64",
+      "unique_values": 7,
+      "missing_percentage": 0.0
+    },
+    "bwd_header_size_max": {
+      "dtype": "int64",
+      "unique_values": 9,
+      "missing_percentage": 0.0
+    },
+    "flow_FIN_flag_count": {
+      "dtype": "int64",
+      "unique_values": 11,
+      "missing_percentage": 0.0
+    },
+    "flow_SYN_flag_count": {
+      "dtype": "int64",
+      "unique_values": 7,
+      "missing_percentage": 0.0
+    },
+    "flow_RST_flag_count": {
+      "dtype": "int64",
+      "unique_values": 9,
+      "missing_percentage": 0.0
+    },
+    "fwd_PSH_flag_count": {
+      "dtype": "int64",
+      "unique_values": 63,
+      "missing_percentage": 0.0
+    },
+    "bwd_PSH_flag_count": {
+      "dtype": "int64",
+      "unique_values": 89,
+      "missing_percentage": 0.0
+    },
+    "flow_ACK_flag_count": {
+      "dtype": "int64",
+      "unique_values": 188,
+      "missing_percentage": 0.0
+    },
+    "fwd_URG_flag_count": {
+      "dtype": "int64",
+      "unique_values": 2,
+      "missing_percentage": 0.0
+    },
+    "bwd_URG_flag_count": {
+      "dtype": "int64",
+      "unique_values": 1,
+      "missing_percentage": 0.0
+    },
+    "flow_CWR_flag_count": {
+      "dtype": "int64",
+      "unique_values": 5,
+      "missing_percentage": 0.0
+    },
+    "flow_ECE_flag_count": {
+      "dtype": "int64",
+      "unique_values": 5,
+      "missing_percentage": 0.0
+    },
+    "fwd_pkts_payload.min": {
+      "dtype": "float64",
+      "unique_values": 95,
+      "missing_percentage": 0.0
+    },
+    "fwd_pkts_payload.max": {
+      "dtype": "float64",
+      "unique_values": 373,
+      "missing_percentage": 0.0
+    },
+    "fwd_pkts_payload.tot": {
+      "dtype": "float64",
+      "unique_values": 1201,
+      "missing_percentage": 0.0
+    },
+    "fwd_pkts_payload.avg": {
+      "dtype": "float64",
+      "unique_values": 1456,
+      "missing_percentage": 0.0
+    },
+    "fwd_pkts_payload.std": {
+      "dtype": "float64",
+      "unique_values": 1481,
+      "missing_percentage": 0.0
+    },
+    "bwd_pkts_payload.min": {
+      "dtype": "float64",
+      "unique_values": 188,
+      "missing_percentage": 0.0
+    },
+    "bwd_pkts_payload.max": {
+      "dtype": "float64",
+      "unique_values": 460,
+      "missing_percentage": 0.0
+    },
+    "bwd_pkts_payload.tot": {
+      "dtype": "float64",
+      "unique_values": 1656,
+      "missing_percentage": 0.0
+    },
+    "bwd_pkts_payload.avg": {
+      "dtype": "float64",
+      "unique_values": 2053,
+      "missing_percentage": 0.0
+    },
+    "bwd_pkts_payload.std": {
+      "dtype": "float64",
+      "unique_values": 2179,
+      "missing_percentage": 0.0
+    },
+    "flow_pkts_payload.min": {
+      "dtype": "float64",
+      "unique_values": 98,
+      "missing_percentage": 0.0
+    },
+    "flow_pkts_payload.max": {
+      "dtype": "float64",
+      "unique_values": 490,
+      "missing_percentage": 0.0
+    },
+    "flow_pkts_payload.tot": {
+      "dtype": "float64",
+      "unique_values": 1930,
+      "missing_percentage": 0.0
+    },
+    "flow_pkts_payload.avg": {
+      "dtype": "float64",
+      "unique_values": 2402,
+      "missing_percentage": 0.0
+    },
+    "flow_pkts_payload.std": {
+      "dtype": "float64",
+      "unique_values": 2793,
+      "missing_percentage": 0.0
+    },
+    "fwd_iat.min": {
+      "dtype": "float64",
+      "unique_values": 2530,
+      "missing_percentage": 0.0
+    },
+    "fwd_iat.max": {
+      "dtype": "float64",
+      "unique_values": 10338,
+      "missing_percentage": 0.0
+    },
+    "fwd_iat.tot": {
+      "dtype": "float64",
+      "unique_values": 10388,
+      "missing_percentage": 0.0
+    },
+    "fwd_iat.avg": {
+      "dtype": "float64",
+      "unique_values": 10417,
+      "missing_percentage": 0.0
+    },
+    "fwd_iat.std": {
+      "dtype": "float64",
+      "unique_values": 8846,
+      "missing_percentage": 0.0
+    },
+    "bwd_iat.min": {
+      "dtype": "float64",
+      "unique_values": 5638,
+      "missing_percentage": 0.0
+    },
+    "bwd_iat.max": {
+      "dtype": "float64",
+      "unique_values": 12115,
+      "missing_percentage": 0.0
+    },
+    "bwd_iat.tot": {
+      "dtype": "float64",
+      "unique_values": 12172,
+      "missing_percentage": 0.0
+    },
+    "bwd_iat.avg": {
+      "dtype": "float64",
+      "unique_values": 12185,
+      "missing_percentage": 0.0
+    },
+    "bwd_iat.std": {
+      "dtype": "float64",
+      "unique_values": 8473,
+      "missing_percentage": 0.0
+    },
+    "flow_iat.min": {
+      "dtype": "float64",
+      "unique_values": 1626,
+      "missing_percentage": 0.0
+    },
+    "flow_iat.max": {
+      "dtype": "float64",
+      "unique_values": 13498,
+      "missing_percentage": 0.0
+    },
+    "flow_iat.tot": {
+      "dtype": "float64",
+      "unique_values": 13716,
+      "missing_percentage": 0.0
+    },
+    "flow_iat.avg": {
+      "dtype": "float64",
+      "unique_values": 13801,
+      "missing_percentage": 0.0
+    },
+    "flow_iat.std": {
+      "dtype": "float64",
+      "unique_values": 13925,
+      "missing_percentage": 0.0
+    },
+    "payload_bytes_per_second": {
+      "dtype": "float64",
+      "unique_values": 14035,
+      "missing_percentage": 0.0
+    },
+    "fwd_subflow_pkts": {
+      "dtype": "float64",
+      "unique_values": 319,
+      "missing_percentage": 0.0
+    },
+    "bwd_subflow_pkts": {
+      "dtype": "float64",
+      "unique_values": 329,
+      "missing_percentage": 0.0
+    },
+    "fwd_subflow_bytes": {
+      "dtype": "float64",
+      "unique_values": 1337,
+      "missing_percentage": 0.0
+    },
+    "bwd_subflow_bytes": {
+      "dtype": "float64",
+      "unique_values": 1794,
+      "missing_percentage": 0.0
+    },
+    "fwd_bulk_bytes": {
+      "dtype": "float64",
+      "unique_values": 177,
+      "missing_percentage": 0.0
+    },
+    "bwd_bulk_bytes": {
+      "dtype": "float64",
+      "unique_values": 392,
+      "missing_percentage": 0.0
+    },
+    "fwd_bulk_packets": {
+      "dtype": "float64",
+      "unique_values": 53,
+      "missing_percentage": 0.0
+    },
+    "bwd_bulk_packets": {
+      "dtype": "float64",
+      "unique_values": 119,
+      "missing_percentage": 0.0
+    },
+    "fwd_bulk_rate": {
+      "dtype": "float64",
+      "unique_values": 196,
+      "missing_percentage": 0.0
+    },
+    "bwd_bulk_rate": {
+      "dtype": "float64",
+      "unique_values": 778,
+      "missing_percentage": 0.0
+    },
+    "active.min": {
+      "dtype": "float64",
+      "unique_values": 13443,
+      "missing_percentage": 0.0
+    },
+    "active.max": {
+      "dtype": "float64",
+      "unique_values": 13686,
+      "missing_percentage": 0.0
+    },
+    "active.tot": {
+      "dtype": "float64",
+      "unique_values": 13688,
+      "missing_percentage": 0.0
+    },
+    "active.avg": {
+      "dtype": "float64",
+      "unique_values": 13690,
+      "missing_percentage": 0.0
+    },
+    "active.std": {
+      "dtype": "float64",
+      "unique_values": 1372,
+      "missing_percentage": 0.0
+    },
+    "idle.min": {
+      "dtype": "float64",
+      "unique_values": 4584,
+      "missing_percentage": 0.0
+    },
+    "idle.max": {
+      "dtype": "float64",
+      "unique_values": 4583,
+      "missing_percentage": 0.0
+    },
+    "idle.tot": {
+      "dtype": "float64",
+      "unique_values": 4585,
+      "missing_percentage": 0.0
+    },
+    "idle.avg": {
+      "dtype": "float64",
+      "unique_values": 4585,
+      "missing_percentage": 0.0
+    },
+    "idle.std": {
+      "dtype": "float64",
+      "unique_values": 816,
+      "missing_percentage": 0.0
+    },
+    "fwd_init_window_size": {
+      "dtype": "int64",
+      "unique_values": 19,
+      "missing_percentage": 0.0
+    },
+    "bwd_init_window_size": {
+      "dtype": "int64",
+      "unique_values": 53,
+      "missing_percentage": 0.0
+    },
+    "fwd_last_window_size": {
+      "dtype": "int64",
+      "unique_values": 92,
+      "missing_percentage": 0.0
+    },
+    "Attack_type": {
+      "dtype": "object",
+      "unique_values": 12,
+      "missing_percentage": 0.0
+    }
+  }
+}

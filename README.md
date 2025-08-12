@@ -1,302 +1,134 @@
-# Topological Data Analysis Platform
+# TDA Vector Stack
 
-A comprehensive platform for applying TDA methods to cybersecurity and financial risk analysis, designed to leverage the unique advantages of topological methods in high-dimensional pattern recognition.
+A modern, high-performance C++23 implementation of Topological Data Analysis (TDA) with a focus on vector stack operations and persistent homology computation.
 
-## Overview
+## 🚀 Features
 
-This platform implements TDA-based solutions for:
+- **Modern C++23**: Leverages latest C++ features including concepts, ranges, and coroutines
+- **High Performance**: SIMD optimizations, OpenMP parallelization, and memory pools
+- **Clean Architecture**: Modular design with clear separation of concerns
+- **Vector Stack Focus**: Optimized data structure for TDA operations
+- **Python Bindings**: Seamless integration via pybind11
+- **Comprehensive Testing**: Full test suite with benchmarks
 
-- **Cybersecurity Applications**
-  - Advanced Persistent Threat (APT) detection
-  - IoT device classification and anomaly detection
-  - Network intrusion analysis
+## 🏗️ Architecture
 
-- **Financial Risk Analysis**
-  - Cryptocurrency market analysis and bubble detection
-  - Multi-asset portfolio risk assessment
-  - Market regime identification
+```
+src/
+├── cpp/
+│   ├── core/           # Core TDA types and algorithms
+│   ├── vector_stack/   # Main vector stack implementation
+│   ├── algorithms/     # TDA algorithms (VR, Alpha, etc.)
+│   └── utils/          # Performance utilities
+├── python/             # Python bindings
+└── tests/              # Test suite
 
-## Strategic Focus
+include/
+└── tda/                # Public headers
 
-Based on current market opportunities and regulatory drivers:
+research/               # Extracted high-value research
+├── papers/             # Research papers
+├── implementations/    # Key algorithm implementations
+└── benchmarks/         # Performance benchmarks
+```
 
-### Cybersecurity MVP (SME Market)
-- **Target**: Small-to-medium enterprises (50-500 employees)
-- **Primary Focus**: IoT device spoofing and APT detection
-- **Market Advantage**: 98.42% accuracy with interpretable results
-- **Regulatory Drivers**: SEC 4-day reporting, EU NIS 2 directive
+## 📋 Requirements
 
-### Financial Risk MVP (Mid-Market Institutions)
-- **Target**: Mid-market financial institutions
-- **Primary Focus**: Real-time multi-asset risk aggregation
-- **Market Advantage**: Mathematical interpretability for compliance
-- **Regulatory Drivers**: DORA compliance, Basel III requirements
+- **Compiler**: GCC 13+ or Clang 16+ with C++23 support
+- **CMake**: 3.20+
+- **Dependencies**: Eigen3, OpenMP, pybind11
+- **Optional**: CUDA for GPU acceleration
 
-## Key Features
+## 🛠️ Building
 
-### Core TDA Methods
-- **Persistent Homology**: Robust topological feature extraction
-- **Mapper Algorithm**: Network-based data visualization and analysis
-- **Topology Utilities**: Distance computation, dimension estimation, preprocessing
+### Quick Build
+```bash
+./build.sh release
+```
 
-### Cybersecurity Capabilities
-- Real-time network anomaly detection
-- Long-term threat pattern identification
-- IoT device fingerprinting with 98%+ accuracy
-- Automated APT detection with minimal false positives
+### Custom Build
+```bash
+mkdir build && cd build
+cmake .. -DCMAKE_BUILD_TYPE=Release
+make -j$(nproc)
+```
 
-### Financial Analysis Tools
-- Cryptocurrency bubble detection (60% sensitivity 0-5 days ahead)
-- Market regime identification and transition detection
-- Portfolio risk assessment across multiple asset classes
-- Real-time correlation analysis for systemic risk
+### Build Options
+- `BUILD_TYPE`: debug, release, relwithdebinfo
+- `ENABLE_CUDA`: ON/OFF for GPU acceleration
+- `CLEAN_BUILD`: true/false for clean rebuild
+- `RUN_TESTS`: true/false to run tests
+- `RUN_BENCHMARKS`: true/false to run benchmarks
 
-## Technical Advantages
-
-1. **Mathematical Interpretability**: Unlike black-box ML models, TDA provides explainable topological features
-2. **Noise Robustness**: Persistent homology is stable under small perturbations
-3. **High-Dimensional Performance**: Superior pattern recognition in complex, multi-dimensional datasets
-4. **Regulatory Compliance**: Explainable AI capabilities meet increasing regulatory requirements
-
-## Installation
+## 🧪 Testing
 
 ```bash
-# Clone the repository
-git clone <repository-url>
-cd TDA_projects
+# Run all tests
+make test
 
-# Create virtual environment
-python -m venv tda_env
-source tda_env/bin/activate  # On Windows: tda_env\Scripts\activate
-
-# Install dependencies
-pip install -r requirements.txt
-
-# Install in development mode
-pip install -e .
+# Run specific test suite
+ctest -R core_tests
+ctest -R vector_stack_tests
+ctest -R algorithm_tests
 ```
 
-## Quick Start
-
-### Cybersecurity Example: APT Detection
-
-```python
-from src.cybersecurity import APTDetector
-import numpy as np
-
-# Generate sample network data
-network_data = np.random.randn(1000, 50)  # 1000 samples, 50 features
-
-# Initialize and train detector
-detector = APTDetector(
-    time_window=3600,  # 1 hour windows
-    ph_maxdim=2,
-    verbose=True
-)
-
-# Fit on baseline (normal) traffic
-detector.fit(network_data[:700])
-
-# Detect APTs in new data
-predictions = detector.predict(network_data[700:])
-apt_analysis = detector.analyze_apt_patterns(network_data[700:])
-
-print(f"APT detection rate: {apt_analysis['apt_percentage']:.2f}%")
-print(f"High-risk samples: {apt_analysis['high_risk_samples']}")
-```
-
-### Financial Example: Cryptocurrency Analysis
-
-```python
-from src.finance import CryptoAnalyzer
-import numpy as np
-
-# Generate sample price data
-price_data = np.cumsum(np.random.randn(1000)) + 100
-
-# Initialize analyzer
-analyzer = CryptoAnalyzer(
-    window_size=50,
-    embedding_dim=10,
-    prediction_horizon=5,
-    verbose=True
-)
-
-# Fit and predict
-analyzer.fit(price_data[:800])
-predictions = analyzer.predict(price_data[750:])
-
-# Detect market regimes
-regimes = analyzer.detect_market_regimes(price_data)
-print(f"Identified {len(regimes['regime_characteristics'])} market regimes")
-
-# Assess bubble risk
-bubble_risk = analyzer.detect_bubble_conditions(price_data)
-print(f"Bubble probability: {bubble_risk['bubble_probability']:.3f}")
-print(f"Risk level: {bubble_risk['recommendation']}")
-```
-
-## Project Structure
-
-```
-TDA_projects/
-├── src/
-│   ├── core/                     # Core TDA functionality
-│   │   ├── persistent_homology.py
-│   │   ├── mapper.py
-│   │   └── topology_utils.py
-│   ├── cybersecurity/            # Cybersecurity applications
-│   │   ├── apt_detection.py
-│   │   ├── iot_classification.py
-│   │   └── network_analysis.py
-│   ├── finance/                  # Financial applications
-│   │   ├── crypto_analysis.py
-│   │   ├── risk_assessment.py
-│   │   └── market_analysis.py
-│   └── utils/                    # Shared utilities
-│       ├── data_preprocessing.py
-│       ├── visualization.py
-│       └── evaluation.py
-├── examples/                     # Example notebooks and scripts
-├── tests/                        # Unit tests
-├── docs/                         # Documentation
-├── data/                         # Sample datasets
-├── requirements.txt
-├── setup.py
-└── README.md
-```
-
-## Dependencies
-
-### Core TDA Libraries
-- `scikit-tda`: Comprehensive TDA toolkit
-- `gudhi`: Geometry Understanding in Higher Dimensions
-- `ripser`: Efficient persistent homology computation
-- `persim`: Persistence image and landscape computation
-- `kmapper`: Kepler Mapper implementation
-
-### Machine Learning & Scientific Computing
-- `scikit-learn`: Machine learning algorithms
-- `numpy`, `scipy`: Numerical computing
-- `pandas`: Data manipulation
-- `torch`: Deep learning framework
-- `xgboost`, `lightgbm`: Gradient boosting
-
-### Visualization & Analysis
-- `matplotlib`, `seaborn`, `plotly`: Visualization
-- `networkx`: Graph analysis
-- `jupyter`: Interactive notebooks
-
-### Domain-Specific
-- `scapy`, `pyshark`: Network packet analysis (cybersecurity)
-- `yfinance`, `ccxt`: Financial data (finance)
-
-## Development Roadmap
-
-### Phase 1: MVP Development (6-12 months)
-- [ ] Complete core TDA module implementation
-- [ ] Cybersecurity APT detection for 5-10 SME pilots
-- [ ] Financial risk platform for 3-5 mid-market institutions
-- [ ] Comprehensive testing and validation
-
-## Vector Stack Enhancements (Recent)
-
-The validation pipeline `validation/extract_vector_stack.py` now includes:
-
-- `--sw-angle-strategy {golden,equidistant,halton,random}`: Deterministic sliced Wasserstein angle generation strategies (baseline golden modular sequence).
-- `--rips-mode {standard,dtm,sparse}`: Alternative Rips filtration recomputation when sidecar point clouds are available.
-  - `standard`: Use precomputed diagrams as-is.
-  - `dtm`: Recompute diagrams using a heuristic distance-to-measure style adjustment (k-NN distance expansion) controlled by `--dtm-k` (default 2).
-  - `sparse`: Farthest point subsampling approximation; granularity controlled by `--rips-sparse-param` (acts as 1/(1-eps) style factor). Larger values -> stronger sparsification.
-- `--rips-sparse-param FLOAT`: Controls subsample target size (effective target ~ N / param).
-- `--dtm-k INT`: k for DTM heuristic (>=2).
-
-When recomputation is attempted, the script searches for sidecar point cloud files adjacent to each diagram (suffixes: `_points.npy`, `_pointcloud.npy`, `_pc.npy`). If unavailable or `gudhi` is missing, original diagrams are retained. Diagnostics report counts under `filtration_recompute`.
-
-Per-block compute timings and SW angle lists/hashes are recorded in `results/diagnostics.json` (`block_compute_time_sec`, `sw_angles_list`, `sw_angles_hash`).
-
-### Enhancement Delta Evaluation
-
-Use `scripts/enhancement_delta_eval.py` to compare baseline vs enhanced runs:
+## 📊 Benchmarks
 
 ```bash
-python scripts/enhancement_delta_eval.py --baseline validation/vector_stack_outputs/<runA> --enhanced validation/vector_stack_outputs/<runB> --out delta.json
+# Run performance benchmarks
+./bin/tda_benchmarks
+
+# Specific benchmark categories
+./bin/tda_benchmarks --vector-operations
+./bin/tda_benchmarks --persistent-homology
+./bin/tda_benchmarks --memory-usage
 ```
 
-Outputs absolute and relative deltas for key metrics and feature dimensionality.
+## 🐍 Python Usage
 
-### Phase 2: Market Expansion (12-24 months)
-- [ ] Supply chain risk assessment (NIS 2 compliance)
-- [ ] Cryptocurrency derivatives analysis
-- [ ] ESG risk integration
-- [ ] Enhanced visualization and reporting
+```python
+import tda
 
-### Phase 3: Platform Integration (24-36 months)
-- [ ] Unified cyber-financial risk platform
-- [ ] Real-time processing capabilities
-- [ ] Enterprise-grade deployment
-- [ ] Advanced analytics and AI integration
+# Create a vector stack
+vs = tda.VectorStack(100, 3)  # 100 points in 3D
 
-## Contributing
+# Compute persistent homology
+persistence_diagram = tda.compute_persistence(vs)
+
+# Get Betti numbers
+betti = tda.compute_betti_numbers(persistence_diagram)
+```
+
+## 🔬 Research Integration
+
+This project integrates key research from:
+- **ICLR 2021 Challenge**: Noise-invariant topological features
+- **ICLR 2022 Challenge**: Tree embeddings and structured data
+- **Geomstats**: Riemannian geometry and statistics
+- **Giotto-Deep**: TDA + Deep Learning integration
+- **TopoBench**: Performance benchmarking
+
+## 📚 Documentation
+
+- **API Documentation**: `make docs` generates Doxygen documentation
+- **Design Documents**: See `docs/design/` for architecture details
+- **Performance Guides**: See `docs/performance/` for optimization tips
+
+## 🤝 Contributing
 
 1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+2. Create a feature branch
+3. Implement with C++23 best practices
+4. Add comprehensive tests
+5. Submit a pull request
 
-## Testing
-
-```bash
-# Run unit tests
-pytest tests/
-
-# Run with coverage
-pytest --cov=src tests/
-
-# Run specific module tests
-pytest tests/test_core.py
-pytest tests/test_cybersecurity.py
-pytest tests/test_finance.py
-```
-
-## Performance Benchmarks
-
-### Cybersecurity Performance
-- **IoT Device Classification**: 98.42% accuracy
-- **APT Detection**: <5 minute response time
-- **False Positive Reduction**: 50%+ vs traditional methods
-
-### Financial Performance
-- **Forecasting Improvement**: 1.2-2.1% over state-of-the-art
-- **Bubble Detection**: 60% sensitivity 0-5 days ahead
-- **Risk Calculation**: Real-time across 10+ asset classes
-
-## License
+## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## Citation
+## 🙏 Acknowledgments
 
-If you use this software in your research, please cite:
-
-```bibtex
-@software{tda_platform,
-  title={Topological Data Analysis Platform for Cybersecurity and Financial Risk},
-  author={TDA Platform Team},
-  year={2025},
-  url={https://github.com/your-org/TDA_projects}
-}
-```
-
-## Support
-
-- Documentation: [docs/](docs/)
-- Issues: [GitHub Issues](https://github.com/your-org/TDA_projects/issues)
-- Discussions: [GitHub Discussions](https://github.com/your-org/TDA_projects/discussions)
-
-## Acknowledgments
-
-- Research validating TDA effectiveness in cybersecurity and finance
-- Open-source TDA community for foundational tools
-- Regulatory frameworks driving market demand for interpretable AI
+- ICLR Challenge organizers and participants
+- Geomstats and Giotto-Deep communities
+- C++ Standards Committee for C++23 features
+- OpenMP and Eigen3 maintainers

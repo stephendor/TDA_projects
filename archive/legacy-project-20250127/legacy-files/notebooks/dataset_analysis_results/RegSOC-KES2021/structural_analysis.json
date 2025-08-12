@@ -1,0 +1,23 @@
+{
+  "name": "RegSOC-KES2021",
+  "file_count": 1,
+  "total_samples": 12960,
+  "feature_count": 1,
+  "feature_types": {
+    "numerical": 0,
+    "categorical": 1,
+    "temporal": 0,
+    "network_flow": 1
+  },
+  "missing_values": {
+    "columns_with_missing": [],
+    "total_missing_percentage": 0.0
+  },
+  "feature_details": {
+    "day_id;week_day;hour;minute;doc_count;network_packets_min;network_packets_max;network_packets_q1;network_packets_q2;network_packets_q3;network_packets_avg;source_packets_min;source_packets_max;source_packets_q1;source_packets_q2;source_packets_q3;source_packets_avg;destination_packets_min;destination_packets_max;destination_packets_q1;destination_packets_q2;destination_packets_q3;destination_packets_avg;network_bytes_min;network_bytes_max;network_bytes_q1;network_bytes_q2;network_bytes_q3;network_bytes_avg;source_bytes_min;source_bytes_max;source_bytes_q1;source_bytes_q2;source_bytes_q3;source_bytes_avg;destination_bytes_min;destination_bytes_max;destination_bytes_q1;destination_bytes_q2;destination_bytes_q3;destination_bytes_avg;dns;flow;ftp;http;icmp;pgsql;rdp;ssh;tls;bruteforce_ftp;bruteforce_ssh;bruteforce_rdp;dos_attack;anomaly;anomaly_type": {
+      "dtype": "object",
+      "unique_values": 12960,
+      "missing_percentage": 0.0
+    }
+  }
+}

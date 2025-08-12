@@ -1,0 +1,115 @@
+# Context Maintenance and Error Prevention Rules
+
+## 🚨 **CRITICAL CONTEXT PRESERVATION**
+
+### **Before Making ANY Changes to Project Understanding**
+- **ALWAYS** check Taskmaster project state first
+- **ALWAYS** review current project rules and documentation
+- **ALWAYS** verify scope and architecture before suggesting changes
+- **NEVER** assume project scope has changed without explicit evidence
+
+### **Context Verification Protocol**
+1. **Check Taskmaster**: `get_tasks` to understand current project state
+2. **Review Rules**: Read current `.cursor/rules/` files for project scope
+3. **Examine Documentation**: Check README, PROJECT_STRUCTURE, CLEANUP_SUMMARY
+4. **Verify Architecture**: Confirm current directory structure and build system
+5. **Only Then**: Make suggestions or changes
+
+## 🚫 **FORBIDDEN ASSUMPTIONS**
+
+### **Never Assume These Without Verification**
+- Project scope has been simplified or reduced
+- Architecture has been changed from comprehensive to basic
+- Modules have been removed (finance, cybersecurity, streaming)
+- Technology stack has been altered
+- Performance requirements have been relaxed
+
+### **Red Flag Phrases That Require Immediate Context Check**
+- "This seems like a simple project"
+- "We could simplify this to just..."
+- "This looks like basic TDA only"
+- "We don't need all these modules"
+- "Let's focus on just the core"
+
+## ✅ **MANDATORY CONTEXT CHECKS**
+
+### **Before Any Project Analysis**
+1. **Taskmaster State**: Current tasks, priorities, and dependencies
+2. **Project Rules**: Current scope and architecture definitions
+3. **Directory Structure**: Verify current project organization
+4. **Build System**: Confirm current CMake and build configuration
+5. **Documentation**: Review current README and structure docs
+
+### **Context Maintenance Checklist**
+- [ ] Project scope is comprehensive TDA platform (not simplified)
+- [ ] Architecture includes finance, cybersecurity, streaming
+- [ ] Technology stack is C++23 + FastAPI + Kafka + Flink
+- [ ] Performance requirements are enterprise-grade
+- [ ] Current rules accurately reflect project state
+
+## 🔍 **ERROR PREVENTION STRATEGIES**
+
+### **When User Says "Check Something"**
+1. **Immediate Context Refresh**: Don't rely on memory, check current state
+2. **Verify Against Rules**: Compare findings with current project rules
+3. **Cross-Reference Documentation**: Ensure consistency across all docs
+4. **Ask for Clarification**: If anything seems unclear or contradictory
+
+### **When Suggesting Changes**
+1. **State Current Understanding**: "Based on the current project scope..."
+2. **Reference Specific Rules**: "According to the TDA platform rules..."
+3. **Maintain Scope**: Ensure changes don't reduce comprehensive platform
+4. **Verify Alignment**: Check that suggestions align with current architecture
+
+## 🚨 **CRITICAL ERROR RECOVERY**
+
+### **If Context Loss is Detected**
+1. **Immediate Stop**: Don't continue with potentially incorrect assumptions
+2. **Full Context Refresh**: Check Taskmaster, rules, and documentation
+3. **Acknowledge Error**: "I need to refresh my understanding of the current project state"
+4. **Correct Understanding**: State the correct project scope and architecture
+5. **Continue Safely**: Only proceed with verified correct context
+
+### **Learning from Context Loss**
+- **Document the Error**: Note what was misunderstood and why
+- **Identify Triggers**: What led to the context loss
+- **Improve Protocol**: Strengthen context verification procedures
+- **Prevent Recurrence**: Implement additional safeguards
+
+## 🎯 **CONTEXT MAINTENANCE EXCELLENCE**
+
+### **Daily Context Verification**
+- **Start of Session**: Always verify current project state
+- **Before Major Changes**: Check context before architectural decisions
+- **After User Feedback**: Verify understanding matches their intent
+- **Before Rule Updates**: Ensure changes align with current scope
+
+### **Context Documentation**
+- **Current Scope**: Comprehensive TDA platform for finance and cybersecurity
+- **Architecture**: C++23 core + Python API + streaming infrastructure
+- **Modules**: Core TDA, finance, cybersecurity, streaming, performance
+- **Technology**: Modern C++23, FastAPI, Kafka, Flink, PyTorch
+- **Performance**: Enterprise-grade latency, throughput, and scale
+
+## 🚀 **SUCCESS METRICS**
+
+### **Context Maintenance Success**
+- **Zero Scope Misinterpretations**: Never suggest simplifying comprehensive platform
+- **Consistent Architecture Understanding**: Always maintain streaming infrastructure
+- **Accurate Technology Stack**: Never suggest changing core technologies
+- **Performance Requirement Awareness**: Always maintain enterprise-grade standards
+
+### **Error Prevention Success**
+- **Immediate Context Recovery**: Detect and correct context loss within one interaction
+- **Proactive Verification**: Check context before making assumptions
+- **Clear Communication**: Always state current understanding before suggestions
+- **Continuous Learning**: Improve context maintenance based on any errors
+
+---
+
+**Remember**: The cost of context loss is infinitely higher than the time spent verifying context. Always check, verify, and maintain accurate project understanding.
+
+  - Update references to external docs
+  - Maintain links between related rules
+  - Document breaking changes
+Follow [cursor_rules.mdc](mdc:.cursor/rules/cursor_rules.mdc) for proper rule formatting and structure.

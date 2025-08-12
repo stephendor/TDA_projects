@@ -1,0 +1,15 @@
+{
+  "label_column": "Label",
+  "attack_types": {
+    "Normal": 6167,
+    "Suspicious": 1233
+  },
+  "class_percentages": {
+    "Normal": 83.33783783783784,
+    "Suspicious": 16.66216216216216
+  },
+  "normal_vs_attack_ratio": 5.001622060016221,
+  "imbalance_severity": "balanced",
+  "smallest_class_percentage": 16.66216216216216,
+  "largest_class_percentage": 83.33783783783784
+}
