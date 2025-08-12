@@ -7,6 +7,9 @@
 #include <concepts>
 #include <ranges>
 #include <span>
+#include <cmath>
+#include <numeric>
+#include <variant>
 
 namespace tda::core {
 
