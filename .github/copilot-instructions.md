@@ -1,4 +1,9 @@
 ---
+description: AI rules derived by SpecStory from the project AI interaction history
+globs: *
+---
+
+---
 description: AI rules for GitHub Copilot aligned with our comprehensive TDA platform development
 globs: *
 ---
@@ -220,3 +225,58 @@ research/                   # Extracted research content
 ---
 
 **Remember**: This is a **comprehensive enterprise TDA platform**, not a simple research project. Maintain the full scope and architecture while implementing with modern C++23 best practices. **NEVER** assume the scope has been simplified without explicit evidence.
+
+## ⚙️ **WORKFLOW & RELEASE RULES**
+
+### General Workflow
+- **ALWAYS** activate the virtual environment (`source .venv/bin/activate`) before running any Python scripts or commands.
+- **YOU** (the AI) must run all commands, monitor terminal outputs, and handle errors immediately.
+- **I** (the user) do not need to be copying or pasting anything at any point, unless explicitly requested.
+- **YOU** are forbidden from presenting code in any way other than executable code blocks with Run/Cancel buttons.
+- **ALWAYS** perform static analysis (Codacy) after modifying any code.
+
+### Experimentation
+- For controlled experiments, ensure a deterministic setup: same seed, identical non-filtration flags.
+- If point cloud coverage is low (<80%), abort the variant run.
+- If Gudhi import fails, classify the variant as SKIPPED.
+- Monitor H1 interval counts for over-pruning.
+- Verify manifest hash changes appropriately, incorporating filtration mode and parameters.
+- If filtration recompute is inactive, generate a warning and optionally fail-fast.
+
+### Success Criteria
+
+- Keep only variants meeting PASS or (for sparse) efficiency PASS criteria.
+- Document negative results rigorously—failure is acceptable, unrecorded effort is not.
+
+## 🛠️ **DEBUGGING**
+
+- If a required diagnostics key is missing, patch the code to include it before running any variant runs.
+- If any variant run crashes, analyze the terminal output, fix the issue, and rerun the variant.
+- If the manifest hash does not change as expected for a variant, investigate the hashing logic and correct it.
+- If filtration recompute is not active (attempted_count is 0), ensure that point clouds are generated and accessible in the expected location.
+
+## 🧪 **VALIDATION & TESTING**
+
+- If leakage is detected (potential_leakage_flag is true), stop all further tuning and investigate manifest construction.
+- Before accepting a new configuration, always validate full vs pruned pipeline once.
+
+## 🗑️ **METHODOLOGY GRAVEYARD**
+- Document all failed approaches and their rationale in `METHODOLOGY_GRAVEYARD.md`.
+
+## 📈 **PERFORMANCE TUNING**
+
+- After representation gains, calibrate the best-performing model only.
+- Consider Elastic Net LR (l1_ratio ~0.2–0.4) for structured sparsity.
+
+## 📊 **REPORTING**
+
+- Record results in `daily_logs/20250810_filtration_experiment_plan.md`.
+
+## 💾 **VERSION UPDATES**
+- Ensure changes to parameters and settings are reflected in manifest hashes.
+
+## 🧰 **TECH STACK**
+- **Gudhi:** (version 3.11.0 or later) is used for filtration computations.
+
+## 📚 **PROJECT DOCUMENTATION & CONTEXT SYSTEM**
+- UNIFIED_AGENT_INSTRUCTIONS.md contains high-level instructions for the AI coding assistant.
