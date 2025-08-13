@@ -1,0 +1,101 @@
+# TDA Kafka Metrics Exporter Configuration
+# Configuration for custom TDA-specific metrics collection and export
+
+kafka:
+  bootstrap_servers: "localhost:9092"
+  security_protocol: "PLAINTEXT"
+  group_id: "tda-metrics-exporter"
+  auto_offset_reset: "latest"
+  session_timeout_ms: 30000
+  max_poll_interval_ms: 300000
+
+topics:
+  jobs: "tda_jobs"
+  results: "tda_results"
+  events: "tda_events"
+  errors: "tda_errors"
+  uploads: "tda_uploads"
+  audit: "tda_audit"
+
+metrics:
+  collection_interval: 30
+  retention_hours: 24
+  aggregation_window: 300
+  
+  # Custom TDA metric collection settings
+  job_processing:
+    track_memory_usage: true
+    track_cpu_usage: true
+    track_processing_time: true
+    complexity_analysis: true
+    
+  persistence_diagrams:
+    track_point_counts: true
+    track_persistence_values: true
+    track_dimension_distribution: true
+    calculate_statistics: true
+    
+  algorithms:
+    track_performance: true
+    track_success_rates: true
+    track_memory_efficiency: true
+    benchmark_comparisons: true
+
+tda_backend:
+  health_endpoint: "http://tda-backend:8000/health"
+  metrics_endpoint: "http://tda-backend:8000/metrics"
+  api_endpoint: "http://tda-backend:8000/api/v1"
+
+workflows:
+  data_ingestion:
+    topics: ["tda_uploads", "tda_events"]
+    health_threshold: 0.8
+    error_rate_threshold: 0.05
+    
+  computation:
+    topics: ["tda_jobs", "tda_results"]
+    health_threshold: 0.85
+    error_rate_threshold: 0.03
+    
+  result_delivery:
+    topics: ["tda_results", "tda_events"]
+    health_threshold: 0.9
+    error_rate_threshold: 0.02
+    
+  error_handling:
+    topics: ["tda_errors", "tda_dlq"]
+    health_threshold: 0.95
+    error_rate_threshold: 0.01
+
+algorithms:
+  vietoris_rips:
+    complexity_factors: ["input_size", "max_dimension", "max_filtration"]
+    performance_benchmarks: ["time_per_simplex", "memory_per_point"]
+    
+  alpha_complex:
+    complexity_factors: ["input_size", "dimension"]
+    performance_benchmarks: ["delaunay_time", "filtration_time"]
+    
+  persistent_homology:
+    complexity_factors: ["simplex_count", "max_dimension"]
+    performance_benchmarks: ["reduction_time", "pairing_time"]
+
+server:
+  host: "0.0.0.0"
+  port: 8090
+  metrics_path: "/metrics"
+  health_path: "/health"
+  stats_path: "/stats"
+
+prometheus:
+  registry_name: "tda_metrics"
+  default_buckets: [0.1, 0.5, 1.0, 5.0, 10.0, 30.0, 60.0, 300.0, 1800.0, 3600.0]
+  memory_buckets: [10, 50, 100, 500, 1000, 2000, 5000, 10000]
+  complexity_buckets: [1, 10, 100, 1000, 10000, 100000, 1000000]
+
+logging:
+  level: "INFO"
+  file: "/var/log/tda-metrics-exporter.log"
+  max_size_mb: 50
+  backup_count: 3
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"

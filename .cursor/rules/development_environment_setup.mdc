@@ -1,0 +1,232 @@
+---
+description: Development environment setup, build commands, and testing procedures for the TDA platform
+globs: **/*.{cpp,hpp,py,cmake,sh}
+alwaysApply: true
+---
+
+# Development Environment Setup & Build Commands
+
+## Build System Overview
+
+The TDA platform uses a modern CMake-based build system with optimized build scripts for different configurations.
+
+### Required Dependencies
+
+- **C++23 Compiler**: GCC 13+ or Clang 16+
+- **CMake**: 3.20+
+- **Make**: 4.0+ (Linux/macOS)
+- **Python**: 3.9+ with pip/poetry
+
+## Build Commands
+
+### Primary Build Script (Recommended)
+
+```bash
+# Release build with optimizations
+./build.sh release              # Release build
+./build.sh debug               # Debug build with sanitizers
+./build.sh release OFF false true true  # Release, no CUDA, no clean, run tests, run benchmarks
+
+# Debug build with profiling
+./build.sh debug OFF true false false
+```
+
+### Direct CMake (Alternative)
+
+```bash
+# Manual CMake build
+mkdir -p build/release && cd build/release
+cmake ../.. -DCMAKE_BUILD_TYPE=Release -DENABLE_CUDA=OFF
+make -j$(nproc)
+
+# With specific options
+cmake ../.. \
+  -DCMAKE_BUILD_TYPE=Release \
+  -DENABLE_CUDA=OFF \
+  -DENABLE_SIMD=ON \
+  -DENABLE_OPENMP=ON
+```
+
+## Testing Framework
+
+### C++ Testing
+
+```bash
+# Run all tests
+make test
+
+# Run specific test suites
+ctest -R core_tests             # Core library tests
+ctest -R vector_stack_tests     # Vector stack tests
+ctest -R algorithm_tests        # Algorithm tests
+
+# Individual test executables
+./bin/test_vietoris_rips       # Vietoris-Rips filtration tests
+./bin/test_alpha_complex       # Alpha complex tests
+./bin/test_spatial_index       # Spatial indexing tests
+./bin/test_dtm_filtration      # DTM filtration tests
+./bin/test_cech_complex        # Čech complex tests
+./bin/test_persistence_structures  # Persistence diagram tests
+
+# Run specific CTest patterns
+ctest -R vietoris             # All VR-related tests
+ctest -R alpha                # All Alpha complex tests
+ctest -R spatial              # All spatial indexing tests
+ctest -R persistence          # All persistence structure tests
+```
+
+### Python Backend Testing
+
+```bash
+cd backend
+
+# Run all tests
+python -m pytest tests/
+
+# Run specific test files
+python -m pytest tests/api/test_upload.py::test_upload_csv_file -v
+
+# Run with coverage
+python -m pytest tests/ --cov=tda_backend --cov-report=html
+```
+
+### Performance & Benchmarks
+
+```bash
+# Run performance benchmarks
+./bin/tda_benchmarks           # All benchmarks
+./bin/test_performance_benchmarks  # Performance tests
+
+# Build with profiling (debug)
+./build.sh debug OFF true false false
+```
+
+## Development Workflow
+
+### 1. **Daily Development Cycle**
+
+```bash
+# Start development session
+./build.sh debug               # Debug build for development
+
+# Make changes and test
+make test                      # Run tests after changes
+ctest -R core_tests           # Test specific components
+
+# Performance validation
+./bin/tda_benchmarks          # Ensure performance hasn't regressed
+
+# Final validation before commit
+./build.sh release            # Release build to catch optimization issues
+make test                     # Full test suite
+```
+
+### 2. **Continuous Integration**
+
+```bash
+# CI/CD pipeline commands
+./build.sh release OFF true true true  # Full build with tests and benchmarks
+ctest --output-on-failure     # Detailed test output for CI
+```
+
+### 3. **Documentation Generation**
+
+```bash
+# Generate Doxygen documentation
+make docs
+
+# View documentation
+open docs/html/index.html     # macOS
+xdg-open docs/html/index.html # Linux
+```
+
+## Environment Variables
+
+### Build Configuration
+
+```bash
+# Enable/disable features
+export ENABLE_CUDA=ON         # Enable CUDA support
+export ENABLE_SIMD=ON         # Enable SIMD optimizations
+export ENABLE_OPENMP=ON       # Enable OpenMP parallelization
+
+# Compiler flags
+export CMAKE_CXX_FLAGS="-O3 -march=native -mtune=native"
+export CMAKE_BUILD_TYPE=Release
+```
+
+### Python Backend
+
+```bash
+cd backend
+
+# Development server
+python -m uvicorn tda_backend.main:app --reload --host 0.0.0.0 --port 8000
+
+# CLI tool
+python -m tda_backend.cli --help
+
+# Environment setup
+export TDA_LOG_LEVEL=DEBUG
+export TDA_DATABASE_URL=postgresql://user:pass@localhost/tda
+```
+
+## Troubleshooting
+
+### Common Build Issues
+
+```bash
+# Clean build directory
+rm -rf build/
+./build.sh release
+
+# Check compiler version
+gcc --version                  # Should be 13+
+clang --version               # Should be 16+
+
+# Verify CMake version
+cmake --version               # Should be 3.20+
+
+# Check dependencies
+ldconfig -p | grep eigen      # Verify Eigen3 installation
+```
+
+### Test Failures
+
+```bash
+# Run tests with verbose output
+ctest -V --output-on-failure
+
+# Debug specific test
+./bin/test_vietoris_rips --gtest_filter="*Basic*"
+
+# Check test data
+ls -la tests/data/            # Verify test data files exist
+```
+
+## Performance Profiling
+
+### Debug Build with Profiling
+
+```bash
+# Build with profiling enabled
+./build.sh debug OFF true false false
+
+# Run with performance monitoring
+./bin/tda_benchmarks --benchmark_format=console
+
+# Memory profiling
+valgrind --tool=massif ./bin/test_performance_benchmarks
+```
+
+### SIMD Optimization
+
+```bash
+# Check SIMD support
+./bin/test_simd_features      # Verify SIMD capabilities
+
+# Build with specific SIMD flags
+./build.sh release OFF false false false  # Custom SIMD flags
+```
+
+This development environment setup ensures consistent builds, testing, and development workflows across the TDA platform development team.

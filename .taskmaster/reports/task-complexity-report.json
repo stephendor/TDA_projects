@@ -1,10 +1,10 @@
 {
 	"meta": {
-		"generatedAt": "2025-08-12T12:16:00.865Z",
+		"generatedAt": "2025-08-12T17:01:05.983Z",
 		"tasksAnalyzed": 0,
 		"thresholdScore": 5,
 		"projectName": "Taskmaster",
-		"usedResearch": true
+		"usedResearch": false
 	},
 	"complexityAnalysis": []
 }

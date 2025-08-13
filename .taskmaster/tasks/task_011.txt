@@ -1,0 +1,11 @@
+# Task ID: 11
+# Title: Setup C++23 Development Environment and Toolchain
+# Status: done
+# Dependencies: 1
+# Priority: high
+# Description: Establish a modern C++23 development environment for the TDA platform, including updating compilers, build systems, and dependencies, to enable the use of new language and library features.
+# Details:
+This foundational task involves several key steps. First, update all CI/CD pipeline configurations (e.g., GitHub Actions, Jenkins) to use and enforce GCC 13+ or Clang 16+. This includes updating the base Docker images or build agents. Second, modify the project's build scripts. In the root CMakeLists.txt, set `set(CMAKE_CXX_STANDARD 23)` and `set(CMAKE_CXX_STANDARD_REQUIRED ON)`. Third, audit all C++ dependencies (e.g., GUDHI, Ripser, Boost, Eigen) to verify C++23 compatibility and update them as necessary via the package manager (Conan/vcpkg). Finally, prepare and conduct a mandatory training session for the development team covering key C++23 features, including `std::mdspan` for multi-dimensional views, `std::ranges` for improved algorithm composition, `std::expected` for error handling, and `std::generator` for creating coroutines.
+
+# Test Strategy:
+Verification will be multi-faceted. Create a new, minimal C++ project that uses a C++23 feature (e.g., `std::expected`) and add it to the CI pipeline; the build must pass. Conversely, configure a pipeline job to use an older compiler (e.g., GCC 11) to ensure it fails, thereby validating the compiler version enforcement. Re-compile all existing C++ modules against the new toolchain to confirm they build without errors. Write a small test program that links a core dependency (like GUDHI) and uses a C++23 feature to ensure library compatibility. The success of the team training will be assessed via a short coding exercise requiring the use of the new features.

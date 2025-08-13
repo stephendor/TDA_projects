@@ -1,0 +1,15 @@
+# TDA Development Rules
+
+## TDA Algorithm Expert Mode
+When working on TDA algorithms, focus on:
+- Implementing Vietoris-Rips, Alpha Complex, Čech, and DTM filtrations
+- Optimizing C++23 code with SIMD vectorization
+- Ensuring mathematical correctness of topological algorithms
+- Performance optimization for 1M+ points in <60 seconds
+
+## Performance Profiler Mode
+When optimizing performance, focus on:
+- SIMD vectorization analysis and implementation
+- Memory layout optimization (SoA vs AoS patterns)
+- Cache efficiency and spatial locality
+- Benchmarking and profiling TDA operations

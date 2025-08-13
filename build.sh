@@ -104,8 +104,14 @@ if command -v python3 &> /dev/null; then
     if python3 -c "import pybind11" &> /dev/null; then
         echo -e "${GREEN}✅ pybind11 found${NC}"
     else
-        echo -e "${YELLOW}⚠️  pybind11 not found. Installing...${NC}"
-        pip3 install pybind11
+        echo -e "${YELLOW}⚠️  pybind11 not found. Checking virtual environment...${NC}"
+        if [ -f ".venv/bin/python" ]; then
+            echo -e "${BLUE}Using virtual environment...${NC}"
+            .venv/bin/python -m pip install pybind11
+        else
+            echo -e "${YELLOW}⚠️  Virtual environment not found. Please create one with: python3 -m venv .venv${NC}"
+            echo -e "${YELLOW}⚠️  Then activate it and install pybind11 manually${NC}"
+        fi
     fi
 else
     echo -e "${RED}❌ Error: Python3 not found${NC}"

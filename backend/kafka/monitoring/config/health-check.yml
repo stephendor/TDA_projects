@@ -1,0 +1,60 @@
+# TDA Kafka Health Check Configuration
+# Comprehensive configuration for health monitoring system
+
+kafka:
+  bootstrap_servers: "localhost:9092"
+  security_protocol: "PLAINTEXT"
+  timeout_ms: 30000
+  
+health_checks:
+  broker_connectivity: true
+  topic_health: true
+  consumer_lag: true
+  workflow_status: true
+  external_services: true
+
+thresholds:
+  consumer_lag_warning: 5000
+  consumer_lag_critical: 10000
+  error_rate_warning: 0.01
+  error_rate_critical: 0.05
+  response_time_warning: 1000
+  response_time_critical: 5000
+  partition_under_replicated_warning: 0.1
+  partition_under_replicated_critical: 0.2
+
+tda_topics:
+  - "tda_jobs"
+  - "tda_results"
+  - "tda_events"
+  - "tda_uploads"
+  - "tda_errors"
+  - "tda_audit"
+  - "tda_dlq"
+
+workflows:
+  - "data_ingestion"
+  - "computation"
+  - "result_delivery"
+  - "error_handling"
+
+external_services:
+  tda_backend: "http://tda-backend:8000/health"
+  schema_registry: "http://schema-registry:8081/subjects"
+  flink_jobmanager: "http://flink-jobmanager:8081/overview"
+
+prometheus:
+  enabled: true
+  port: 8091
+  metrics_path: "/health/metrics"
+
+logging:
+  level: "INFO"
+  file: "/var/log/tda-kafka-health.log"
+  max_size_mb: 100
+  backup_count: 5
+
+dashboard:
+  refresh_interval: 30
+  show_detailed_errors: true
+  max_recent_issues: 10
