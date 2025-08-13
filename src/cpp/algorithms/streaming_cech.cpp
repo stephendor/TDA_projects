@@ -1,7 +1,10 @@
 #include "tda/algorithms/streaming_cech.hpp"
 #include "tda/utils/streaming_distance_matrix.hpp"
+#include "tda/core/memory_monitor.hpp"
 #include <algorithm>
 #include <cmath>
+#include <utility>
+#include <limits>
 
 namespace tda::algorithms {
 
@@ -50,6 +53,12 @@ tda::core::Result<void> StreamingCechComplex::computeComplex() {
         return tda::core::Result<void>::failure("Must call initialize() first");
     }
     simplex_tree_->clear();
+
+    // Build-phase telemetry start
+    build_stats_ = BuildStats{};
+    auto t0 = std::chrono::high_resolution_clock::now();
+    build_stats_.memory_before_bytes = tda::core::MemoryMonitor::getCurrentMemoryUsage();
+    build_stats_.peak_memory_bytes = build_stats_.memory_before_bytes;
 
     // Build neighbor adjacency using streaming distances under global radius threshold
     buildNeighborsStreaming();
@@ -117,7 +126,12 @@ tda::core::Result<void> StreamingCechComplex::computeComplex() {
             }
         }
     }
-
+    // End build-phase telemetry
+    auto t1 = std::chrono::high_resolution_clock::now();
+    build_stats_.elapsed_seconds = std::chrono::duration<double>(t1 - t0).count();
+    build_stats_.memory_after_bytes = tda::core::MemoryMonitor::getCurrentMemoryUsage();
+    build_stats_.peak_memory_bytes = std::max(build_stats_.peak_memory_bytes, tda::core::MemoryMonitor::getCurrentMemoryUsage());
+    build_stats_.num_simplices_built = simplex_tree_ ? static_cast<size_t>(simplex_tree_->num_simplices()) : 0;
     return tda::core::Result<void>::success();
 }
 
@@ -202,27 +216,47 @@ void StreamingCechComplex::buildNeighborsStreaming() {
     auto dmcfg = config_.dm;
     // Set threshold as 2*radius (edge if balls of radius r intersect => dist <= 2r)
     dmcfg.max_distance = 2.0 * config_.radius;
+    // Our onEdge callback is not thread-safe; keep threshold mode sequential
+    dmcfg.enable_parallel_threshold = false;
+    dmcfg.edge_callback_threadsafe = false;
     dm.setConfig(dmcfg);
 
-    neighbors_.assign(points_.size(), {});
-    neighbors_.shrink_to_fit(); // no extra capacity retained globally
+    const size_t N = points_.size();
+    neighbors_.assign(N, {});
+    // Temporary bounded neighbor buffers with distances
+    const size_t K = std::max<size_t>(1, config_.maxNeighbors);
+    std::vector<std::vector<std::pair<size_t,double>>> nbr_tmp(N);
+    for (size_t i = 0; i < N; ++i) nbr_tmp[i].reserve(K);
 
-    dm.onEdge([this](size_t i, size_t j, double) {
-        neighbors_[i].push_back(j);
-        neighbors_[j].push_back(i);
+    auto add_bounded = [&](size_t u, size_t v, double dist) {
+        auto& vec = nbr_tmp[u];
+        if (vec.size() < K) {
+            vec.emplace_back(v, dist);
+            return;
+        }
+        // Find worst (max distance) and replace if this is closer
+        size_t worst_idx = 0;
+        double worst_d = -std::numeric_limits<double>::infinity();
+        for (size_t t = 0; t < vec.size(); ++t) {
+            if (vec[t].second > worst_d) { worst_d = vec[t].second; worst_idx = t; }
+        }
+        if (dist < worst_d) vec[worst_idx] = {v, dist};
+    };
+
+    dm.onEdge([&](size_t i, size_t j, double d) {
+        add_bounded(i, j, d);
+        add_bounded(j, i, d);
     });
 
     dm_stats_ = dm.process(points_);
 
-    // Post-process: cap neighbor lists
-    for (auto& nbrs : neighbors_) {
-        if (nbrs.size() > config_.maxNeighbors) {
-            std::partial_sort(nbrs.begin(), nbrs.begin() + config_.maxNeighbors, nbrs.end());
-            nbrs.resize(config_.maxNeighbors);
-        }
-        // Ensure uniqueness
-        std::sort(nbrs.begin(), nbrs.end());
-        nbrs.erase(std::unique(nbrs.begin(), nbrs.end()), nbrs.end());
+    // Convert to index-only neighbor lists, sorted by vertex id for fast lookup
+    for (size_t i = 0; i < N; ++i) {
+        auto& tmp = nbr_tmp[i];
+        neighbors_[i].reserve(tmp.size());
+        for (auto& p : tmp) neighbors_[i].push_back(p.first);
+        std::sort(neighbors_[i].begin(), neighbors_[i].end());
+        neighbors_[i].erase(std::unique(neighbors_[i].begin(), neighbors_[i].end()), neighbors_[i].end());
     }
 }
 
@@ -248,6 +282,9 @@ void StreamingCechComplex::addSimplexToTree(const std::vector<size_t>& simplex, 
     s.reserve(src_ptr->size());
     for (auto v : *src_ptr) s.push_back(static_cast<Simplex_tree::Vertex_handle>(v));
     simplex_tree_->insert_simplex_and_subfaces(s, filtrationValue);
+
+    // Update peak memory during build (cheap snapshot)
+    build_stats_.peak_memory_bytes = std::max(build_stats_.peak_memory_bytes, tda::core::MemoryMonitor::getCurrentMemoryUsage());
 
     if (tmp) simplex_pool_.release(tmp, src_ptr->size());
 }

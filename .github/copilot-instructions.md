@@ -236,7 +236,7 @@ research/                   # Extracted research content
 - **ALWAYS** perform static analysis (Codacy) after modifying any code.
 - When addressing memory blowup issues (reference `docs/troubleshooting/memory_blowup_RCA_steps.md`), prioritize steady but significant improvements, maintaining control for easy reversion and repair. Ensure alignment with Taskmaster planning and Agent Instruction files. Employ a rigorous, scalable approach with extensive testing.
 - **Workflow for Executing Plans**: Locate relevant plans (e.g., RCA-related docs and strategy plans), extract actionable steps, and execute them. Begin with builds/tests and documentation updates. Open troubleshooting plans to extract checklists and execute concrete steps (build/validate, monitoring hooks, etc.).
-- **Execution Steps for RCA and Strategy Plans**: Read `CMakeLists.txt` and tests CMake to understand how tests are built and where to add new targets. Verify any sanitizer/-fPIC issues mentioned in the plan. Open the ST-101 memory-optimized test and related tests to see what’s already implemented and identify missing pieces (like MemoryMonitor or StreamingDistanceMatrix) we need to add next. Search the codebase for the MemoryMonitor and StreamingDistanceMatrix classes referenced in the plans/tests to see if they exist, and identify missing files we need to implement.
+- **Execution Steps for RCA and Strategy Plans**: Read `CMakeLists.txt` and tests CMake to understand how tests are built and where to add new targets, plus verify any sanitizer/-fPIC issues mentioned in the plan. Open the ST-101 memory-optimized test and related tests to see what’s already implemented and identify missing pieces (like MemoryMonitor or StreamingDistanceMatrix) we need to add next. Search the codebase for the MemoryMonitor and StreamingDistanceMatrix classes referenced in the plans/tests to see if they exist, and identify missing files we need to implement.
 - **Plan References**: When addressing memory blowup issues, the primary reference documents are `memory_blowup_RCA_steps.md` and `RCA_Plan.md`.
 - **Coding and Testing**: When implementing new components like `StreamingDistanceMatrix`, create a reusable component (header + source), wire it into the build, and add a unit test to validate correctness and memory-bounded behavior.
 
@@ -447,3 +447,11 @@ docker run -d \
 - Ensure commit messages are concise and clearly describe the changes made.
 - Include relevant references to plans (e.g., `docs/troubleshooting/RCA_Plan.md`, `memory_blowup_RCA_steps.md`).
 - Follow a consistent format (e.g., `feat(utils): add MemoryMonitor telemetry to StreamingDistanceMatrix`).
+
+## 🚨 **TROUBLESHOOTING**
+
+- **Stalling Issues**: If the process appears to stall, particularly with large datasets, inspect the performance harness source and target wiring to understand the exact parameters, modes, and potential blocking points. Run small DM-only probes and constrained runs with time/memory stats to diagnose the issue.
+
+## 📈 **SCALING**
+
+- **Neighbor Accumulation**: For large datasets (e.g., n=200k), limit neighbor accumulation in streaming Čech to K nearest neighbors on the fly to avoid memory spikes due to massive temporary adjacency growth.

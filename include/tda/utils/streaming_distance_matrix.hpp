@@ -14,6 +14,13 @@ struct StreamingDMConfig {
     bool symmetric = true;            // treat matrix as symmetric
     double max_distance = -1.0;       // if >= 0, only report distances <= threshold
     bool use_parallel = true;         // enable OpenMP where compiled
+    // Optional early-stop controls (0/<=0 means disabled)
+    size_t max_blocks = 0;            // stop after processing this many blocks
+    size_t max_pairs = 0;             // stop after computing this many pairs
+    double time_limit_seconds = 0.0;  // stop after this many seconds
+    // Parallelization control for threshold (edge) mode
+    bool enable_parallel_threshold = true; // allow OpenMP in threshold mode
+    bool edge_callback_threadsafe = false; // set true only if callback is thread-safe
 };
 
 struct StreamingDMStats {

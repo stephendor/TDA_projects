@@ -38,7 +38,22 @@ int main() {
     auto dmStats = cech.getStreamingStats();
     assert(dmStats.total_points == pts.size());
     assert(dmStats.total_blocks > 0);
+    // Telemetry sanity
+    assert(dmStats.peak_memory_bytes >= dmStats.memory_before_bytes);
+    assert(dmStats.memory_after_bytes >= 0);
 
-    std::cout << "StreamingCech basic test passed.\n";
+    // Verify build-phase telemetry
+    auto b = cech.getBuildStats();
+    assert(b.elapsed_seconds >= 0.0);
+    assert(b.peak_memory_bytes >= b.memory_before_bytes);
+    assert(b.num_simplices_built == stats.num_simplices);
+
+    std::cout << "StreamingCech basic test passed.\n"
+              << "Blocks: " << dmStats.total_blocks
+              << ", Edges: " << dmStats.emitted_edges
+              << ", Peak mem (bytes): " << dmStats.peak_memory_bytes
+              << "\nBuild elapsed: " << b.elapsed_seconds
+              << ", Build peak mem (bytes): " << b.peak_memory_bytes
+              << std::endl;
     return 0;
 }

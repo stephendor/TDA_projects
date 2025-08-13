@@ -234,6 +234,49 @@ if(TDA_ENABLE_OPENMP AND OpenMP_CXX_FOUND)
 endif()
 add_test(NAME StreamingCech COMMAND test_streaming_cech)
 
+# Streaming Čech performance harness (not a pass/fail test)
+add_executable(test_streaming_cech_perf
+    test_streaming_cech_perf.cpp
+)
+target_link_libraries(test_streaming_cech_perf 
+    tda_algorithms 
+    tda_utils 
+    tda_core 
+    Eigen3::Eigen 
+    Threads::Threads
+)
+if(TDA_ENABLE_OPENMP AND OpenMP_CXX_FOUND)
+    target_link_libraries(test_streaming_cech_perf OpenMP::OpenMP_CXX)
+endif()
+add_custom_target(run_streaming_cech_perf
+        COMMAND $<TARGET_FILE:test_streaming_cech_perf> --n 2000 --d 3 --radius 0.9 --maxDim 2 --maxNeighbors 64 --block 64
+    DEPENDS test_streaming_cech_perf
+    COMMENT "Running Streaming Čech performance harness (n=2000,d=3)"
+)
+
+# Larger-n target for manual/nightly runs (with CSV/JSON logging). Adjust sizes as needed.
+add_custom_target(run_streaming_cech_perf_large
+    COMMAND $<TARGET_FILE:test_streaming_cech_perf> --n 200000 --d 3 --radius 0.9 --maxDim 1 --maxNeighbors 32 --block 128 --max-pairs 250000000 --time-limit 300 --csv streaming_cech_perf.csv --json streaming_cech_perf.jsonl --dm-only
+        DEPENDS test_streaming_cech_perf
+        COMMENT "Running large Streaming DM-only harness (n=200k,d=3)"
+)
+
+# Medium probe (100k) DM-only with tighter limits
+add_custom_target(run_streaming_dm_probe
+    COMMAND $<TARGET_FILE:test_streaming_cech_perf> --n 100000 --d 3 --radius 0.9 --block 128 --dm-only --max-pairs 100000000 --time-limit 120 --csv streaming_cech_perf.csv --json streaming_cech_perf.jsonl
+    DEPENDS test_streaming_cech_perf
+    COMMENT "Running medium Streaming DM-only probe (n=100k,d=3)"
+)
+
+# Optional: register small perf probes with CTest for CI
+option(ENABLE_PERF_CTESTS "Enable performance harness probes in CTest" OFF)
+if(ENABLE_PERF_CTESTS)
+    add_test(NAME PerfDMOnlySmall COMMAND $<TARGET_FILE:test_streaming_cech_perf> --n 5000 --d 3 --radius 0.9 --dm-only)
+    set_tests_properties(PerfDMOnlySmall PROPERTIES TIMEOUT 120)
+    add_test(NAME PerfCechSmall COMMAND $<TARGET_FILE:test_streaming_cech_perf> --n 3000 --d 3 --radius 0.9 --maxDim 2 --maxNeighbors 64 --block 64)
+    set_tests_properties(PerfCechSmall PROPERTIES TIMEOUT 180)
+endif()
+
 # =============================================================================
 # TEST CONFIGURATION
 # =============================================================================

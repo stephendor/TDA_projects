@@ -46,8 +46,10 @@ StreamingDMStats StreamingDistanceMatrix::process(const PointContainer& points) 
     stats.peak_memory_bytes = stats.memory_before_bytes;
 
     const size_t nblocks = ceil_div(n, B);
-    stats.total_blocks = symmetric ? (nblocks * (nblocks + 1)) / 2 : (nblocks * nblocks);
+    const size_t planned_blocks = symmetric ? (nblocks * (nblocks + 1)) / 2 : (nblocks * nblocks);
+    stats.total_blocks = planned_blocks;
 
+    size_t processed_blocks = 0;
     for (size_t bi = 0; bi < n; bi += B) {
         const size_t i_end = std::min(bi + B, n);
         const size_t i_len = i_end - bi;
@@ -55,6 +57,11 @@ StreamingDMStats StreamingDistanceMatrix::process(const PointContainer& points) 
         for (size_t bj = symmetric ? bi : 0; bj < n; bj += B) {
             const size_t j_end = std::min(bj + B, n);
             const size_t j_len = j_end - bj;
+            processed_blocks++;
+            // Early stop: blocks
+            if (config_.max_blocks > 0 && processed_blocks > config_.max_blocks) {
+                goto early_stop;
+            }
 
             // Optional tile buffer only if block callback is used.
             std::vector<std::vector<double>> tile;
@@ -102,17 +109,57 @@ StreamingDMStats StreamingDistanceMatrix::process(const PointContainer& points) 
                 } else
 #endif
                 {
-                    for (size_t i = bi; i < i_end; ++i) {
-                        for (size_t j = bj; j < j_end; ++j) {
-                            double d = euclidean(points[i], points[j]);
-                            stats.total_pairs++;
-                            if (threshold_mode) {
-                                if (d <= config_.max_distance && edge_cb_) {
-                                    edge_cb_(i, j, d);
-                                    stats.emitted_edges++;
+                    // Possibly parallelize threshold mode if enabled and callback is threadsafe
+#ifdef _OPENMP
+                    bool do_parallel_threshold = threshold_mode && config_.use_parallel && config_.enable_parallel_threshold && config_.edge_callback_threadsafe && (i_len * j_len >= 1024);
+#else
+                    bool do_parallel_threshold = false;
+#endif
+                    if (do_parallel_threshold) {
+#ifdef _OPENMP
+                        size_t local_emitted = 0;
+                        size_t local_pairs = 0;
+#pragma omp parallel for collapse(2) reduction(+:local_emitted,local_pairs) schedule(static)
+                        for (size_t ii = 0; ii < i_len; ++ii) {
+                            for (size_t jj = 0; jj < j_len; ++jj) {
+                                size_t i = bi + ii;
+                                size_t j = bj + jj;
+                                double d = euclidean(points[i], points[j]);
+                                local_pairs++;
+                                if (d <= config_.max_distance) {
+                                    if (edge_cb_) edge_cb_(i, j, d);
+                                    local_emitted++;
                                 }
-                            } else if (block_cb_) {
-                                tile[i - bi][j - bj] = d;
+                            }
+                        }
+                        stats.total_pairs += local_pairs;
+                        stats.emitted_edges += local_emitted;
+#endif
+                    } else {
+                        for (size_t i = bi; i < i_end; ++i) {
+                            for (size_t j = bj; j < j_end; ++j) {
+                                double d = euclidean(points[i], points[j]);
+                                stats.total_pairs++;
+                                if (threshold_mode) {
+                                    if (d <= config_.max_distance && edge_cb_) {
+                                        edge_cb_(i, j, d);
+                                        stats.emitted_edges++;
+                                    }
+                                } else if (block_cb_) {
+                                    tile[i - bi][j - bj] = d;
+                                }
+                                // Early stop: pairs
+                                if (config_.max_pairs > 0 && stats.total_pairs >= config_.max_pairs) {
+                                    goto after_block_compute;
+                                }
+                                // Early stop: time
+                                if (config_.time_limit_seconds > 0.0) {
+                                    auto now = std::chrono::high_resolution_clock::now();
+                                    double elapsed = std::chrono::duration<double>(now - t0).count();
+                                    if (elapsed >= config_.time_limit_seconds) {
+                                        goto after_block_compute;
+                                    }
+                                }
                             }
                         }
                     }
@@ -125,9 +172,24 @@ StreamingDMStats StreamingDistanceMatrix::process(const PointContainer& points) 
             if (!threshold_mode && block_cb_) {
                 block_cb_(bi, bj, tile);
             }
+        after_block_compute: ;
+            // If we broke out early due to pair/time limits, finish gracefully
+            if (config_.max_pairs > 0 || config_.time_limit_seconds > 0.0) {
+                if (config_.max_pairs > 0 && stats.total_pairs >= config_.max_pairs) {
+                    goto early_stop;
+                }
+                if (config_.time_limit_seconds > 0.0) {
+                    auto now2 = std::chrono::high_resolution_clock::now();
+                    double elapsed2 = std::chrono::duration<double>(now2 - t0).count();
+                    if (elapsed2 >= config_.time_limit_seconds) {
+                        goto early_stop;
+                    }
+                }
+            }
         }
     }
 
+early_stop:
     auto t1 = std::chrono::high_resolution_clock::now();
     stats.elapsed_seconds = std::chrono::duration<double>(t1 - t0).count();
     stats.memory_after_bytes = tda::core::MemoryMonitor::getCurrentMemoryUsage();

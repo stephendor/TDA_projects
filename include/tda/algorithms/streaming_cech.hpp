@@ -52,6 +52,16 @@ public:
 
     // Telemetry from the streaming distance pass
     tda::utils::StreamingDMStats getStreamingStats() const { return dm_stats_; }
+    
+    // Telemetry for complex construction (this class's computeComplex phase)
+    struct BuildStats {
+        size_t memory_before_bytes = 0;
+        size_t memory_after_bytes = 0;
+        size_t peak_memory_bytes = 0;
+        double elapsed_seconds = 0.0;
+        size_t num_simplices_built = 0;
+    };
+    BuildStats getBuildStats() const { return build_stats_; }
 
 private:
     // Types
@@ -73,6 +83,7 @@ private:
 
     // Telemetry
     tda::utils::StreamingDMStats dm_stats_{};
+    BuildStats build_stats_{};
 
     // Helpers
     static double euclidean(const Point& a, const Point& b);
