@@ -767,7 +767,8 @@ class MonitoredTDAEngine:
 - **Scalability**: Linear performance up to 32 nodes
 
 This comprehensive guide ensures your TDA platform development follows best practices for performance, security, and maintainability while meeting the ambitious requirements outlined in your PRD.
+
 description:
 globs:
-alwaysApply: false
+alwaysApply: true
 ---

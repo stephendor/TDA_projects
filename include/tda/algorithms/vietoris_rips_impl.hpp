@@ -29,7 +29,7 @@ class VietorisRipsImpl {
 private:
     using Simplex_tree = Gudhi::Simplex_tree<>;
     using Filtration_value = Simplex_tree::Filtration_value;
-    using Rips_complex = Gudhi::rips_complex::Rips_complex<Filtration_value>;
+    using Rips_complex = Gudhi::rips_complex::Rips_complex<double>;  // CRITICAL FIX: Use double like working GUDHI example
     using Field_Zp = Gudhi::persistent_cohomology::Field_Zp;
     using Persistent_cohomology = Gudhi::persistent_cohomology::Persistent_cohomology<Simplex_tree, Field_Zp>;
     

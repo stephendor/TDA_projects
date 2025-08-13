@@ -40,7 +40,7 @@ tda::core::Result<void> VietorisRipsImpl::initialize(const std::vector<std::vect
         try {
             simplex_tree_ = std::make_unique<Simplex_tree>();
             rips_complex_ = std::make_unique<Rips_complex>(points_, threshold_, Gudhi::Euclidean_distance());
-            persistent_cohomology_ = std::make_unique<Persistent_cohomology>(*simplex_tree_);
+            // NOTE: persistent_cohomology_ will be created after complex is built
         } catch (const std::exception& e) {
             // CRITICAL FIX: Clean up on initialization failure
             cleanup();
@@ -63,6 +63,21 @@ tda::core::Result<void> VietorisRipsImpl::computeComplex() {
         // Create the simplicial complex
         rips_complex_->create_complex(*simplex_tree_, max_dimension_);
         
+        // CRITICAL FIX: Create persistent cohomology AFTER complex is built
+        // Following the exact pattern from working GUDHI example
+        try {
+            persistent_cohomology_ = std::make_unique<Persistent_cohomology>(*simplex_tree_);
+            
+            // CRITICAL: Initialize coefficients immediately like working example
+            persistent_cohomology_->init_coefficients(coefficient_field_);
+            
+            // CRITICAL: Compute persistence immediately like working example  
+            persistent_cohomology_->compute_persistent_cohomology();
+            
+        } catch (const std::exception& e) {
+            return tda::core::Result<void>::failure("Failed to create and compute persistent cohomology: " + std::string(e.what()));
+        }
+        
         return tda::core::Result<void>::success();
     } catch (const std::exception& e) {
         return tda::core::Result<void>::failure("Failed to compute complex: " + std::string(e.what()));
@@ -75,13 +90,13 @@ tda::core::Result<void> VietorisRipsImpl::computePersistence() {
             return tda::core::Result<void>::failure("Complex not computed yet");
         }
         
-        // Compute persistent cohomology
-        persistent_cohomology_->init_coefficients(coefficient_field_);
-        persistent_cohomology_->compute_persistent_cohomology();
+        // CRITICAL FIX: Persistence is now computed in computeComplex()
+        // This method now just validates that persistence has been computed
+        // The actual computation happens immediately after complex construction
         
         return tda::core::Result<void>::success();
     } catch (const std::exception& e) {
-        return tda::core::Result<void>::failure("Failed to compute persistence: " + std::string(e.what()));
+        return tda::core::Result<void>::failure("Failed to validate persistence: " + std::string(e.what()));
     }
 }
 
