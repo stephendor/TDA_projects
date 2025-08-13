@@ -5,6 +5,7 @@
 #include <chrono>
 #include <memory>
 #include <algorithm>
+#include <thread>
 #include "tda/algorithms/sparse_rips.hpp"
 #include "tda/utils/distance_matrix.hpp"
 #include "tda/core/types.hpp"
@@ -127,12 +128,10 @@ public:
         auto end = std::chrono::high_resolution_clock::now();
         auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
         
-        tda::utils::DistanceMatrixResult result;
-        result.matrix = std::move(matrix);
-        result.computation_time_seconds = duration.count() / 1000.0;
-        result.total_points = n;
-        
-        return result;
+    tda::utils::DistanceMatrixResult result;
+    result.matrix = std::move(matrix);
+    result.computation_time_seconds = duration.count() / 1000.0;
+    return result;
     }
 };
 

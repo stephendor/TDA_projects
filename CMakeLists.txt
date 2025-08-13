@@ -252,6 +252,7 @@ add_library(tda_utils STATIC
     src/cpp/utils/memory_pool.cpp
     src/cpp/utils/performance_monitor.cpp
     src/cpp/utils/distance_matrix.cpp
+    src/cpp/utils/streaming_distance_matrix.cpp
 )
 
 # Main platform executable

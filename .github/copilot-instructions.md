@@ -234,6 +234,11 @@ research/                   # Extracted research content
 - **I** (the user) do not need to be copying or pasting anything at any point, unless explicitly requested.
 - **YOU** are forbidden from presenting code in any way other than executable code blocks with Run/Cancel buttons.
 - **ALWAYS** perform static analysis (Codacy) after modifying any code.
+- When addressing memory blowup issues (reference `docs/troubleshooting/memory_blowup_RCA_steps.md`), prioritize steady but significant improvements, maintaining control for easy reversion and repair. Ensure alignment with Taskmaster planning and Agent Instruction files. Employ a rigorous, scalable approach with extensive testing.
+- **Workflow for Executing Plans**: Locate relevant plans (e.g., RCA-related docs and strategy plans), extract actionable steps, and execute them. Begin with builds/tests and documentation updates. Open troubleshooting plans to extract checklists and execute concrete steps (build/validate, monitoring hooks, etc.).
+- **Execution Steps for RCA and Strategy Plans**: Read `CMakeLists.txt` and tests CMake to understand how tests are built and where to add new targets. Verify any sanitizer/-fPIC issues mentioned in the plan. Open the ST-101 memory-optimized test and related tests to see what’s already implemented and identify missing pieces (like MemoryMonitor or StreamingDistanceMatrix) we need to add next. Search the codebase for the MemoryMonitor and StreamingDistanceMatrix classes referenced in the plans/tests to see if they exist, and identify missing files we need to implement.
+- **Plan References**: When addressing memory blowup issues, the primary reference documents are `memory_blowup_RCA_steps.md` and `RCA_Plan.md`.
+- **Coding and Testing**: When implementing new components like `StreamingDistanceMatrix`, create a reusable component (header + source), wire it into the build, and add a unit test to validate correctness and memory-bounded behavior.
 
 ### Experimentation
 - For controlled experiments, ensure a deterministic setup: same seed, identical non-filtration flags.
@@ -280,3 +285,154 @@ research/                   # Extracted research content
 
 ## 📚 **PROJECT DOCUMENTATION & CONTEXT SYSTEM**
 - UNIFIED_AGENT_INSTRUCTIONS.md contains high-level instructions for the AI coding assistant.
+
+## 🧠 **MEMORY MANAGEMENT STRATEGIES**
+
+### **General Approach**
+- Prioritize steady but significant improvements when addressing memory blowup issues (reference `docs/troubleshooting/memory_blowup_RCA_steps.md`).
+- Maintain control for easy reversion and repair.
+- Ensure alignment with Taskmaster planning and Agent Instruction files.
+- Employ a rigorous, scalable approach with extensive testing.
+
+### **Strategic Options**
+
+#### **Option A: Incremental Memory Optimization**
+- **Complexity**: ⭐⭐⭐ (Medium)
+- **Performance Gain**: 70-80% improvement
+- **Risk**: Low
+- **Timeline**: 1-2 weeks
+- **Approach**:
+    1. Fix immediate build issues (CMakeLists.txt)
+    2. Implement streaming for distance matrix computation
+    3. Add memory pooling for simplex objects
+    4. Progressive testing at each stage
+- **Pros**:
+    - Easy rollback at each stage
+    - Minimal disruption to existing code
+    - Quick wins possible
+- **Cons**:
+    - May not achieve full ST-101 compliance
+    - Doesn't address fundamental O(n³) complexity
+
+#### **Option B: Algorithmic Overhaul**
+- **Complexity**: ⭐⭐⭐⭐⭐ (Very High)
+- **Performance Gain**: 95%+ improvement
+- **Risk**: High
+- **Timeline**: 3-4 weeks
+- **Approach**:
+    1. Replace Čech complex with approximate algorithms
+    2. Implement true streaming TDA pipeline
+    3. Add GPU acceleration
+    4. Distributed processing framework
+- **Pros**:
+    - Guaranteed ST-101 compliance
+    - Future-proof for even larger datasets
+    - Best long-term solution
+- **Cons**:
+    - High risk of breaking existing functionality
+    - Complex mathematical validation required
+    - Longer implementation time
+
+#### **Option C: Hybrid Progressive Strategy** ⭐ **RECOMMENDED**
+- **Complexity**: ⭐⭐⭐⭐ (Medium-High)
+- **Performance Gain**: 85-95% improvement
+- **Risk**: Medium (mitigated by stages)
+- **Timeline**: 2-3 weeks
+- **Approach**:
+```markdown
+Phase 1 (Days 1-3): Foundation & Quick Wins
+├── Fix build system issues
+├── Implement basic memory monitoring
+├── Add streaming distance computation
+└── Validate with 100K points
+
+Phase 2 (Days 4-7): Core Optimizations
+├── Implement memory pooling
+├── Add block-based processing
+├── Optimize data structures (SoA)
+└── Validate with 500K points
+
+Phase 3 (Days 8-14): Advanced Features
+├── Sparse approximations
+├── Landmark selection
+├── Optional: GPU acceleration
+└── Validate with 1M+ points
+```
+
+### **Critical Risks & Mitigations**
+
+#### **Mathematical Correctness Risk**
+- **Risk**: Approximation algorithms may lose topological features
+- **Mitigation**:
+    - Implement quality metrics comparing exact vs approximate results
+    - Use configurable approximation thresholds
+    - Keep exact algorithm as fallback option
+
+#### **Memory Fragmentation Risk**
+- **Risk**: Memory pooling could cause fragmentation issues
+- **Mitigation**:
+    - Use fixed-size pools for common simplex sizes
+    - Implement periodic pool defragmentation
+    - Monitor fragmentation metrics
+
+#### **Performance Regression Risk**
+- **Risk**: Changes might slow down small dataset processing
+- **Mitigation**:
+    - Use adaptive algorithms based on dataset size
+    - Maintain separate code paths for small vs large datasets
+    - Continuous benchmarking with your build matrix system
+
+### **Finance Datasets Characteristics**
+- **Tick Data**: ~100-500 features (price, volume, bid/ask spreads, order book depth)
+- **Dimensionality**: 10-100 after feature engineering
+- **Size**: 1-10M events/day per instrument
+- **Distribution**: Heavy-tailed, non-stationary, clustered volatility
+
+### **Cybersecurity/SIEM Datasets Characteristics**
+- **Network Traffic**: 20-50 features (IPs, ports, protocols, packet sizes)
+- **Log Events**: 50-200 features after parsing
+- **Size**: 10M-1B events/day for medium enterprises
+- **Distribution**: Highly skewed, bursty, temporal patterns
+
+### **Accuracy Requirements**
+- **Target**: **≥98% accuracy** with approximations, 100% for exact algorithms
+
+### **Hardware Optimization Strategy**
+#### **Development Environment**
+- **CPU**: ~8 cores/16 threads → Optimize for 8-16 parallel workers
+- **RAM**: 32GB → Target 24GB max usage (leaving 8GB for OS)
+- **GPU**: RTX 3070 (8GB VRAM) → CUDA acceleration for distance matrices
+
+#### **Staging Strategy**
+````bash
+# Local VM approach (recommended initially)
+# filepath: scripts/setup_staging_vm.sh
+#!/bin/bash
+
+# Create lightweight Docker-based staging environment
+docker run -d \
+  --name tda-staging \
+  --memory="16g" \
+  --cpus="4" \
+  -v $(pwd):/workspace \
+  ubuntu:22.04
+
+# This simulates production constraints
+````
+
+## 🗺️ **IMPLEMENTATION ROADMAP**
+
+### **Phase 1 Enhancements (Memory Optimization)**
+
+- **Implement `StreamingDistanceMatrix`**: Create a batch-driven, bounded memory window for optional sparse edge and kNN thresholding. Integrate with the existing `ParallelDistanceMatrix` where appropriate and expose in `tda::utils`.
+- **Add Memory Hooks**: Wire `MemoryMonitor` snapshots into distance computation and reporting for quick telemetry and plan compliance checks.
+- **Develop Minimal Tests**: Unit tests for streaming distance on synthetic data, asserting memory growth plateaus and thresholded correctness against dense baselines on small datasets.
+
+### **Phase 2 Enhancements (Core Optimization)**
+
+- **SimplexPool Allocator**: Implement fixed-size pools for common simplex arities, tracking fragmentation metrics.
+- **Streaming Čech/VR Variant**: Develop a block-based filtration generation with backpressure on memory, including assertions to prevent OOM.
+
+### **Profiling & Validation**
+
+- **Add Profiler**: Add optional profiler integration and a small harness: `run_performance_validation.sh`, `analyze_performance_logs.py`. Track throughput, peak RSS, H1 counts, and manifest hashing as per plan.
