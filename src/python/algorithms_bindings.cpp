@@ -54,9 +54,11 @@ struct TDAResult {
     BettiNumbers betti_numbers;
     ComputationStats statistics;
     ComplexStatistics complex_stats;
+    ErrorCode error_code = ErrorCode::Success;
+    std::string error_message;
     
     bool is_valid() const {
-        return statistics.success && !persistence_pairs.empty();
+        return error_code == ErrorCode::Success && statistics.success;
     }
 };
 

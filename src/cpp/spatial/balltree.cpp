@@ -1,9 +1,13 @@
 #include "tda/spatial/spatial_index.hpp"
+#include "tda/utils/simd_utils.hpp"
 #include <algorithm>
 #include <chrono>
 #include <cmath>
 #include <queue>
 #include <stdexcept>
+#include <omp.h>
+#include <future>
+#include <thread>
 
 namespace tda::spatial {
 
@@ -77,9 +81,27 @@ std::unique_ptr<BallTree::BallNode> BallTree::buildRecursive(const std::vector<s
     node->center = computeCentroid(indices);
     node->radius = computeRadius(indices, node->center);
     
-    // Build children recursively
-    node->left = buildRecursive(leftIndices);
-    node->right = buildRecursive(rightIndices);
+    // Build children recursively - use parallel construction for large subtrees
+    const size_t PARALLEL_THRESHOLD = 1000; // Minimum points to justify parallel construction
+    
+    if (indices.size() >= PARALLEL_THRESHOLD && omp_get_max_threads() > 1) {
+        // Use OpenMP tasks for parallel construction
+        #pragma omp parallel sections
+        {
+            #pragma omp section
+            {
+                node->left = buildRecursive(leftIndices);
+            }
+            #pragma omp section  
+            {
+                node->right = buildRecursive(rightIndices);
+            }
+        }
+    } else {
+        // Sequential construction for smaller subtrees
+        node->left = buildRecursive(leftIndices);
+        node->right = buildRecursive(rightIndices);
+    }
     
     return node;
 }
@@ -91,14 +113,44 @@ BallTree::Point BallTree::computeCentroid(const std::vector<size_t>& indices) co
     
     Point centroid(dimension_, 0.0);
     
-    for (size_t idx : indices) {
-        for (size_t dim = 0; dim < dimension_; ++dim) {
-            centroid[dim] += points_[idx][dim];
+    // Use parallel reduction for large point sets
+    const size_t PARALLEL_CENTROID_THRESHOLD = 500;
+    
+    if (indices.size() >= PARALLEL_CENTROID_THRESHOLD && omp_get_max_threads() > 1) {
+        // Parallel centroid computation using manual reduction
+        std::vector<std::vector<double>> thread_centroids(omp_get_max_threads(), Point(dimension_, 0.0));
+        
+        #pragma omp parallel
+        {
+            int thread_id = omp_get_thread_num();
+            #pragma omp for
+            for (size_t i = 0; i < indices.size(); ++i) {
+                size_t idx = indices[i];
+                for (size_t dim = 0; dim < dimension_; ++dim) {
+                    thread_centroids[thread_id][dim] += points_[idx][dim];
+                }
+            }
+        }
+        
+        // Combine results from all threads
+        for (const auto& thread_centroid : thread_centroids) {
+            for (size_t dim = 0; dim < dimension_; ++dim) {
+                centroid[dim] += thread_centroid[dim];
+            }
+        }
+    } else {
+        // Sequential computation for smaller sets
+        for (size_t idx : indices) {
+            for (size_t dim = 0; dim < dimension_; ++dim) {
+                centroid[dim] += points_[idx][dim];
+            }
         }
     }
     
+    // Vectorized division by indices.size()
+    const double inv_count = 1.0 / indices.size();
     for (size_t dim = 0; dim < dimension_; ++dim) {
-        centroid[dim] /= indices.size();
+        centroid[dim] *= inv_count;
     }
     
     return centroid;
@@ -110,10 +162,29 @@ double BallTree::computeRadius(const std::vector<size_t>& indices, const Point& 
     }
     
     double maxRadius = 0.0;
+    const size_t PARALLEL_RADIUS_THRESHOLD = 500;
     
-    for (size_t idx : indices) {
-        double dist = distanceFunc_(center, points_[idx]);
-        maxRadius = std::max(maxRadius, dist);
+    if (indices.size() >= PARALLEL_RADIUS_THRESHOLD && omp_get_max_threads() > 1) {
+        // Parallel radius computation with reduction
+        #pragma omp parallel for reduction(max:maxRadius)
+        for (size_t i = 0; i < indices.size(); ++i) {
+            size_t idx = indices[i];
+            // Use SIMD-optimized distance calculation when possible
+            double dist;
+            if (center.size() == points_[idx].size()) {
+                dist = tda::utils::SIMDUtils::vectorizedEuclideanDistance(
+                    center.data(), points_[idx].data(), center.size());
+            } else {
+                dist = distanceFunc_(center, points_[idx]);
+            }
+            maxRadius = std::max(maxRadius, dist);
+        }
+    } else {
+        // Sequential computation for smaller sets
+        for (size_t idx : indices) {
+            double dist = distanceFunc_(center, points_[idx]);
+            maxRadius = std::max(maxRadius, dist);
+        }
     }
     
     return maxRadius;
@@ -311,11 +382,9 @@ size_t BallTree::dimension() const {
     return dimension_;
 }
 
-void BallTree::setDistanceFunction(DistanceFunction distanceFunc) {
-    distanceFunc_ = distanceFunc;
-}
 
-BallTree::BuildStats BallTree::getBuildStats() const {
+
+BuildStats BallTree::getStatistics() const {
     return buildStats_;
 }
 

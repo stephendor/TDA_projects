@@ -577,6 +577,7 @@ class StreamingTDAService:
         self.flink_manager = FlinkJobManager()
         self.stream_processor = TDAStreamProcessor(StreamingConfig())
         self.active_streams: Dict[str, Dict] = {}
+        self.analytics_jobs: Dict[str, Dict] = {}
         
     async def start(self) -> None:
         """Start the streaming TDA service."""
@@ -590,6 +591,10 @@ class StreamingTDAService:
         # Cancel all active Flink jobs
         for stream_name in list(self.active_streams.keys()):
             await self.stop_stream(stream_name)
+        
+        # Stop all analytics jobs
+        for job_name in list(self.analytics_jobs.keys()):
+            await self.stop_analytics_job(job_name)
         
         await self.stream_processor.stop()
     
@@ -676,6 +681,145 @@ class StreamingTDAService:
         """List all active streams."""
         return self.active_streams.copy()
     
+    async def start_analytics_job(
+        self,
+        job_name: str = "tda_analytics",
+        config: Optional[Dict] = None
+    ) -> bool:
+        """Start the TDA analytics Flink job."""
+        logger.info(f"Starting TDA analytics job: {job_name}")
+        
+        try:
+            # Default analytics configuration
+            analytics_config = {
+                "parallelism": 4,
+                "checkpoint_interval": 30000,
+                "input_topics": [
+                    "tda_jobs",
+                    "tda_results", 
+                    "tda_events",
+                    "tda_uploads",
+                    "tda_errors"
+                ],
+                "output_topics": [
+                    "tda_analytics_dashboards",
+                    "tda_analytics_alerts",
+                    "tda_analytics_reports",
+                    "tda_analytics_metrics"
+                ],
+                "window_configs": {
+                    "realtime": {"size": "1min", "slide": "10s"},
+                    "short_term": {"size": "5min", "slide": "1min"},
+                    "medium_term": {"size": "15min", "slide": "5min"},
+                    "long_term": {"size": "1hour", "slide": "10min"}
+                }
+            }
+            
+            # Override with custom config
+            if config:
+                analytics_config.update(config)
+            
+            # Submit analytics job to Flink
+            job_id = await self._submit_analytics_job(job_name, analytics_config)
+            
+            self.analytics_jobs[job_name] = {
+                "job_id": job_id,
+                "config": analytics_config,
+                "started_at": datetime.now(timezone.utc),
+                "status": "running"
+            }
+            
+            logger.info(f"Successfully started analytics job {job_name} with ID: {job_id}")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Failed to start analytics job {job_name}: {e}")
+            return False
+    
+    async def stop_analytics_job(self, job_name: str = "tda_analytics") -> bool:
+        """Stop the TDA analytics Flink job."""
+        if job_name not in self.analytics_jobs:
+            logger.warning(f"Analytics job {job_name} not found")
+            return False
+        
+        try:
+            job_info = self.analytics_jobs[job_name]
+            await self.flink_manager.cancel_job(job_name)
+            
+            job_info["status"] = "stopped"
+            job_info["stopped_at"] = datetime.now(timezone.utc)
+            
+            logger.info(f"Successfully stopped analytics job: {job_name}")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Failed to stop analytics job {job_name}: {e}")
+            return False
+    
+    async def get_analytics_status(self, job_name: str = "tda_analytics") -> Optional[Dict]:
+        """Get status of the TDA analytics job."""
+        if job_name not in self.analytics_jobs:
+            return None
+        
+        job_info = self.analytics_jobs[job_name]
+        
+        try:
+            # Get Flink job status
+            flink_status = await self.flink_manager.get_job_status(job_name)
+            
+            return {
+                **job_info,
+                "flink_status": flink_status,
+                "uptime": (
+                    datetime.now(timezone.utc) - job_info["started_at"]
+                ).total_seconds() if job_info.get("started_at") else None
+            }
+            
+        except Exception as e:
+            logger.error(f"Failed to get analytics job status {job_name}: {e}")
+            return job_info
+    
+    async def list_analytics_jobs(self) -> Dict[str, Dict]:
+        """List all analytics jobs."""
+        return self.analytics_jobs.copy()
+    
+    async def _submit_analytics_job(self, job_name: str, config: Dict) -> str:
+        """Submit analytics job to Flink cluster."""
+        # Create job submission configuration
+        job_config = {
+            "job_name": job_name,
+            "job_type": "analytics",
+            "parallelism": config.get("parallelism", 4),
+            "checkpoint_interval": config.get("checkpoint_interval", 30000),
+            "input_topics": config["input_topics"],
+            "output_topics": config["output_topics"],
+            "kafka_bootstrap_servers": settings.kafka_bootstrap_servers,
+            "kafka_group_id": f"flink-analytics-{job_name}",
+            "window_configs": config.get("window_configs", {}),
+            "analytics_config": {
+                "alert_thresholds": {
+                    "error_rate": 0.05,  # 5% error rate threshold
+                    "computation_time_p99": 300.0,  # 5 minutes P99 threshold
+                    "queue_time_p99": 60.0  # 1 minute queue time threshold
+                },
+                "metrics_config": {
+                    "enable_detailed_metrics": True,
+                    "metric_retention_hours": 24,
+                    "aggregation_intervals": ["1m", "5m", "15m", "1h"]
+                }
+            }
+        }
+        
+        # For now, simulate job submission
+        # In production, this would submit the actual analytics job
+        import uuid
+        job_id = str(uuid.uuid4())
+        
+        logger.info(f"Simulating analytics job submission: {job_name}")
+        logger.info(f"Analytics config: {job_config}")
+        
+        return job_id
+
     async def submit_points(
         self, 
         stream_name: str, 

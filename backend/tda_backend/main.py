@@ -39,6 +39,11 @@ from tda_backend.api.v1.router import v1_router
 from tda_backend.services.kafka_producer import initialize_kafka_producer, shutdown_kafka_producer
 from tda_backend.services.kafka_schemas import initialize_schemas, cleanup_schemas
 from tda_backend.services.kafka_metrics import start_metrics_collection, stop_metrics_collection
+from tda_backend.services.kafka_background_service import (
+    get_kafka_background_service, 
+    start_kafka_background_service, 
+    stop_kafka_background_service
+)
 
 # Configure logging
 logging.basicConfig(level=getattr(logging, settings.log_level.upper()))
@@ -195,6 +200,10 @@ async def initialize_services():
             await start_metrics_collection()
             logger.info("✅ Kafka metrics collection started")
             
+            # Start background Kafka consumer service
+            await start_kafka_background_service()
+            logger.info("✅ Kafka consumer background service started")
+            
         except Exception as e:
             logger.error(f"❌ Failed to initialize Kafka services: {e}")
             # Don't fail startup if Kafka is not available
@@ -238,6 +247,10 @@ async def cleanup_services():
     # Close Kafka connections
     if not settings.mock_kafka and not settings.testing:
         try:
+            # Stop background consumer service
+            await stop_kafka_background_service()
+            logger.info("✅ Kafka consumer background service stopped")
+            
             # Stop metrics collection
             await stop_metrics_collection()
             logger.info("✅ Kafka metrics collection stopped")

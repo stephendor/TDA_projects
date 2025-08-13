@@ -317,9 +317,10 @@ void VectorStack<T>::serialize(Archive& ar) {
     ar(rows_, cols_, capacity_, data_);
 }
 
-// Explicit template instantiations
+// Explicit template instantiations to prevent linking issues
 template class VectorStack<float>;
 template class VectorStack<double>;
 template class VectorStack<int>;
+template class VectorStack<long>;
 
 } // namespace tda::vector_stack

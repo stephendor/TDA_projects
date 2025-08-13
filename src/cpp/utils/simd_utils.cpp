@@ -355,6 +355,278 @@ std::vector<double> SIMDUtils::scalarVectorMultiply(double scalar,
     return result;
 }
 
+SIMDUtils::CPUFeatures SIMDUtils::detectCPUFeatures() {
+    CPUFeatures features;
+    
+    #ifdef __AVX__
+        features.has_avx = true;
+    #endif
+    #ifdef __AVX2__
+        features.has_avx2 = true;
+    #endif
+    #ifdef __FMA__
+        features.has_fma = true;
+    #endif
+    #ifdef __AVX512F__
+        features.has_avx512 = true;
+    #endif
+    
+    return features;
+}
+
+double SIMDUtils::vectorizedEuclideanDistance(
+    const double* p1, const double* p2, size_t dimensions
+) {
+    if (!p1 || !p2 || dimensions == 0) {
+        return 0.0;
+    }
+    
+    double sum = 0.0;
+    
+    // Use AVX2 if available for optimal performance
+    if (isAVX2Supported() && dimensions >= 4) {
+        __m256d sum_vec = _mm256_setzero_pd();
+        const size_t aligned_size = dimensions - (dimensions % 4);
+        
+        // Process 4 doubles at a time with AVX2
+        for (size_t i = 0; i < aligned_size; i += 4) {
+            __m256d a_vec = _mm256_loadu_pd(&p1[i]);
+            __m256d b_vec = _mm256_loadu_pd(&p2[i]);
+            __m256d diff = _mm256_sub_pd(a_vec, b_vec);
+            
+            #ifdef __FMA__
+                sum_vec = _mm256_fmadd_pd(diff, diff, sum_vec);
+            #else
+                __m256d diff_squared = _mm256_mul_pd(diff, diff);
+                sum_vec = _mm256_add_pd(sum_vec, diff_squared);
+            #endif
+        }
+        
+        // Extract sum from vector
+        alignas(32) double temp[4];
+        _mm256_store_pd(temp, sum_vec);
+        sum = temp[0] + temp[1] + temp[2] + temp[3];
+        
+        // Handle remaining elements
+        for (size_t i = aligned_size; i < dimensions; ++i) {
+            double diff = p1[i] - p2[i];
+            sum += diff * diff;
+        }
+    }
+    // Fallback to SSE4.2 if AVX2 not available
+    else if (isSSE42Supported() && dimensions >= 2) {
+        __m128d sum_vec = _mm_setzero_pd();
+        const size_t aligned_size = dimensions - (dimensions % 2);
+        
+        // Process 2 doubles at a time with SSE4.2
+        for (size_t i = 0; i < aligned_size; i += 2) {
+            __m128d a_vec = _mm_loadu_pd(&p1[i]);
+            __m128d b_vec = _mm_loadu_pd(&p2[i]);
+            __m128d diff = _mm_sub_pd(a_vec, b_vec);
+            __m128d diff_squared = _mm_mul_pd(diff, diff);
+            sum_vec = _mm_add_pd(sum_vec, diff_squared);
+        }
+        
+        // Extract sum from vector
+        alignas(16) double temp[2];
+        _mm_store_pd(temp, sum_vec);
+        sum = temp[0] + temp[1];
+        
+        // Handle remaining elements
+        for (size_t i = aligned_size; i < dimensions; ++i) {
+            double diff = p1[i] - p2[i];
+            sum += diff * diff;
+        }
+    }
+    // Fallback to scalar implementation
+    else {
+        for (size_t i = 0; i < dimensions; ++i) {
+            double diff = p1[i] - p2[i];
+            sum += diff * diff;
+        }
+    }
+    
+    return std::sqrt(sum);
+}
+
+void SIMDUtils::vectorizedAdd(
+    const double* a, const double* b, double* result, size_t count
+) {
+    if (!a || !b || !result || count == 0) return;
+    
+    if (isAVX2Supported() && count >= 4) {
+        const size_t aligned_size = count - (count % 4);
+        
+        for (size_t i = 0; i < aligned_size; i += 4) {
+            __m256d a_vec = _mm256_loadu_pd(&a[i]);
+            __m256d b_vec = _mm256_loadu_pd(&b[i]);
+            __m256d result_vec = _mm256_add_pd(a_vec, b_vec);
+            _mm256_storeu_pd(&result[i], result_vec);
+        }
+        
+        // Handle remaining elements
+        for (size_t i = aligned_size; i < count; ++i) {
+            result[i] = a[i] + b[i];
+        }
+    } else {
+        for (size_t i = 0; i < count; ++i) {
+            result[i] = a[i] + b[i];
+        }
+    }
+}
+
+void SIMDUtils::vectorizedSubtract(
+    const double* a, const double* b, double* result, size_t count
+) {
+    if (!a || !b || !result || count == 0) return;
+    
+    if (isAVX2Supported() && count >= 4) {
+        const size_t aligned_size = count - (count % 4);
+        
+        for (size_t i = 0; i < aligned_size; i += 4) {
+            __m256d a_vec = _mm256_loadu_pd(&a[i]);
+            __m256d b_vec = _mm256_loadu_pd(&b[i]);
+            __m256d result_vec = _mm256_sub_pd(a_vec, b_vec);
+            _mm256_storeu_pd(&result[i], result_vec);
+        }
+        
+        // Handle remaining elements
+        for (size_t i = aligned_size; i < count; ++i) {
+            result[i] = a[i] - b[i];
+        }
+    } else {
+        for (size_t i = 0; i < count; ++i) {
+            result[i] = a[i] - b[i];
+        }
+    }
+}
+
+void SIMDUtils::vectorizedMultiply(
+    const double* a, const double* b, double* result, size_t count
+) {
+    if (!a || !b || !result || count == 0) return;
+    
+    if (isAVX2Supported() && count >= 4) {
+        const size_t aligned_size = count - (count % 4);
+        
+        for (size_t i = 0; i < aligned_size; i += 4) {
+            __m256d a_vec = _mm256_loadu_pd(&a[i]);
+            __m256d b_vec = _mm256_loadu_pd(&b[i]);
+            __m256d result_vec = _mm256_mul_pd(a_vec, b_vec);
+            _mm256_storeu_pd(&result[i], result_vec);
+        }
+        
+        // Handle remaining elements
+        for (size_t i = aligned_size; i < count; ++i) {
+            result[i] = a[i] * b[i];
+        }
+    } else {
+        for (size_t i = 0; i < count; ++i) {
+            result[i] = a[i] * b[i];
+        }
+    }
+}
+
+double SIMDUtils::vectorizedDotProduct(
+    const double* a, const double* b, size_t count
+) {
+    if (!a || !b || count == 0) return 0.0;
+    
+    double sum = 0.0;
+    
+    if (isAVX2Supported() && count >= 4) {
+        __m256d sum_vec = _mm256_setzero_pd();
+        const size_t aligned_size = count - (count % 4);
+        
+        for (size_t i = 0; i < aligned_size; i += 4) {
+            __m256d a_vec = _mm256_loadu_pd(&a[i]);
+            __m256d b_vec = _mm256_loadu_pd(&b[i]);
+            
+            #ifdef __FMA__
+                sum_vec = _mm256_fmadd_pd(a_vec, b_vec, sum_vec);
+            #else
+                __m256d product = _mm256_mul_pd(a_vec, b_vec);
+                sum_vec = _mm256_add_pd(sum_vec, product);
+            #endif
+        }
+        
+        // Extract sum from vector
+        alignas(32) double temp[4];
+        _mm256_store_pd(temp, sum_vec);
+        sum = temp[0] + temp[1] + temp[2] + temp[3];
+        
+        // Handle remaining elements
+        for (size_t i = aligned_size; i < count; ++i) {
+            sum += a[i] * b[i];
+        }
+    } else {
+        for (size_t i = 0; i < count; ++i) {
+            sum += a[i] * b[i];
+        }
+    }
+    
+    return sum;
+}
+
+double SIMDUtils::vectorizedL2Norm(const double* a, size_t count) {
+    if (!a || count == 0) return 0.0;
+    
+    double sum = 0.0;
+    
+    if (isAVX2Supported() && count >= 4) {
+        __m256d sum_vec = _mm256_setzero_pd();
+        const size_t aligned_size = count - (count % 4);
+        
+        for (size_t i = 0; i < aligned_size; i += 4) {
+            __m256d a_vec = _mm256_loadu_pd(&a[i]);
+            
+            #ifdef __FMA__
+                sum_vec = _mm256_fmadd_pd(a_vec, a_vec, sum_vec);
+            #else
+                __m256d squared = _mm256_mul_pd(a_vec, a_vec);
+                sum_vec = _mm256_add_pd(sum_vec, squared);
+            #endif
+        }
+        
+        // Extract sum from vector
+        alignas(32) double temp[4];
+        _mm256_store_pd(temp, sum_vec);
+        sum = temp[0] + temp[1] + temp[2] + temp[3];
+        
+        // Handle remaining elements
+        for (size_t i = aligned_size; i < count; ++i) {
+            sum += a[i] * a[i];
+        }
+    } else {
+        for (size_t i = 0; i < count; ++i) {
+            sum += a[i] * a[i];
+        }
+    }
+    
+    return std::sqrt(sum);
+}
+
+void SIMDUtils::vectorizedDistanceMatrix(
+    const std::vector<std::vector<double>>& points,
+    double* distance_matrix
+) {
+    if (points.empty() || !distance_matrix) return;
+    
+    const size_t n = points.size();
+    
+    #pragma omp parallel for schedule(dynamic)
+    for (size_t i = 0; i < n; ++i) {
+        for (size_t j = i + 1; j < n; ++j) {
+            double dist = vectorizedEuclideanDistance(
+                points[i].data(), points[j].data(), points[i].size()
+            );
+            distance_matrix[i * n + j] = dist;
+            distance_matrix[j * n + i] = dist; // Symmetric matrix
+        }
+        distance_matrix[i * n + i] = 0.0; // Diagonal is zero
+    }
+}
+
 size_t SIMDUtils::alignSize(size_t size) {
     // Align to 4 doubles (32 bytes) for AVX2
     if (isAVX2Supported()) {

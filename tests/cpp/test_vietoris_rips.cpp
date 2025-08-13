@@ -1,13 +1,11 @@
-#include <gtest/gtest.h>
+#include <iostream>
+#include <cassert>
+#include <vector>
+#include <cmath>
 #include "tda/algorithms/vietoris_rips.hpp"
 #include "tda/core/types.hpp"
 
-#include <vector>
-#include <cmath>
-#include <iostream>
-
-class VietorisRipsTest : public ::testing::Test {
-protected:
+namespace {
     void SetUp() override {
         // Create a simple 2D point cloud: square with diagonal
         // Points: (0,0), (1,0), (0,1), (1,1)

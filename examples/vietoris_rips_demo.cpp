@@ -24,7 +24,7 @@ void printPointCloud(const std::vector<std::vector<double>>& points) {
     }
 }
 
-void printStatistics(const tda::ComplexStatistics& stats) {
+void printStatistics(const tda::core::ComplexStatistics& stats) {
     std::cout << "\nComplex Statistics:" << std::endl;
     std::cout << "  Number of points: " << stats.num_points << std::endl;
     std::cout << "  Number of simplices: " << stats.num_simplices << std::endl;
@@ -37,7 +37,7 @@ void printStatistics(const tda::ComplexStatistics& stats) {
     }
 }
 
-void printSimplices(const std::vector<tda::SimplexInfo>& simplices) {
+void printSimplices(const std::vector<tda::core::SimplexInfo>& simplices) {
     std::cout << "\nSimplices:" << std::endl;
     for (size_t i = 0; i < simplices.size(); ++i) {
         const auto& simplex = simplices[i];
@@ -52,7 +52,7 @@ void printSimplices(const std::vector<tda::SimplexInfo>& simplices) {
     }
 }
 
-void printPersistencePairs(const std::vector<tda::PersistencePair>& pairs) {
+void printPersistencePairs(const std::vector<tda::core::PersistencePair>& pairs) {
     std::cout << "\nPersistence Pairs:" << std::endl;
     std::cout << "  Dimension | Birth    | Death    | Persistence" << std::endl;
     std::cout << "  ----------|----------|----------|------------" << std::endl;
@@ -61,7 +61,7 @@ void printPersistencePairs(const std::vector<tda::PersistencePair>& pairs) {
         std::cout << "  " << std::setw(9) << pair.dimension << " | ";
         std::cout << std::setw(8) << std::fixed << std::setprecision(3) << pair.birth << " | ";
         std::cout << std::setw(8) << std::fixed << std::setprecision(3) << pair.death << " | ";
-        std::cout << std::setw(11) << std::fixed << std::setprecision(3) << pair.persistence << std::endl;
+        std::cout << std::setw(11) << std::fixed << std::setprecision(3) << pair.get_persistence() << std::endl;
     }
 }
 
@@ -190,7 +190,6 @@ int main() {
     std::cout << "✅ Successfully demonstrated Vietoris-Rips algorithm with:" << std::endl;
     std::cout << "  - Complex construction from point cloud" << std::endl;
     std::cout << "  - Persistent homology computation" << std::endl;
-    std::endl;
     std::cout << "  - Betti number calculation" << std::endl;
     std::cout << "  - SIMD-optimized distance computations" << std::endl;
     std::cout << "  - Comprehensive error handling" << std::endl;

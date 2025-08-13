@@ -1,6 +1,7 @@
 #include "tda/algorithms/vietoris_rips.hpp"
 #include "tda/algorithms/alpha_complex.hpp"
 #include "tda/algorithms/cech_complex.hpp"
+#include "tda/algorithms/sparse_rips.hpp"
 #include "tda/core/performance_profiler.hpp"
 #include "tda/core/types.hpp"
 
@@ -226,6 +227,52 @@ void benchmarkCechComplex(const std::vector<std::vector<double>>& points,
 }
 
 /**
+ * @brief Benchmark Sparse Rips filtration (CRITICAL for ST-101 compliance)
+ */
+void benchmarkSparseRips(const std::vector<std::vector<double>>& points, 
+                        double threshold, int maxDimension,
+                        tda::core::PerformanceSession& session) {
+    std::cout << "Benchmarking Sparse Rips with " << points.size() << " points..." << std::endl;
+    
+    // Configure for optimal performance
+    tda::algorithms::SparseRips::Config config;
+    config.max_dimension = maxDimension;
+    config.filtration_threshold = threshold;
+    config.sparsity_factor = 0.1;  // Keep 10% of edges
+    config.use_landmarks = true;
+    config.num_landmarks = std::min(1000UL, points.size() / 10);  // Adaptive landmarks
+    config.min_points_threshold = 50000;  // Trigger approximation for large datasets
+    config.max_edges = 100000;  // Hard limit to prevent memory overflow
+    
+    tda::algorithms::SparseRips sparse_rips(config);
+    
+    // Compute approximation
+    {
+        TDA_PROFILE(session, "SparseRips_ComputeApproximation");
+        auto result = sparse_rips.computeApproximation(points, threshold);
+        
+        if (result.has_value()) {
+            const auto& res = result.value();
+            session.record_measurement("SparseRips_NumSimplices", static_cast<double>(res.simplices.size()));
+            session.record_measurement("SparseRips_EdgesRetained", static_cast<double>(res.edges_retained));
+            session.record_measurement("SparseRips_TotalEdgesConsidered", static_cast<double>(res.total_edges_considered));
+            session.record_measurement("SparseRips_ApproximationQuality", res.approximation_quality);
+            session.record_measurement("SparseRips_ComputationTime", res.computation_time_seconds * 1000.0);
+            
+            std::cout << "  Generated " << res.simplices.size() << " simplices" << std::endl;
+            std::cout << "  Retained " << res.edges_retained << "/" << res.total_edges_considered 
+                      << " edges (" << (100.0 * res.edges_retained / res.total_edges_considered) << "%)" << std::endl;
+            std::cout << "  Approximation quality: " << res.approximation_quality << std::endl;
+        } else {
+            std::cerr << "Failed to compute Sparse Rips approximation" << std::endl;
+            return;
+        }
+    }
+    
+    session.update_memory();
+}
+
+/**
  * @brief Run comprehensive performance benchmarks
  */
 void runPerformanceBenchmarks() {
@@ -412,8 +459,70 @@ void runPerformanceBenchmarks() {
                     }
                 }
                 
-                // TODO: Re-implement Sparse Rips testing in Phase 2B
-                // Sparse Rips Filtration test removed - implementation deleted
+                // Test Sparse Rips Filtration (CRITICAL for ST-101 compliance)
+                // This is essential for validating 1M point performance requirement
+                {
+                    tda::core::PerformanceSession session("SparseRips_" + std::to_string(numPoints) + "_" + 
+                                                        std::to_string(dim) + "D_" + dist);
+                    
+                    try {
+                        benchmarkSparseRips(points, threshold, 3, session);
+                        
+                        // Calculate performance metrics
+                        double totalTime = 0.0;
+                        double approximationTime = 0.0;
+                        
+                        for (const auto& timer : session.get_timers()) {
+                            if (timer->name() == "SparseRips_ComputeApproximation") {
+                                approximationTime = timer->elapsed_milliseconds();
+                            }
+                        }
+                        totalTime = approximationTime;
+                        
+                        double pointsPerSecond = (numPoints / (totalTime / 1000.0));
+                        bool meetsRequirement = (numPoints <= TARGET_POINT_COUNT) || 
+                                              (totalTime / 1000.0 <= TIME_THRESHOLD_SECONDS);
+                        
+                        std::string status = meetsRequirement ? "PASS" : "FAIL";
+                        
+                        // Write to CSV
+                        resultsFile << "SparseRips," << numPoints << "," << dim << "," << dist << ","
+                                   << threshold << ",0," << approximationTime << ","
+                                   << totalTime << "," << session.get_peak_memory_mb() << ","
+                                   << session.get_memory_increase_mb() << ","
+                                   << session.get_measurement("SparseRips_NumSimplices") << ","
+                                   << session.get_measurement("SparseRips_EdgesRetained") << ","
+                                   << pointsPerSecond << "," << status << std::endl;
+                        
+                        // Print summary
+                        std::cout << "Sparse Rips: " << totalTime << " ms, " 
+                                 << session.get_peak_memory_mb() << " MB peak, "
+                                 << pointsPerSecond << " points/sec - " << status << std::endl;
+                        
+                        // Check ST-101 compliance for Sparse Rips (most important test)
+                        if (numPoints == TARGET_POINT_COUNT) {
+                            if (totalTime / 1000.0 <= TIME_THRESHOLD_SECONDS) {
+                                std::cout << "🎯 ST-101 REQUIREMENT MET WITH SPARSE RIPS: 1M points processed in " 
+                                         << (totalTime / 1000.0) << " seconds (< " 
+                                         << TIME_THRESHOLD_SECONDS << "s)" << std::endl;
+                                std::cout << "✅ SPARSE APPROXIMATION SUCCESS: " 
+                                         << session.get_measurement("SparseRips_EdgesRetained") 
+                                         << " edges retained from " 
+                                         << session.get_measurement("SparseRips_TotalEdgesConsidered")
+                                         << " total" << std::endl;
+                            } else {
+                                std::cout << "❌ ST-101 REQUIREMENT NOT MET WITH SPARSE RIPS: 1M points took " 
+                                         << (totalTime / 1000.0) << " seconds (> " 
+                                         << TIME_THRESHOLD_SECONDS << "s)" << std::endl;
+                            }
+                        }
+                        
+                    } catch (const std::exception& e) {
+                        std::cerr << "Error benchmarking Sparse Rips: " << e.what() << std::endl;
+                        resultsFile << "SparseRips," << numPoints << "," << dim << "," << dist << ","
+                                   << threshold << ",ERROR,ERROR,ERROR,ERROR,ERROR,ERROR,ERROR,ERROR,ERROR" << std::endl;
+                    }
+                }
             }
         }
     }

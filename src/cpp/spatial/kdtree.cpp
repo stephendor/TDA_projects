@@ -1,10 +1,13 @@
 #include "tda/spatial/spatial_index.hpp"
+#include "tda/utils/simd_utils.hpp"
 #include <algorithm>
 #include <chrono>
 #include <cmath>
 #include <iostream>
 #include <queue>
 #include <stdexcept>
+#include <immintrin.h>
+#include <omp.h>
 
 namespace tda::spatial {
 
@@ -308,7 +311,7 @@ void KDTree::setDistanceFunction(DistanceFunction distanceFunc) {
     distanceFunc_ = distanceFunc;
 }
 
-KDTree::BuildStats KDTree::getBuildStats() const {
+BuildStats KDTree::getBuildStats() const {
     return buildStats_;
 }
 
@@ -317,13 +320,64 @@ double KDTree::euclideanDistance(const Point& a, const Point& b) {
         return std::numeric_limits<double>::max();
     }
     
-    double sum = 0.0;
-    for (size_t i = 0; i < a.size(); ++i) {
-        double diff = a[i] - b[i];
-        sum += diff * diff;
+    // Use SIMD optimized distance calculation for better performance
+    return tda::utils::SIMDUtils::vectorizedEuclideanDistance(a.data(), b.data(), a.size());
+}
+
+// SIMD-optimized batch distance calculation for multiple queries
+void KDTree::batchDistanceCalculation(
+    const std::vector<Point>& query_points,
+    const std::vector<Point>& data_points,
+    std::vector<double>& distances
+) {
+    if (query_points.size() != data_points.size()) {
+        throw std::invalid_argument("Query and data point vectors must have same size");
     }
     
-    return std::sqrt(sum);
+    distances.resize(query_points.size());
+    
+    const size_t simd_width = 4; // AVX 256-bit / 64-bit double = 4
+    const size_t aligned_size = (query_points.size() / simd_width) * simd_width;
+    
+    #pragma omp parallel for schedule(static)
+    for (size_t i = 0; i < aligned_size; i += simd_width) {
+        // Process 4 points at once with SIMD
+        if (query_points[i].size() == data_points[i].size() && 
+            query_points[i].size() >= 2) { // Ensure minimum dimension for SIMD
+            
+            __m256d dist_squared = _mm256_setzero_pd();
+            
+            for (size_t dim = 0; dim < query_points[i].size(); ++dim) {
+                __m256d q = _mm256_set_pd(
+                    query_points[i+3][dim], query_points[i+2][dim],
+                    query_points[i+1][dim], query_points[i][dim]
+                );
+                __m256d d = _mm256_set_pd(
+                    data_points[i+3][dim], data_points[i+2][dim], 
+                    data_points[i+1][dim], data_points[i][dim]
+                );
+                __m256d diff = _mm256_sub_pd(q, d);
+                dist_squared = _mm256_fmadd_pd(diff, diff, dist_squared);
+            }
+            
+            // Store results
+            alignas(32) double results[4];
+            _mm256_store_pd(results, dist_squared);
+            for (int j = 0; j < 4; ++j) {
+                distances[i + j] = std::sqrt(results[j]);
+            }
+        } else {
+            // Fallback for mismatched dimensions
+            for (int j = 0; j < 4; ++j) {
+                distances[i + j] = euclideanDistance(query_points[i + j], data_points[i + j]);
+            }
+        }
+    }
+    
+    // Handle remaining points
+    for (size_t i = aligned_size; i < query_points.size(); ++i) {
+        distances[i] = euclideanDistance(query_points[i], data_points[i]);
+    }
 }
 
 } // namespace tda::spatial

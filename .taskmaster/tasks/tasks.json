@@ -99,7 +99,7 @@
               "1.7"
             ],
             "details": "Define a stable C++ API that exposes functions for computing persistence with different filtrations and retrieving results. Use pybind11 to wrap the C++ API, enabling efficient data transfer between Python (NumPy arrays) and C++ (Eigen matrices or std::vector).",
-            "status": "in-progress",
+            "status": "done",
             "testStrategy": "Write Python-based integration tests that call the C++ engine via the bindings. Verify that passing a NumPy array from Python, computing persistence in C++, and returning the results to Python works correctly and efficiently. Test error handling across the language boundary."
           },
           {
@@ -244,7 +244,7 @@
             "title": "Memory Optimization and Pooling",
             "description": "Implement memory pooling, sparse matrix representations, and reduce memory allocations during complex construction.",
             "details": "Replace dynamic allocations with memory pools, use sparse representations for distance matrices, implement object reuse patterns, and optimize memory layout for cache efficiency.",
-            "status": "done",
+            "status": "review",
             "dependencies": [],
             "parentTaskId": 1
           },
@@ -253,7 +253,7 @@
             "title": "Approximation Algorithms Implementation",
             "description": "Implement sparse Rips filtrations and other approximation techniques to reduce computational complexity while maintaining topological accuracy.",
             "details": "Implement sparse Rips filtrations using landmark selection, implement DTM-based filtrations for noise robustness, and add options for user-controlled accuracy vs. speed trade-offs.",
-            "status": "done",
+            "status": "review",
             "dependencies": [],
             "parentTaskId": 1
           },
@@ -262,7 +262,7 @@
             "title": "Performance Test Suite and Benchmarking",
             "description": "Create comprehensive performance tests with point clouds of increasing size (100k, 500k, 1M, 1.5M) and benchmark execution time and memory usage.",
             "details": "Implement automated benchmarking, performance regression testing, memory profiling, and ensure the 1M point cloud requirement (under 60 seconds) is met on target hardware.",
-            "status": "pending",
+            "status": "review",
             "dependencies": [],
             "parentTaskId": 1
           }
@@ -278,7 +278,7 @@
         "dependencies": [
           1
         ],
-        "status": "todo",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -286,7 +286,7 @@
             "description": "Implement the deterministic vectorization methods for persistence diagrams: persistence landscapes, persistence images, and Betti curves, as specified in FR-CORE-002.",
             "dependencies": [],
             "details": "Create a self-contained module or library in the project's primary language (e.g., Python with C++ bindings) that provides functions to convert persistence diagrams into their respective vector representations. Ensure the output is deterministic for a given input and set of parameters.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit test each vectorization method against pre-computed, known-good examples. Verify that repeated calls with the same input diagram produce identical output vectors."
           },
           {
@@ -295,7 +295,7 @@
             "description": "Design the database schemas for both PostgreSQL and MongoDB. The design must accommodate raw topological features, vectorized features, and support versioning as per ST-301.",
             "dependencies": [],
             "details": "Design PostgreSQL tables for structured metadata, analysis parameters, and versioning history. Design a corresponding MongoDB collection schema for storing less structured data like persistence diagrams (list of points/bars) and the resulting high-dimensional feature vectors. The design must define how records in PostgreSQL link to documents in MongoDB.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Conduct a design review to ensure the schema can support efficient queries for version history, similarity searches on vectors, and retrieval of raw diagrams for a given analysis run."
           },
           {
@@ -306,7 +306,7 @@
               "2.2"
             ],
             "details": "Write and apply SQL DDL scripts to set up the PostgreSQL database. Implement efficient indexes on columns that will be frequently queried, such as dataset ID, analysis timestamp, and version tag. Create functions or procedures for creating and retrieving versioned records.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Test the creation and retrieval of versioned metadata. Benchmark query performance for common lookup patterns, ensuring indexes are being used effectively."
           },
           {
@@ -317,7 +317,7 @@
               "2.2"
             ],
             "details": "Configure the MongoDB collections, including any schema validation rules. Implement appropriate indexes on fields like the foreign key from PostgreSQL to ensure fast lookups.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Test write throughput by inserting a large number of documents (diagrams and vectors). Test query latency for retrieving a document based on the ID stored in the PostgreSQL metadata table."
           },
           {
@@ -330,7 +330,7 @@
               "2.4"
             ],
             "details": "Develop the application logic that takes a persistence diagram as input, calls the vectorization functions from subtask 1, and then writes the metadata and version info to PostgreSQL and the raw diagram/vectors to MongoDB in a consistent manner.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Perform end-to-end integration testing. Pass a sample diagram to the service and verify that all related data (metadata, version, raw diagram, all vector types) is correctly stored across both databases and can be retrieved as a complete, consistent record."
           }
         ]
@@ -353,7 +353,7 @@
             "description": "Create the initial FastAPI project structure and implement the mechanism to call the C++ persistent homology algorithms developed in Task 1.",
             "dependencies": [],
             "details": "Set up a FastAPI application. Develop Python bindings using pybind11 or a subprocess-based wrapper to invoke the C++ TDA engine. Create a preliminary API endpoint to test the invocation of a C++ computation (e.g., Vietoris-Rips) and confirm that results can be passed back to the Python layer. This subtask is dependent on the completion of the C++ engine from Task 1.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit test the C++ wrapper/binding to ensure it correctly passes data and receives results. Create an integration test for the initial API endpoint to confirm it can trigger a C++ computation and handle the output."
           },
           {
@@ -364,7 +364,7 @@
               "3.1"
             ],
             "details": "Create endpoints for: 1) Uploading point cloud data. 2) Initiating an asynchronous TDA computation job, specifying the algorithm and its parameters. 3) Checking the status of a running job. 4) Retrieving computation results (e.g., persistence diagrams, Betti numbers) once complete. These endpoints will orchestrate the C++ core via the integration layer from subtask 3.1.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Implement unit tests for each endpoint's logic (validation, job queuing). Conduct integration tests to verify the end-to-end workflow from data submission to result retrieval, mocking the C++ execution time."
           },
           {
@@ -385,7 +385,7 @@
               "3.3"
             ],
             "details": "Add a Kafka client library (e.g., `kafka-python`) to the FastAPI application. Create a service or utility function that allows API endpoints to publish events. For example, when a TDA computation is completed, the API will publish the resulting features to the `tda_feature_results` topic.",
-            "status": "pending",
+            "status": "in-progress",
             "testStrategy": "Write integration tests that trigger an API endpoint and verify that the corresponding message is successfully published to the correct Kafka topic. Monitor the topic to confirm message format, content, and headers."
           },
           {
@@ -396,7 +396,7 @@
               "3.3"
             ],
             "details": "Set up a Flink development environment. Create a simple Flink job (using Python's DataStream API) that connects to the Kafka cluster as a source, reads messages from a topic (e.g., `tda_feature_results`), performs a trivial transformation (e.g., logging the message or counting features), and writes the output to a log sink. This confirms the Flink-Kafka connector is working.",
-            "status": "pending",
+            "status": "in-progress",
             "testStrategy": "Deploy and run the Flink job. Produce messages to the source Kafka topic (either manually or via the API from subtask 3.4) and verify that the Flink job processes them and produces the expected output in the configured sink (e.g., Flink's logs)."
           }
         ]
@@ -411,7 +411,7 @@
         "dependencies": [
           3
         ],
-        "status": "todo",
+        "status": "pending",
         "subtasks": [
           {
             "id": 1,
@@ -1017,7 +1017,7 @@
     ],
     "metadata": {
       "created": "2025-08-12T11:51:27.261Z",
-      "updated": "2025-08-12T22:55:22.410Z",
+      "updated": "2025-08-13T02:47:36.249Z",
       "description": "Tasks for master context"
     }
   },

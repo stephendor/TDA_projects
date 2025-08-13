@@ -6,11 +6,47 @@
 #include <shared_mutex>
 #include <condition_variable>
 #include <optional>
+#include <memory>
 
 namespace tda::core {
 
+// Forward declarations for conditional compilation
+template<typename T> class ThreadSafeVector;
+template<typename T> class ThreadSafeQueue;
+
+#ifdef TDA_ENABLE_THREAD_SAFETY
+    // Only include complex thread safety when explicitly requested
+    template<typename T>
+    using SafeVector = ThreadSafeVector<T>;
+    
+    template<typename T>
+    using SafeQueue = ThreadSafeQueue<T>;
+#else
+    // Default to standard containers for single-threaded performance
+    template<typename T>
+    using SafeVector = std::vector<T>;
+    
+    template<typename T>
+    using SafeQueue = std::queue<T>;
+#endif
+
+// Simple RAII lock helper for conditional thread safety
+class ConditionalLock {
+    std::unique_ptr<std::unique_lock<std::mutex>> lock_;
+public:
+    ConditionalLock(std::mutex* m = nullptr) 
+        : lock_(m ? std::make_unique<std::unique_lock<std::mutex>>(*m) : nullptr) {}
+    ~ConditionalLock() = default;
+    
+    // Non-copyable but moveable
+    ConditionalLock(const ConditionalLock&) = delete;
+    ConditionalLock& operator=(const ConditionalLock&) = delete;
+    ConditionalLock(ConditionalLock&&) = default;
+    ConditionalLock& operator=(ConditionalLock&&) = default;
+};
+
 /**
- * @brief Thread-safe vector implementation
+ * @brief Thread-safe vector implementation (only compiled when TDA_ENABLE_THREAD_SAFETY is defined)
  */
 template<typename T>
 class ThreadSafeVector {
@@ -94,7 +130,7 @@ public:
 };
 
 /**
- * @brief Thread-safe queue implementation
+ * @brief Thread-safe queue implementation (only compiled when TDA_ENABLE_THREAD_SAFETY is defined)
  */
 template<typename T>
 class ThreadSafeQueue {

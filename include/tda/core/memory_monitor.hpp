@@ -4,6 +4,8 @@
 #include <string>
 #include <fstream>
 #include <sstream>
+#include <chrono>
+#include <iomanip>
 
 #ifdef _WIN32
 #include <windows.h>
@@ -14,6 +16,7 @@
 #include <mach/task_info.h>
 #else
 #include <sys/resource.h>
+#include <sys/sysinfo.h>
 #include <unistd.h>
 #endif
 
@@ -25,9 +28,26 @@ namespace tda::core {
 class MemoryMonitor {
 public:
     /**
-     * @brief Get current memory usage in bytes
+     * @brief Get current memory usage in bytes (cached for performance)
      */
     static size_t getCurrentMemoryUsage() {
+        static thread_local size_t cached_usage = 0;
+        static thread_local std::chrono::steady_clock::time_point last_update;
+        
+        auto now = std::chrono::steady_clock::now();
+        // Only update every 100ms to reduce overhead
+        if (std::chrono::duration_cast<std::chrono::milliseconds>(now - last_update).count() > 100) {
+            cached_usage = getCurrentMemoryUsageImpl();
+            last_update = now;
+        }
+        return cached_usage;
+    }
+
+private:
+    /**
+     * @brief Implementation of memory usage retrieval (moved to private for caching)
+     */
+    static size_t getCurrentMemoryUsageImpl() {
         #ifdef _WIN32
             PROCESS_MEMORY_COUNTERS_EX pmc;
             if (GetProcessMemoryInfo(GetCurrentProcess(), 
@@ -46,29 +66,38 @@ public:
             }
             return 0;
         #else
-            // Linux implementation
-            std::ifstream status_file("/proc/self/status");
-            std::string line;
-            size_t memory_kb = 0;
-            
-            if (status_file.is_open()) {
-                while (std::getline(status_file, line)) {
-                    if (line.substr(0, 6) == "VmRSS:") {
-                        std::istringstream iss(line.substr(7));
-                        iss >> memory_kb;
-                        break;
-                    }
-                }
-                status_file.close();
+            // Linux - use getrusage instead of file I/O for better performance
+            struct rusage usage;
+            if (getrusage(RUSAGE_SELF, &usage) == 0) {
+                return usage.ru_maxrss * 1024; // Convert KB to bytes
             }
-            return memory_kb * 1024; // Convert KB to bytes
+            return 0;
         #endif
     }
 
+public:
+
     /**
-     * @brief Get peak memory usage in bytes
+     * @brief Get peak memory usage in bytes (cached to avoid file I/O overhead)
      */
     static size_t getPeakMemoryUsage() {
+        static thread_local size_t cached_peak = 0;
+        static thread_local std::chrono::steady_clock::time_point last_peak_update;
+        
+        auto now = std::chrono::steady_clock::now();
+        // Only update peak every 1 second to reduce overhead
+        if (std::chrono::duration_cast<std::chrono::seconds>(now - last_peak_update).count() > 1) {
+            cached_peak = getPeakMemoryUsageImpl();
+            last_peak_update = now;
+        }
+        return cached_peak;
+    }
+
+private:
+    /**
+     * @brief Implementation of peak memory usage retrieval (optimized for performance)
+     */
+    static size_t getPeakMemoryUsageImpl() {
         #ifdef _WIN32
             PROCESS_MEMORY_COUNTERS_EX pmc;
             if (GetProcessMemoryInfo(GetCurrentProcess(), 
@@ -84,29 +113,38 @@ public:
             }
             return 0;
         #else
-            // Linux implementation
-            std::ifstream status_file("/proc/self/status");
-            std::string line;
-            size_t memory_kb = 0;
-            
-            if (status_file.is_open()) {
-                while (std::getline(status_file, line)) {
-                    if (line.substr(0, 7) == "VmHWM:") {
-                        std::istringstream iss(line.substr(8));
-                        iss >> memory_kb;
-                        break;
-                    }
-                }
-                status_file.close();
+            // Linux - Use getrusage (no file I/O for better performance)
+            struct rusage usage;
+            if (getrusage(RUSAGE_SELF, &usage) == 0) {
+                return usage.ru_maxrss * 1024; // Convert KB to bytes (ru_maxrss is KB on Linux)
             }
-            return memory_kb * 1024; // Convert KB to bytes
+            return 0;
         #endif
     }
 
+public:
+
     /**
-     * @brief Get available system memory in bytes
+     * @brief Get available system memory in bytes (cached to avoid file I/O overhead)
      */
     static size_t getAvailableSystemMemory() {
+        static thread_local size_t cached_available = 0;
+        static thread_local std::chrono::steady_clock::time_point last_available_update;
+        
+        auto now = std::chrono::steady_clock::now();
+        // Only update available memory every 5 seconds (it changes slowly)
+        if (std::chrono::duration_cast<std::chrono::seconds>(now - last_available_update).count() > 5) {
+            cached_available = getAvailableSystemMemoryImpl();
+            last_available_update = now;
+        }
+        return cached_available;
+    }
+
+private:
+    /**
+     * @brief Implementation of available system memory retrieval
+     */
+    static size_t getAvailableSystemMemoryImpl() {
         #ifdef _WIN32
             MEMORYSTATUSEX memInfo;
             memInfo.dwLength = sizeof(MEMORYSTATUSEX);
@@ -123,24 +161,16 @@ public:
             }
             return 0;
         #else
-            // Linux implementation
-            std::ifstream meminfo("/proc/meminfo");
-            std::string line;
-            size_t available_kb = 0;
-            
-            if (meminfo.is_open()) {
-                while (std::getline(meminfo, line)) {
-                    if (line.substr(0, 13) == "MemAvailable:") {
-                        std::istringstream iss(line.substr(14));
-                        iss >> available_kb;
-                        break;
-                    }
-                }
-                meminfo.close();
+            // Linux - Use system call instead of file I/O for better performance
+            struct sysinfo si;
+            if (sysinfo(&si) == 0) {
+                return si.freeram * si.mem_unit;
             }
-            return available_kb * 1024; // Convert KB to bytes
+            return 0;
         #endif
     }
+
+public:
 
     /**
      * @brief Check if enough memory is available

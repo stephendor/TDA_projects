@@ -1,370 +1,422 @@
 cmake_minimum_required(VERSION 3.20)
 
-project(TDA_VectorStack VERSION 1.0.0 LANGUAGES CXX)
+project(TDA_VectorStack 
+    VERSION 1.0.0 
+    LANGUAGES CXX
+    DESCRIPTION "High-Performance Topological Data Analysis Platform"
+    HOMEPAGE_URL "https://github.com/your-org/TDA_projects"
+)
+
+# =============================================================================
+# PROJECT CONFIGURATION
+# =============================================================================
 
 # Set C++23 standard with strict requirements
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+# Build type configuration
+if(NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type" FORCE)
+endif()
+
+# Project options
+option(TDA_BUILD_TESTS "Build test executables" ON)
+option(TDA_BUILD_BENCHMARKS "Build benchmark executables" ON)
+option(TDA_BUILD_PYTHON "Build Python bindings" ON)
+option(TDA_BUILD_EXAMPLES "Build example programs" ON)
+option(TDA_ENABLE_SIMD "Enable SIMD optimizations" ON)
+option(TDA_ENABLE_OPENMP "Enable OpenMP parallelization" ON)
+option(TDA_ENABLE_CUDA "Enable CUDA support" OFF)
+
+# =============================================================================
+# COMPILER CONFIGURATION
+# =============================================================================
+
 # Compiler-specific optimizations
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -march=native -mtune=native -ffast-math -flto")
-    set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O0 -g3 -fsanitize=address,undefined")
-    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -DNDEBUG")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wpedantic")
+    set(CMAKE_CXX_FLAGS_RELEASE "-O3 -march=native -mtune=native -ffast-math -flto -DNDEBUG")
+    set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g3 -fsanitize=address,undefined -fno-omit-frame-pointer")
 elseif(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -march=native -mtune=native -ffast-math -flto")
-    set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O0 -g3 -fsanitize=address,undefined")
-    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -DNDEBUG")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wpedantic")
+    set(CMAKE_CXX_FLAGS_RELEASE "-O3 -march=native -mtune=native -ffast-math -flto -DNDEBUG")
+    set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g3 -fsanitize=address,undefined -fno-omit-frame-pointer")
 endif()
 
-# Find required packages
-find_package(Python3 COMPONENTS Interpreter Development REQUIRED)
-find_package(PkgConfig REQUIRED)
+# SIMD support detection
+if(TDA_ENABLE_SIMD)
+    include(CheckCXXCompilerFlag)
+    check_cxx_compiler_flag("-mavx2" COMPILER_SUPPORTS_AVX2)
+    check_cxx_compiler_flag("-mfma" COMPILER_SUPPORTS_FMA)
+    check_cxx_compiler_flag("-msse4.2" COMPILER_SUPPORTS_SSE42)
+    
+    if(COMPILER_SUPPORTS_AVX2)
+        add_compile_definitions(TDA_ENABLE_AVX2)
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mavx2")
+    endif()
+    if(COMPILER_SUPPORTS_FMA)
+        add_compile_definitions(TDA_ENABLE_FMA)
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mfma")
+    endif()
+    if(COMPILER_SUPPORTS_SSE42)
+        add_compile_definitions(TDA_ENABLE_SSE42)
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -msse4.2")
+    endif()
+endif()
 
-# Set pybind11 path for virtual environment
-set(pybind11_DIR "${CMAKE_CURRENT_SOURCE_DIR}/.venv/lib/python3.13/site-packages/pybind11/share/cmake/pybind11")
+# =============================================================================
+# DEPENDENCIES
+# =============================================================================
 
-# Core dependencies
-find_package(Eigen3 REQUIRED)
-find_package(OpenMP)
+# Python and pybind11 (if building Python bindings)
+if(TDA_BUILD_PYTHON)
+    find_package(Python3 COMPONENTS Interpreter Development REQUIRED)
+    set(pybind11_DIR "${CMAKE_CURRENT_SOURCE_DIR}/.venv/lib/python3.13/site-packages/pybind11/share/cmake/pybind11")
+    find_package(pybind11 REQUIRED)
+endif()
 
-# TDA Libraries - GUDHI is header-only
-if(EXISTS "/usr/include/gudhi")
+# Eigen3 - Robust multi-method detection for maximum compatibility
+set(EIGEN3_FOUND FALSE)
+
+# Method 1: Try modern CMake find_package
+find_package(Eigen3 3.4 QUIET NO_MODULE)
+if(TARGET Eigen3::Eigen)
+    set(EIGEN3_FOUND TRUE)
+    message(STATUS "Found Eigen3 via CMake: ${Eigen3_VERSION}")
+endif()
+
+# Method 2: Try PkgConfig as fallback
+if(NOT EIGEN3_FOUND)
+    find_package(PkgConfig QUIET)
+    if(PkgConfig_FOUND)
+        pkg_check_modules(EIGEN3 QUIET eigen3>=3.4)
+        if(EIGEN3_FOUND)
+            add_library(Eigen3::Eigen INTERFACE IMPORTED)
+            target_include_directories(Eigen3::Eigen INTERFACE ${EIGEN3_INCLUDE_DIRS})
+            target_compile_options(Eigen3::Eigen INTERFACE ${EIGEN3_CFLAGS_OTHER})
+            message(STATUS "Found Eigen3 via PkgConfig: ${EIGEN3_VERSION}")
+        endif()
+    endif()
+endif()
+
+# Method 3: Manual search in standard locations
+if(NOT EIGEN3_FOUND)
+    find_path(EIGEN3_INCLUDE_DIR
+        NAMES Eigen/Core
+        PATHS 
+            /usr/include/eigen3
+            /usr/local/include/eigen3
+            /opt/homebrew/include/eigen3  # macOS Homebrew
+            /opt/local/include/eigen3     # macOS MacPorts
+            /usr/include
+            /usr/local/include
+        PATH_SUFFIXES eigen3
+    )
+    
+    if(EIGEN3_INCLUDE_DIR)
+        # Verify Eigen works by testing a simple compile
+        include(CheckCXXSourceCompiles)
+        set(CMAKE_REQUIRED_INCLUDES ${EIGEN3_INCLUDE_DIR})
+        check_cxx_source_compiles(
+            "#include <Eigen/Core>\nint main() { Eigen::Vector3d v; return 0; }"
+            EIGEN3_COMPILES
+        )
+        
+        if(EIGEN3_COMPILES)
+            add_library(Eigen3::Eigen INTERFACE IMPORTED)
+            target_include_directories(Eigen3::Eigen INTERFACE ${EIGEN3_INCLUDE_DIR})
+            set(EIGEN3_FOUND TRUE)
+            message(STATUS "Found Eigen3 via manual search: ${EIGEN3_INCLUDE_DIR}")
+        else()
+            message(WARNING "Found Eigen3 headers at ${EIGEN3_INCLUDE_DIR} but they don't compile")
+        endif()
+    endif()
+endif()
+
+# Method 4: Try to install Eigen3 development headers if not found
+if(NOT EIGEN3_FOUND)
+    message(WARNING "Eigen3 not found. Please install Eigen3 development headers:")
+    message(WARNING "  Ubuntu/Debian: sudo apt-get install libeigen3-dev")
+    message(WARNING "  Red Hat/CentOS: sudo yum install eigen3-devel")
+    message(WARNING "  macOS: brew install eigen")
+    message(FATAL_ERROR "Eigen3 3.4+ is required but not found")
+endif()
+
+# OpenMP
+if(TDA_ENABLE_OPENMP)
+    find_package(OpenMP REQUIRED)
+endif()
+
+# Threading Building Blocks (TBB) - Required by GUDHI
+find_package(TBB QUIET)
+if(NOT TBB_FOUND)
+    find_package(PkgConfig QUIET)
+    if(PkgConfig_FOUND)
+        pkg_check_modules(TBB QUIET tbb)
+    endif()
+    
+    if(NOT TBB_FOUND)
+        find_path(TBB_INCLUDE_DIR tbb/tbb.h
+            PATHS /usr/include /usr/local/include /opt/intel/oneapi/tbb/latest/include
+        )
+        find_library(TBB_LIBRARY tbb
+            PATHS /usr/lib /usr/local/lib /opt/intel/oneapi/tbb/latest/lib/intel64/gcc4.8
+        )
+        
+        if(TBB_INCLUDE_DIR AND TBB_LIBRARY)
+            set(TBB_FOUND TRUE)
+            add_library(TBB::tbb UNKNOWN IMPORTED)
+            set_target_properties(TBB::tbb PROPERTIES
+                IMPORTED_LOCATION "${TBB_LIBRARY}"
+                INTERFACE_INCLUDE_DIRECTORIES "${TBB_INCLUDE_DIR}"
+            )
+        endif()
+    endif()
+endif()
+
+# GUDHI - Comprehensive detection
+find_path(GUDHI_INCLUDE_DIR 
+    NAMES gudhi/Simplex_tree.h
+    PATHS /usr/include /usr/local/include /opt/gudhi/include
+    PATH_SUFFIXES gudhi
+)
+
+if(GUDHI_INCLUDE_DIR)
     set(GUDHI_FOUND TRUE)
-    set(GUDHI_INCLUDE_DIRS "/usr/include")
-    message(STATUS "GUDHI found: /usr/include/gudhi")
+    message(STATUS "GUDHI found: ${GUDHI_INCLUDE_DIR}")
 else()
-    message(FATAL_ERROR "GUDHI headers not found. Please install libgudhi-dev")
+    message(FATAL_ERROR "GUDHI not found. Please install GUDHI or specify GUDHI_INCLUDE_DIR")
 endif()
 
-# Add Eigen3 include path for GUDHI compatibility
-include_directories(${EIGEN3_INCLUDE_DIRS})
-
-# Optional CUDA support for GPU acceleration
-option(ENABLE_CUDA "Enable CUDA acceleration" OFF)
-if(ENABLE_CUDA)
-    find_package(CUDA REQUIRED)
-    enable_language(CUDA)
-    set(CMAKE_CUDA_STANDARD 17)
-    set(CMAKE_CUDA_STANDARD_REQUIRED ON)
-endif()
-
-# Find optional mathematical libraries
+# High-precision arithmetic libraries
 find_package(PkgConfig QUIET)
 if(PkgConfig_FOUND)
-    pkg_check_modules(GMP QUIET gmp)
-    pkg_check_modules(MPFR QUIET mpfr)
+    pkg_check_modules(GMP gmp)
+    pkg_check_modules(MPFR mpfr)
 endif()
 
-# Try to find GMP and MPFR using find_library as fallback
-if(NOT GMP_FOUND)
-    find_library(GMP_LIBRARIES NAMES gmp)
-    if(GMP_LIBRARIES)
-        set(GMP_FOUND TRUE)
-        set(GMP_LIBRARIES ${GMP_LIBRARIES})
-    endif()
-endif()
-
-if(NOT MPFR_FOUND)
-    find_library(MPFR_LIBRARIES NAMES mpfr)
-    if(MPFR_LIBRARIES)
-        set(MPFR_FOUND TRUE)
-        set(MPFR_LIBRARIES ${MPFR_LIBRARIES})
-    endif()
-endif()
-
-# Set compile definitions based on library availability
 if(GMP_FOUND AND MPFR_FOUND)
-    add_definitions(-DHAVE_GMP_MPFR)
     message(STATUS "Found GMP and MPFR - enabling high-precision arithmetic")
-else()
-    message(STATUS "GMP and MPFR not found - using standard precision arithmetic")
-    add_definitions(-DUSE_STANDARD_PRECISION)
+    add_compile_definitions(TDA_USE_HIGH_PRECISION)
 endif()
 
-# Set output directories
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
-set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+# =============================================================================
+# TARGET DEFINITIONS
+# =============================================================================
 
 # Include directories
-include_directories(
-    ${CMAKE_CURRENT_SOURCE_DIR}/include
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/cpp
-    ${EIGEN3_INCLUDE_DIRS}
-)
+include_directories(include)
+include_directories(${GUDHI_INCLUDE_DIR})
 
-# C++ Core Library - Foundation for TDA operations
-add_library(tda_core SHARED
-    src/cpp/core/types.cpp
-    src/cpp/core/point_cloud.cpp
-    src/cpp/core/simplex.cpp
+# Core libraries
+add_library(tda_core STATIC
+    src/cpp/core/performance_profiler.cpp
     src/cpp/core/filtration.cpp
     src/cpp/core/persistent_homology.cpp
-    src/cpp/core/performance_profiler.cpp
+    src/cpp/core/point_cloud.cpp
+    src/cpp/core/simple_core.cpp
+    src/cpp/core/simplex.cpp
+    src/cpp/core/types.cpp
 )
 
-target_compile_features(tda_core PRIVATE cxx_std_23)
-target_link_libraries(tda_core 
-    ${EIGEN3_LIBRARIES}
-    OpenMP::OpenMP_CXX
-)
-
-target_include_directories(tda_core PRIVATE ${GUDHI_INCLUDE_DIRS})
-
-# Vector Stack Library - Main focus of the project
-add_library(tda_vector_stack SHARED
+add_library(tda_vector_stack STATIC
     src/cpp/vector_stack/vector_stack.cpp
     src/cpp/vector_stack/persistence_diagram.cpp
     src/cpp/vector_stack/barcode.cpp
-    src/cpp/vector_stack/persistence_utils.cpp
     src/cpp/vector_stack/betti_numbers.cpp
+    src/cpp/vector_stack/persistence_utils.cpp
     src/cpp/vector_stack/vector_operations.cpp
 )
 
-target_compile_features(tda_vector_stack PRIVATE cxx_std_23)
-target_link_libraries(tda_vector_stack 
-    tda_core
-    ${EIGEN3_LIBRARIES}
-    OpenMP::OpenMP_CXX
-)
-
-# TDA Algorithms Library
-add_library(tda_algorithms
+add_library(tda_algorithms STATIC
+    src/cpp/algorithms/vietoris_rips.cpp
+    src/cpp/algorithms/vietoris_rips_main.cpp
+    src/cpp/algorithms/alpha_complex.cpp
+    src/cpp/algorithms/sparse_rips.cpp
+    src/cpp/algorithms/witness_complex.cpp
+    src/cpp/algorithms/adaptive_sampling.cpp
     src/cpp/algorithms/cech_complex.cpp
     src/cpp/algorithms/dtm_filtration.cpp
-    src/cpp/algorithms/vietoris_rips.cpp
-    src/cpp/algorithms/alpha_complex.cpp
-    src/cpp/algorithms/vietoris_rips_main.cpp
 )
 
-target_link_libraries(tda_algorithms
-    tda_core
-    tda_spatial
-    tda_utils
-    Eigen3::Eigen
-    ${GMP_LIBRARIES}
-    ${MPFR_LIBRARIES}
-)
-
-target_include_directories(tda_algorithms PRIVATE ${GUDHI_INCLUDE_DIRS})
-
-# TDA Spatial Library
-add_library(tda_spatial
-    src/cpp/spatial/spatial_factory.cpp
+add_library(tda_spatial STATIC
     src/cpp/spatial/kdtree.cpp
+    src/cpp/spatial/balltree.cpp
+    src/cpp/spatial/spatial_factory.cpp
 )
 
-target_link_libraries(tda_spatial
-    tda_core
-    tda_utils
-    Eigen3::Eigen
-    OpenMP::OpenMP_CXX
-)
-
-# TDA Utils Library
-add_library(tda_utils
+add_library(tda_utils STATIC
     src/cpp/utils/simd_utils.cpp
+    src/cpp/utils/memory_pool.cpp
+    src/cpp/utils/performance_monitor.cpp
+    src/cpp/utils/distance_matrix.cpp
 )
 
-target_link_libraries(tda_utils
-    tda_core
-    Eigen3::Eigen
-)
+# Main platform executable
+add_executable(tda_platform src/cpp/tda_platform.cpp)
 
-# Main TDA Platform Library
-add_library(tda_platform SHARED
-    src/cpp/tda_platform.cpp
-)
+# Python bindings (if enabled)
+if(TDA_BUILD_PYTHON)
+    pybind11_add_module(tda_python
+        src/python/tda_module.cpp
+        src/python/core_bindings.cpp
+        src/python/algorithms_bindings.cpp
+        src/python/vector_stack_bindings.cpp
+    )
+endif()
 
-target_compile_features(tda_platform PRIVATE cxx_std_23)
-target_link_libraries(tda_platform 
-    tda_core
-    tda_vector_stack
-    tda_algorithms
-    tda_utils
-    tda_spatial
-    ${EIGEN3_LIBRARIES}
-    OpenMP::OpenMP_CXX
-)
+# =============================================================================
+# TARGET PROPERTIES AND LINKING
+# =============================================================================
 
-# Python bindings using pybind11
-find_package(pybind11 REQUIRED)
-pybind11_add_module(tda_python 
-    src/python/tda_module.cpp
-    src/python/core_bindings.cpp
-    src/python/vector_stack_bindings.cpp
-    src/python/algorithms_bindings.cpp
-)
+# Set target properties for all libraries
+set(TDA_LIBRARIES tda_core tda_vector_stack tda_algorithms tda_spatial tda_utils)
 
-target_link_libraries(tda_python PRIVATE 
-    tda_platform
-    pybind11::module
-)
+foreach(lib ${TDA_LIBRARIES})
+    target_link_libraries(${lib} PUBLIC Eigen3::Eigen)
+    if(TDA_ENABLE_OPENMP AND OpenMP_CXX_FOUND)
+        target_link_libraries(${lib} PUBLIC OpenMP::OpenMP_CXX)
+    endif()
+    if(TBB_FOUND)
+        target_link_libraries(${lib} PUBLIC TBB::tbb)
+    endif()
+    if(GMP_FOUND)
+        target_link_libraries(${lib} PUBLIC ${GMP_LIBRARIES})
+        target_include_directories(${lib} PUBLIC ${GMP_INCLUDE_DIRS})
+    endif()
+    if(MPFR_FOUND)
+        target_link_libraries(${lib} PUBLIC ${MPFR_LIBRARIES})
+        target_include_directories(${lib} PUBLIC ${MPFR_INCLUDE_DIRS})
+    endif()
+endforeach()
 
-# Test suite
-enable_testing()
-add_subdirectory(tests)
+# Platform executable linking
+target_link_libraries(tda_platform ${TDA_LIBRARIES})
 
-# Performance benchmarks
-add_executable(tda_benchmarks
-    src/cpp/benchmarks/vector_stack_benchmarks.cpp
-    src/cpp/benchmarks/algorithm_benchmarks.cpp
-)
+# Python module linking (if enabled)
+if(TDA_BUILD_PYTHON)
+    target_link_libraries(tda_python PRIVATE ${TDA_LIBRARIES})
+endif()
 
-target_link_libraries(tda_benchmarks 
-    tda_platform
-    ${EIGEN3_LIBRARIES}
-    OpenMP::OpenMP_CXX
-)
+# =============================================================================
+# TESTS AND BENCHMARKS
+# =============================================================================
 
-# Test executable for SIMD utilities
-add_executable(test_simd
-    test_simd.cpp
-)
+if(TDA_BUILD_TESTS)
+    enable_testing()
+    
+    # Core C++ tests
+    add_subdirectory(tests/cpp)
+    
+    # Individual performance tests
+    if(TDA_BUILD_BENCHMARKS)
+        set(PERFORMANCE_TESTS
+            controlled_performance_test
+            test_balltree_performance
+            test_distance_matrix_performance
+            test_cpp23_working_features
+        )
+        
+        foreach(test ${PERFORMANCE_TESTS})
+            add_executable(${test} ${test}.cpp)
+            target_link_libraries(${test} ${TDA_LIBRARIES})
+        endforeach()
+    endif()
+endif()
 
-target_link_libraries(test_simd 
-    tda_utils
-    tda_core
-    ${EIGEN3_LIBRARIES}
-    OpenMP::OpenMP_CXX
-)
+# =============================================================================
+# EXAMPLES
+# =============================================================================
 
-# Test executable for Vietoris-Rips
-add_executable(test_vietoris_rips
-    test_vietoris_rips.cpp
-)
+if(TDA_BUILD_EXAMPLES)
+    add_executable(vietoris_rips_demo examples/vietoris_rips_demo.cpp)
+    target_link_libraries(vietoris_rips_demo ${TDA_LIBRARIES})
+endif()
 
-target_link_libraries(test_vietoris_rips 
-    tda_algorithms
-    tda_core
-    tda_utils
-    tda_vector_stack
-    ${EIGEN3_LIBRARIES}
-    OpenMP::OpenMP_CXX
-)
+# =============================================================================
+# INSTALLATION
+# =============================================================================
 
-# Test executable for Alpha Complex
-add_executable(test_alpha_complex
-    test_alpha_complex.cpp
-)
-
-target_link_libraries(test_alpha_complex 
-    tda_algorithms
-    tda_core
-    tda_utils
-    tda_vector_stack
-    ${EIGEN3_LIBRARIES}
-    OpenMP::OpenMP_CXX
-    gmp
-    mpfr
-)
-
-# Test executable for Spatial Index
-add_executable(test_spatial_index
-    test_spatial_index.cpp
-)
-
-target_link_libraries(test_spatial_index 
-    tda_spatial
-    tda_core
-    ${EIGEN3_LIBRARIES}
-    OpenMP::OpenMP_CXX
-)
-
-# Test executable for DTM Filtration
-add_executable(test_dtm_filtration
-    test_dtm_filtration.cpp
-)
-
-target_link_libraries(test_dtm_filtration 
-    tda_algorithms
-    tda_spatial
-    tda_core
-    ${EIGEN3_LIBRARIES}
-    OpenMP::OpenMP_CXX
-    gmp
-    mpfr
-)
-
-# Test executable for Čech Complex
-add_executable(test_cech_complex
-    test_cech_complex.cpp
-)
-
-target_link_libraries(test_cech_complex 
-    tda_algorithms
-    tda_spatial
-    tda_core
-    ${EIGEN3_LIBRARIES}
-    OpenMP::OpenMP_CXX
-    gmp
-    mpfr
-)
-
-# Test executable for Persistence Structures
-add_executable(test_persistence_structures
-    test_persistence_structures.cpp
-)
-
-target_link_libraries(test_persistence_structures 
-    tda_vector_stack
-    tda_core
-    ${EIGEN3_LIBRARIES}
-    OpenMP::OpenMP_CXX
-)
-
-# Performance benchmark executable
-add_executable(test_performance_benchmarks
-    test_performance_benchmarks.cpp
-)
-
-target_link_libraries(test_performance_benchmarks 
-    tda_algorithms
-    tda_vector_stack
-    tda_core
-    ${EIGEN3_LIBRARIES}
-    OpenMP::OpenMP_CXX
-)
-
-# Installation
-install(TARGETS 
-    tda_core tda_vector_stack tda_algorithms tda_utils tda_spatial tda_platform
+# Install libraries
+install(TARGETS ${TDA_LIBRARIES} tda_platform
+    EXPORT TDATargets
     LIBRARY DESTINATION lib
     ARCHIVE DESTINATION lib
+    RUNTIME DESTINATION bin
 )
 
-install(TARGETS tda_python
-    LIBRARY DESTINATION lib/python3/site-packages
-)
+# Install Python module (if built)
+if(TDA_BUILD_PYTHON)
+    install(TARGETS tda_python
+        LIBRARY DESTINATION lib/python3/site-packages
+    )
+endif()
 
+# Install headers
 install(DIRECTORY include/ DESTINATION include)
 
-# Documentation
+# Install CMake config files
+install(EXPORT TDATargets
+    FILE TDATargets.cmake
+    NAMESPACE TDA::
+    DESTINATION lib/cmake/TDA
+)
+
+include(CMakePackageConfigHelpers)
+write_basic_package_version_file(
+    TDAConfigVersion.cmake
+    VERSION ${PACKAGE_VERSION}
+    COMPATIBILITY AnyNewerVersion
+)
+
+install(FILES
+    "${CMAKE_CURRENT_BINARY_DIR}/TDAConfigVersion.cmake"
+    DESTINATION lib/cmake/TDA
+)
+
+# =============================================================================
+# DOCUMENTATION
+# =============================================================================
+
 find_package(Doxygen)
 if(DOXYGEN_FOUND)
     set(DOXYGEN_IN ${CMAKE_CURRENT_SOURCE_DIR}/docs/Doxyfile.in)
     set(DOXYGEN_OUT ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile)
     
-    configure_file(${DOXYGEN_IN} ${DOXYGEN_OUT} @ONLY)
-    
-    add_custom_target(docs ALL
-        COMMAND ${DOXYGEN_EXECUTABLE} ${DOXYGEN_OUT}
-        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-        COMMENT "Generating API documentation with Doxygen"
-        VERBATIM
-    )
+    if(EXISTS ${DOXYGEN_IN})
+        configure_file(${DOXYGEN_IN} ${DOXYGEN_OUT} @ONLY)
+        
+        add_custom_target(docs ALL
+            COMMAND ${DOXYGEN_EXECUTABLE} ${DOXYGEN_OUT}
+            WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+            COMMENT "Generating API documentation with Doxygen"
+            VERBATIM
+        )
+    else()
+        message(STATUS "Doxygen configuration file not found at ${DOXYGEN_IN}")
+    endif()
+else()
+    message(STATUS "Doxygen not found - documentation will not be generated")
 endif()
 
-# Print configuration summary
+# =============================================================================
+# CONFIGURATION SUMMARY
+# =============================================================================
+
 message(STATUS "TDA Vector Stack Configuration:")
 message(STATUS "  C++ Standard: ${CMAKE_CXX_STANDARD}")
 message(STATUS "  Compiler: ${CMAKE_CXX_COMPILER_ID} ${CMAKE_CXX_COMPILER_VERSION}")
 message(STATUS "  Build Type: ${CMAKE_BUILD_TYPE}")
-message(STATUS "  CUDA Support: ${ENABLE_CUDA}")
-message(STATUS "  OpenMP Support: ${OpenMP_CXX_FOUND}")
-message(STATUS "  Eigen3: ${EIGEN3_VERSION}")
+message(STATUS "  CUDA Support: ${TDA_ENABLE_CUDA}")
+message(STATUS "  OpenMP Support: ${TDA_ENABLE_OPENMP}")
+message(STATUS "  SIMD Support: ${TDA_ENABLE_SIMD}")
+message(STATUS "  Eigen3: ${Eigen3_VERSION}")
 message(STATUS "  GUDHI: Header-only library found")
+message(STATUS "  TBB: ${TBB_FOUND}")
 message(STATUS "  Python: ${Python3_VERSION}")
-
+message(STATUS "  Build Tests: ${TDA_BUILD_TESTS}")
+message(STATUS "  Build Benchmarks: ${TDA_BUILD_BENCHMARKS}")
+message(STATUS "  Build Python: ${TDA_BUILD_PYTHON}")
+message(STATUS "  Build Examples: ${TDA_BUILD_EXAMPLES}")

@@ -13,6 +13,16 @@ namespace tda::utils {
  */
 class SIMDUtils {
 public:
+    // Check CPU capabilities at runtime
+    struct CPUFeatures {
+        bool has_avx = false;
+        bool has_avx2 = false; 
+        bool has_fma = false;
+        bool has_avx512 = false;
+    };
+    
+    static CPUFeatures detectCPUFeatures();
+    
     /**
      * @brief Check if SIMD instructions are available
      * @return True if AVX2 is supported, false otherwise
@@ -33,6 +43,17 @@ public:
      */
     static double euclideanDistance(const std::vector<double>& a, 
                                    const std::vector<double>& b);
+    
+    /**
+     * @brief Vectorized Euclidean distance computation (pointer interface)
+     * @param p1 First point data pointer
+     * @param p2 Second point data pointer
+     * @param dimensions Number of dimensions
+     * @return Euclidean distance between points
+     */
+    static double vectorizedEuclideanDistance(
+        const double* p1, const double* p2, size_t dimensions
+    );
     
     /**
      * @brief Vectorized batch distance computation
@@ -96,6 +117,31 @@ public:
      */
     static std::vector<double> scalarVectorMultiply(double scalar,
                                                    const std::vector<double>& vector);
+    
+    // Vectorized operations for different data types
+    static void vectorizedAdd(
+        const double* a, const double* b, double* result, size_t count
+    );
+    
+    static void vectorizedSubtract(
+        const double* a, const double* b, double* result, size_t count  
+    );
+    
+    static void vectorizedMultiply(
+        const double* a, const double* b, double* result, size_t count
+    );
+    
+    static void vectorizedDistanceMatrix(
+        const std::vector<std::vector<double>>& points,
+        double* distance_matrix
+    );
+    
+    // Dot product and norms
+    static double vectorizedDotProduct(
+        const double* a, const double* b, size_t count
+    );
+    
+    static double vectorizedL2Norm(const double* a, size_t count);
 
 private:
     /**

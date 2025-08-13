@@ -1,0 +1,289 @@
+# Apache Flink Configuration for TDA Platform
+# Optimized for topological data analysis computation workloads
+# Version: 1.18
+# Environment: Production-ready with development overrides
+
+# ==============================================================================
+# CLUSTER CONFIGURATION
+# ==============================================================================
+
+# JobManager Configuration
+jobmanager.rpc.address: flink-jobmanager
+jobmanager.rpc.port: 6123
+jobmanager.bind-host: 0.0.0.0
+jobmanager.memory.process.size: 2048m
+jobmanager.memory.jvm-overhead.fraction: 0.1
+jobmanager.memory.jvm-metaspace.size: 256m
+jobmanager.memory.heap.size: 1536m
+
+# TaskManager Configuration - Optimized for TDA computations
+taskmanager.memory.process.size: 4096m
+taskmanager.memory.framework.heap.size: 256m
+taskmanager.memory.task.heap.size: 2560m
+taskmanager.memory.managed.size: 1024m
+taskmanager.memory.network.fraction: 0.15
+taskmanager.memory.network.min: 256m
+taskmanager.memory.network.max: 512m
+taskmanager.memory.jvm-overhead.fraction: 0.1
+
+# Parallelism and Slots - Optimized for TDA workloads
+taskmanager.numberOfTaskSlots: 8
+parallelism.default: 4
+taskmanager.cpu.cores: 4.0
+
+# Network Configuration
+taskmanager.network.memory.buffers-per-channel: 4
+taskmanager.network.memory.floating-buffers-per-gate: 16
+taskmanager.network.memory.buffer-debloat.enabled: true
+taskmanager.network.memory.buffer-debloat.target: 1s
+
+# ==============================================================================
+# HIGH AVAILABILITY & RECOVERY
+# ==============================================================================
+
+# Enable high availability for production
+high-availability: zookeeper
+high-availability.zookeeper.quorum: zookeeper:2181
+high-availability.storageDir: s3://tda-flink-ha/recovery
+high-availability.cluster-id: tda-cluster
+
+# Recovery configuration
+restart-strategy: exponential-delay
+restart-strategy.exponential-delay.initial-backoff: 10s
+restart-strategy.exponential-delay.max-backoff: 5min
+restart-strategy.exponential-delay.backoff-multiplier: 2.0
+restart-strategy.exponential-delay.reset-backoff-threshold: 10min
+restart-strategy.exponential-delay.jitter-factor: 0.1
+
+# ==============================================================================
+# STATE BACKENDS & CHECKPOINTING
+# ==============================================================================
+
+# State backend configuration - RocksDB for TDA computations
+state.backend: rocksdb
+state.backend.rocksdb.predefined-options: SPINNING_DISK_OPTIMIZED_HIGH_MEM
+state.backend.rocksdb.checkpoint.transfer.thread.num: 4
+state.backend.rocksdb.localdir: /tmp/flink-rocksdb
+state.backend.rocksdb.options-factory: org.apache.flink.contrib.streaming.state.DefaultConfigurableOptionsFactory
+state.backend.rocksdb.memory.managed: true
+state.backend.rocksdb.memory.fixed-per-slot: 512m
+
+# Checkpoint configuration
+state.checkpoints.dir: s3://tda-flink-checkpoints/
+state.savepoints.dir: s3://tda-flink-savepoints/
+state.checkpoint-storage: filesystem
+
+# Checkpointing behavior - Tuned for TDA streaming
+execution.checkpointing.interval: 30s
+execution.checkpointing.min-pause: 15s
+execution.checkpointing.timeout: 300s
+execution.checkpointing.max-concurrent-checkpoints: 1
+execution.checkpointing.externalized-checkpoint-retention: RETAIN_ON_CANCELLATION
+execution.checkpointing.tolerable-failed-checkpoints: 3
+execution.checkpointing.unaligned: true
+execution.checkpointing.alignment-timeout: 30s
+
+# ==============================================================================
+# KAFKA INTEGRATION
+# ==============================================================================
+
+# Kafka connector configuration
+connector.kafka.bootstrap.servers: kafka1:9092,kafka2:9093,kafka3:9094
+connector.kafka.group.id.prefix: flink-tda-
+connector.kafka.auto.offset.reset: earliest
+connector.kafka.enable.auto.commit: false
+connector.kafka.max.poll.records: 1000
+connector.kafka.fetch.max.bytes: 52428800
+connector.kafka.receive.buffer.bytes: 262144
+connector.kafka.send.buffer.bytes: 262144
+connector.kafka.session.timeout.ms: 45000
+connector.kafka.heartbeat.interval.ms: 15000
+connector.kafka.max.poll.interval.ms: 300000
+
+# Schema Registry integration
+connector.kafka.schema-registry.url: http://schema-registry:8081
+connector.kafka.schema-registry.subject: tda-events-value
+connector.kafka.schema-registry.cache.capacity: 1000
+connector.kafka.schema-registry.cache.ttl: 300000
+
+# Producer configuration for exactly-once processing
+connector.kafka.producer.acks: all
+connector.kafka.producer.retries: 2147483647
+connector.kafka.producer.max.in.flight.requests.per.connection: 1
+connector.kafka.producer.enable.idempotence: true
+connector.kafka.producer.compression.type: lz4
+connector.kafka.producer.batch.size: 65536
+connector.kafka.producer.linger.ms: 100
+
+# ==============================================================================
+# WATERMARKS & EVENT TIME
+# ==============================================================================
+
+# Watermark configuration for TDA streaming
+pipeline.auto-watermark-interval: 1s
+pipeline.object-reuse: true
+pipeline.operator-chaining: true
+pipeline.closure-cleaner: TOP_LEVEL
+
+# Time characteristic
+pipeline.time-characteristic: EventTime
+pipeline.watermark-alignment.allow-unaligned-source-splits: true
+
+# ==============================================================================
+# WEB UI & REST API
+# ==============================================================================
+
+# Web UI configuration
+web.submit.enable: true
+web.upload.dir: /opt/flink/usrlib
+web.tmp.dir: /tmp/flink-web
+web.log.path: /opt/flink/log
+web.timeout: 60000
+web.refresh-interval: 3000
+web.backpressure.refresh-interval: 60000
+web.checkpoints.history: 20
+web.history: 10
+
+# REST API configuration  
+rest.address: 0.0.0.0
+rest.port: 8081
+rest.bind-address: 0.0.0.0
+rest.bind-port: 8081
+rest.flamegraph.enabled: true
+rest.profiling.enabled: true
+
+# ==============================================================================
+# METRICS & MONITORING
+# ==============================================================================
+
+# Metrics configuration
+metrics.reporters: prom
+metrics.reporter.prom.class: org.apache.flink.metrics.prometheus.PrometheusReporter
+metrics.reporter.prom.host: 0.0.0.0
+metrics.reporter.prom.port: 9249
+metrics.reporter.prom.filterLabelValueCharacters: false
+
+# Metric groups for TDA-specific monitoring
+metrics.scope.jm: tda.jobmanager
+metrics.scope.jm.job: tda.jobmanager.job
+metrics.scope.tm: tda.taskmanager
+metrics.scope.tm.job: tda.taskmanager.job
+metrics.scope.task: tda.task
+metrics.scope.operator: tda.operator
+
+# System metrics
+metrics.system-resource: true
+metrics.system-resource-probing-interval: 10000
+
+# Latency tracking for TDA operations
+metrics.latency.interval: 30000
+metrics.latency.granularity: operator
+metrics.latency.history-size: 128
+
+# ==============================================================================
+# SECURITY CONFIGURATION
+# ==============================================================================
+
+# SSL/TLS configuration
+security.ssl.enabled: false
+security.ssl.protocol: TLSv1.2
+security.ssl.algorithms: TLS_RSA_WITH_AES_128_CBC_SHA256,TLS_RSA_WITH_AES_256_CBC_SHA256
+
+# Kerberos configuration (disabled by default)
+security.kerberos.login.use-ticket-cache: false
+security.kerberos.login.keytab: /opt/flink/conf/flink.keytab
+security.kerberos.login.principal: flink@REALM
+
+# ==============================================================================
+# COMPILER & EXECUTION
+# ==============================================================================
+
+# Execution configuration
+execution.runtime-mode: STREAMING
+execution.target: remote
+execution.shutdown-on-attached-exit: false
+
+# Compiler optimizations for TDA
+table.optimizer.join-reorder-enabled: true
+table.optimizer.predicate-pushdown-enabled: true
+table.optimizer.projection-pushdown-enabled: true
+table.optimizer.source.predicate-pushdown-enabled: true
+
+# Memory management
+taskmanager.memory.segment-size: 32kb
+taskmanager.memory.network.sort.enable: true
+
+# ==============================================================================
+# TDA-SPECIFIC OPTIMIZATIONS
+# ==============================================================================
+
+# Custom configuration for TDA computations
+tda.computation.timeout: 3600s
+tda.persistence.max-dimension: 3
+tda.filtration.max-simplices: 1000000
+tda.batch.size: 10000
+tda.window.size: 100
+tda.window.slide: 10
+tda.checkpoint.tolerance: 0.1
+tda.memory.fraction: 0.7
+
+# Point cloud processing
+tda.pointcloud.max-points: 50000
+tda.pointcloud.dimension.max: 10
+tda.pointcloud.precision: double
+tda.computation.parallel.threshold: 1000
+
+# Result storage and caching
+tda.results.cache.size: 1000
+tda.results.cache.ttl: 3600s
+tda.results.compression: lz4
+tda.results.serialization: avro
+
+# ==============================================================================
+# DEBUGGING & DEVELOPMENT
+# ==============================================================================
+
+# Logging configuration
+rootLogger.level: INFO
+logger.akka.level: WARN
+logger.kafka.level: WARN
+logger.hadoop.level: WARN
+logger.zookeeper.level: WARN
+
+# Debug settings (disable in production)
+execution.buffer-timeout: 100ms
+taskmanager.debug.memory.log: false
+taskmanager.debug.memory.log-interval: 10000ms
+
+# Advanced configuration
+akka.framesize: 104857600b
+akka.throughput: 15
+akka.log.lifecycle.events: false
+
+# Blob server configuration
+blob.server.port: 6124
+blob.service.cleanup.interval: 3600
+blob.offload.minsize: 1048576
+
+# ==============================================================================
+# ENVIRONMENT-SPECIFIC OVERRIDES
+# ==============================================================================
+
+# Development environment overrides
+# Uncomment and modify for development
+# jobmanager.memory.process.size: 1024m
+# taskmanager.memory.process.size: 2048m
+# taskmanager.numberOfTaskSlots: 4
+# parallelism.default: 2
+# execution.checkpointing.interval: 60s
+# state.checkpoints.dir: file:///tmp/flink-checkpoints
+# state.savepoints.dir: file:///tmp/flink-savepoints
+
+# Production environment
+# high-availability.storageDir: s3://prod-tda-flink-ha/recovery
+# state.checkpoints.dir: s3://prod-tda-flink-checkpoints/
+# state.savepoints.dir: s3://prod-tda-flink-savepoints/
+# metrics.reporter.prom.host: prometheus.internal
+
+# Staging environment
+# Use intermediate resource allocation between dev and prod

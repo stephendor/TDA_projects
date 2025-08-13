@@ -10,6 +10,16 @@
 namespace tda::spatial {
 
 /**
+ * @brief Build statistics structure for spatial indices
+ */
+struct BuildStats {
+    double buildTimeMs;
+    size_t memoryUsageBytes;
+    size_t treeDepth;
+    size_t leafNodes;
+};
+
+/**
  * @brief Abstract base class for spatial indexing structures
  * 
  * Provides a common interface for different spatial indexing implementations
@@ -108,13 +118,19 @@ public:
      * @brief Get build statistics
      * @return Build time and memory usage information
      */
-    struct BuildStats {
-        double buildTimeMs;
-        size_t memoryUsageBytes;
-        size_t treeDepth;
-        size_t leafNodes;
-    };
     BuildStats getBuildStats() const;
+    
+    /**
+     * @brief SIMD-optimized batch distance calculation for multiple query points
+     * @param query_points Vector of query points
+     * @param data_points Vector of data points (same size as query_points)
+     * @param distances Output vector for computed distances
+     */
+    static void batchDistanceCalculation(
+        const std::vector<Point>& query_points,
+        const std::vector<Point>& data_points,
+        std::vector<double>& distances
+    );
 
 private:
     struct Node {
@@ -141,6 +157,60 @@ private:
                               std::vector<SearchResult>& results) const;
     size_t findBestSplitDimension(const std::vector<size_t>& indices) const;
     double findMedianValue(const std::vector<size_t>& indices, size_t dim) const;
+    
+    // Default distance function (Euclidean)
+    static double euclideanDistance(const Point& a, const Point& b);
+};
+
+/**
+ * @brief Ball Tree implementation for efficient nearest neighbor search
+ * 
+ * Better suited for high-dimensional spaces compared to KD-trees, with
+ * O(log n) average search time and better performance scaling.
+ */
+class BallTree : public SpatialIndex {
+public:
+    explicit BallTree(size_t maxLeafSize = 20);
+    ~BallTree() override = default;
+    
+    bool build(const PointContainer& points) override;
+    std::vector<SearchResult> kNearestNeighbors(const Point& query, size_t k) const override;
+    std::vector<SearchResult> radiusSearch(const Point& query, double radius) const override;
+    SearchResult nearestNeighbor(const Point& query) const override;
+    size_t size() const override;
+    bool empty() const override;
+    size_t dimension() const override;
+    
+    void clear();
+    BuildStats getStatistics() const;
+    void setDistanceFunction(DistanceFunction distFunc) { distanceFunc_ = distFunc; }
+
+private:
+    struct BallNode {
+        Point center;
+        double radius = 0.0;
+        std::vector<size_t> pointIndices;  // For leaf nodes
+        std::unique_ptr<BallNode> left;
+        std::unique_ptr<BallNode> right;
+        
+        bool isLeaf() const { return !pointIndices.empty(); }
+    };
+    
+    PointContainer points_;
+    std::unique_ptr<BallNode> root_;
+    size_t maxLeafSize_;
+    size_t dimension_;
+    DistanceFunction distanceFunc_;
+    BuildStats buildStats_;
+    
+    std::unique_ptr<BallNode> buildRecursive(const std::vector<size_t>& indices);
+    void findKNearestRecursive(const BallNode* node, const Point& query, size_t k, 
+                               std::priority_queue<std::pair<double, size_t>>& pq) const;
+    void radiusSearchRecursive(const BallNode* node, const Point& query, double radius,
+                              std::vector<SearchResult>& results) const;
+    Point computeCentroid(const std::vector<size_t>& indices) const;
+    double computeRadius(const std::vector<size_t>& indices, const Point& center) const;
+    std::pair<std::vector<size_t>, std::vector<size_t>> splitPoints(const std::vector<size_t>& indices) const;
     
     // Default distance function (Euclidean)
     static double euclideanDistance(const Point& a, const Point& b);
