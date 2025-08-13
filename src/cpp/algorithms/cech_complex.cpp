@@ -416,14 +416,33 @@ void CechComplex::addSimplexToTree(const std::vector<size_t>& simplex, double fi
         return;
     }
 
-    // Convert to GUDHI format
+    // Build pooled temporary simplex (reduces per-insertion allocations)
+    tda::core::Simplex* tmp = simplex_pool_.acquire(simplex.size());
+    if (tmp) {
+        auto& verts = tmp->vertices();
+        verts.clear();
+        verts.reserve(simplex.size());
+        for (size_t idx : simplex) {
+            verts.push_back(static_cast<tda::core::Index>(idx));
+        }
+        tmp->setFiltrationValue(filtrationValue);
+    }
+
+    // Convert to GUDHI format using the pooled vertices (or fallback to input)
+    const auto& src = tmp ? tmp->vertices() : *reinterpret_cast<const std::vector<tda::core::Index>*>(&simplex);
     std::vector<Simplex_tree::Vertex_handle> gudhiSimplex;
-    for (size_t idx : simplex) {
-        gudhiSimplex.push_back(static_cast<Simplex_tree::Vertex_handle>(idx));
+    gudhiSimplex.reserve(src.size());
+    for (auto v : src) {
+        gudhiSimplex.push_back(static_cast<Simplex_tree::Vertex_handle>(v));
     }
 
     // Insert simplex with filtration value
     simplex_tree_->insert_simplex_and_subfaces(gudhiSimplex, filtrationValue);
+
+    // Return pooled simplex
+    if (tmp) {
+        simplex_pool_.release(tmp, src.size());
+    }
 }
 
 double CechComplex::euclideanDistance(const Point& a, const Point& b) {

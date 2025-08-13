@@ -78,6 +78,36 @@ if(TDA_ENABLE_OPENMP AND OpenMP_CXX_FOUND)
 endif()
 add_test(NAME StreamingDistanceMatrix COMMAND test_streaming_distance_matrix)
 
+# Streaming distance matrix telemetry tests
+add_executable(test_streaming_distance_telemetry
+    test_streaming_distance_telemetry.cpp
+)
+target_link_libraries(test_streaming_distance_telemetry 
+    tda_utils 
+    tda_core 
+    Eigen3::Eigen 
+    Threads::Threads
+)
+if(TDA_ENABLE_OPENMP AND OpenMP_CXX_FOUND)
+    target_link_libraries(test_streaming_distance_telemetry OpenMP::OpenMP_CXX)
+endif()
+add_test(NAME StreamingDistanceTelemetry COMMAND test_streaming_distance_telemetry)
+
+# Simplex pool tests
+add_executable(test_simplex_pool
+    test_simplex_pool.cpp
+)
+target_link_libraries(test_simplex_pool 
+    tda_core 
+    tda_utils 
+    Eigen3::Eigen 
+    Threads::Threads
+)
+if(TDA_ENABLE_OPENMP AND OpenMP_CXX_FOUND)
+    target_link_libraries(test_simplex_pool OpenMP::OpenMP_CXX)
+endif()
+add_test(NAME SimplexPool COMMAND test_simplex_pool)
+
 # Integration tests
 add_executable(test_full_pipeline
     test_full_pipeline.cpp
@@ -154,6 +184,56 @@ add_test(NAME ST101MemoryOptimized COMMAND test_st101_memory_optimized)
 # endif()
 # add_test(NAME VietorisRips COMMAND test_vietoris_rips)
 
+# Čech pooling integration test
+add_executable(test_cech_pool_integration
+    test_cech_pool_integration.cpp
+)
+target_link_libraries(test_cech_pool_integration 
+    tda_algorithms 
+    tda_spatial 
+    tda_core 
+    tda_utils 
+    Eigen3::Eigen 
+    Threads::Threads
+)
+if(TDA_ENABLE_OPENMP AND OpenMP_CXX_FOUND)
+    target_link_libraries(test_cech_pool_integration OpenMP::OpenMP_CXX)
+endif()
+add_test(NAME CechPoolIntegration COMMAND test_cech_pool_integration)
+
+# DTM pooling integration test
+add_executable(test_dtm_pool_integration
+    test_dtm_pool_integration.cpp
+)
+target_link_libraries(test_dtm_pool_integration 
+    tda_algorithms 
+    tda_spatial 
+    tda_core 
+    tda_utils 
+    Eigen3::Eigen 
+    Threads::Threads
+)
+if(TDA_ENABLE_OPENMP AND OpenMP_CXX_FOUND)
+    target_link_libraries(test_dtm_pool_integration OpenMP::OpenMP_CXX)
+endif()
+add_test(NAME DTMPoolIntegration COMMAND test_dtm_pool_integration)
+
+# Streaming Čech test
+add_executable(test_streaming_cech
+    test_streaming_cech.cpp
+)
+target_link_libraries(test_streaming_cech 
+    tda_algorithms 
+    tda_utils 
+    tda_core 
+    Eigen3::Eigen 
+    Threads::Threads
+)
+if(TDA_ENABLE_OPENMP AND OpenMP_CXX_FOUND)
+    target_link_libraries(test_streaming_cech OpenMP::OpenMP_CXX)
+endif()
+add_test(NAME StreamingCech COMMAND test_streaming_cech)
+
 # =============================================================================
 # TEST CONFIGURATION
 # =============================================================================
@@ -163,10 +243,14 @@ set_tests_properties(ResultType PROPERTIES TIMEOUT 60)
 set_tests_properties(SparseRips PROPERTIES TIMEOUT 300)
 set_tests_properties(DistanceMatrix PROPERTIES TIMEOUT 180)
 set_tests_properties(StreamingDistanceMatrix PROPERTIES TIMEOUT 120)
+set_tests_properties(StreamingDistanceTelemetry PROPERTIES TIMEOUT 120)
+set_tests_properties(SimplexPool PROPERTIES TIMEOUT 60)
 set_tests_properties(FullPipeline PROPERTIES TIMEOUT 600)
 set_tests_properties(MathematicalValidation PROPERTIES TIMEOUT 300)
 set_tests_properties(ST101MemoryOptimized PROPERTIES TIMEOUT 1200)  # 20 minutes for large datasets
-# set_tests_properties(VietorisRips PROPERTIES TIMEOUT 300)
+set_tests_properties(CechPoolIntegration PROPERTIES TIMEOUT 120)
+set_tests_properties(DTMPoolIntegration PROPERTIES TIMEOUT 120)
+set_tests_properties(StreamingCech PROPERTIES TIMEOUT 120)
 
 # Add custom test target for running all tests
 add_custom_target(run_all_tests

@@ -56,16 +56,16 @@ StreamingDMStats StreamingDistanceMatrix::process(const PointContainer& points) 
             const size_t j_end = std::min(bj + B, n);
             const size_t j_len = j_end - bj;
 
-            // Optional tile buffer only if block callback is used and not symmetric diagonal upper-tri optimization.
+            // Optional tile buffer only if block callback is used.
             std::vector<std::vector<double>> tile;
-            if (block_cb_ && (!symmetric || bi != bj)) {
+            if (block_cb_) {
                 tile.assign(i_len, std::vector<double>(j_len, 0.0));
             }
 
             // Compute tile
             if (symmetric && bi == bj) {
                 // Diagonal block: compute only upper triangle (i < j)
-                for (size_t i = bi; i < i_end; ++i) {
+        for (size_t i = bi; i < i_end; ++i) {
                     const size_t j_start = i + 1; // upper triangle only
                     for (size_t j = j_start; j < j_end; ++j) {
                         double d = euclidean(points[i], points[j]);
@@ -76,7 +76,7 @@ StreamingDMStats StreamingDistanceMatrix::process(const PointContainer& points) 
                                 edge_cb_(i, j, d);
                                 stats.emitted_edges++;
                             }
-                        } else if (block_cb_) {
+            } else if (block_cb_) {
                             tile[i - bi][j - bj] = d;
                             // mirror not stored to save memory; consumer can infer symmetry
                         }
@@ -119,10 +119,10 @@ StreamingDMStats StreamingDistanceMatrix::process(const PointContainer& points) 
                 }
             }
 
-        // Update telemetry: track peak after each block
-        stats.peak_memory_bytes = std::max(stats.peak_memory_bytes, tda::core::MemoryMonitor::getCurrentMemoryUsage());
+            // Update telemetry: track peak after each block
+            stats.peak_memory_bytes = std::max(stats.peak_memory_bytes, tda::core::MemoryMonitor::getCurrentMemoryUsage());
 
-        if (!threshold_mode && block_cb_ && (!symmetric || bi != bj)) {
+            if (!threshold_mode && block_cb_) {
                 block_cb_(bi, bj, tile);
             }
         }

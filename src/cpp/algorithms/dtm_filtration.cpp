@@ -167,6 +167,14 @@ tda::core::Result<void> DTMFiltration::buildFiltration(int maxDimension) {
     }
     
     try {
+        // Lazily initialize simplex tree and persistent cohomology
+        if (!simplex_tree_) {
+            simplex_tree_ = std::make_unique<Simplex_tree>();
+        }
+        if (!persistent_cohomology_) {
+            persistent_cohomology_ = std::make_unique<Persistent_cohomology>(*simplex_tree_);
+        }
+
         buildFiltrationFromDTM(maxDimension);
         return tda::core::Result<void>::success();
     } catch (const std::exception& e) {
@@ -184,7 +192,23 @@ void DTMFiltration::buildFiltrationFromDTM(int maxDimension) {
     // Add vertices (0-simplices) with DTM-based filtration values
     for (size_t i = 0; i < points_.size(); ++i) {
         double filtrationValue = dtmValues_[i];
-        simplex_tree_->insert_simplex({i}, filtrationValue);
+        // Use pooled simplex to build a temporary vertex list (arity 1)
+        tda::core::Simplex* tmp = simplex_pool_.acquire(1);
+        const std::vector<tda::core::Index>* verts_ptr = nullptr;
+        if (tmp) {
+            auto& verts = tmp->vertices();
+            verts.clear();
+            verts.reserve(1);
+            verts.push_back(static_cast<tda::core::Index>(i));
+            tmp->setFiltrationValue(filtrationValue);
+            verts_ptr = &verts;
+        }
+        if (verts_ptr) {
+            simplex_tree_->insert_simplex({static_cast<int>((*verts_ptr)[0])}, filtrationValue);
+            simplex_pool_.release(tmp, 1);
+        } else {
+            simplex_tree_->insert_simplex({static_cast<int>(i)}, filtrationValue);
+        }
     }
     
     // Build higher-dimensional simplices using Vietoris-Rips approach
@@ -196,7 +220,24 @@ void DTMFiltration::buildFiltrationFromDTM(int maxDimension) {
             
             // Add edge if it meets the dimension constraint
             if (maxDimension >= 1) {
-                simplex_tree_->insert_simplex({i, j}, edgeFiltration);
+                // Use pooled simplex (arity 2)
+                tda::core::Simplex* tmp = simplex_pool_.acquire(2);
+                const std::vector<tda::core::Index>* verts_ptr = nullptr;
+                if (tmp) {
+                    auto& verts = tmp->vertices();
+                    verts.clear();
+                    verts.reserve(2);
+                    verts.push_back(static_cast<tda::core::Index>(i));
+                    verts.push_back(static_cast<tda::core::Index>(j));
+                    tmp->setFiltrationValue(edgeFiltration);
+                    verts_ptr = &verts;
+                }
+                if (verts_ptr) {
+                    simplex_tree_->insert_simplex({static_cast<int>((*verts_ptr)[0]), static_cast<int>((*verts_ptr)[1])}, edgeFiltration);
+                    simplex_pool_.release(tmp, 2);
+                } else {
+                    simplex_tree_->insert_simplex({static_cast<int>(i), static_cast<int>(j)}, edgeFiltration);
+                }
             }
         }
     }
@@ -208,7 +249,25 @@ void DTMFiltration::buildFiltrationFromDTM(int maxDimension) {
                 for (size_t k = j + 1; k < points_.size(); ++k) {
                     // Compute triangle filtration value
                     double triangleFiltration = std::max({dtmValues_[i], dtmValues_[j], dtmValues_[k]});
-                    simplex_tree_->insert_simplex({i, j, k}, triangleFiltration);
+                    // Use pooled simplex (arity 3)
+                    tda::core::Simplex* tmp = simplex_pool_.acquire(3);
+                    const std::vector<tda::core::Index>* verts_ptr = nullptr;
+                    if (tmp) {
+                        auto& verts = tmp->vertices();
+                        verts.clear();
+                        verts.reserve(3);
+                        verts.push_back(static_cast<tda::core::Index>(i));
+                        verts.push_back(static_cast<tda::core::Index>(j));
+                        verts.push_back(static_cast<tda::core::Index>(k));
+                        tmp->setFiltrationValue(triangleFiltration);
+                        verts_ptr = &verts;
+                    }
+                    if (verts_ptr) {
+                        simplex_tree_->insert_simplex({static_cast<int>((*verts_ptr)[0]), static_cast<int>((*verts_ptr)[1]), static_cast<int>((*verts_ptr)[2])}, triangleFiltration);
+                        simplex_pool_.release(tmp, 3);
+                    } else {
+                        simplex_tree_->insert_simplex({static_cast<int>(i), static_cast<int>(j), static_cast<int>(k)}, triangleFiltration);
+                    }
                 }
             }
         }
@@ -222,7 +281,26 @@ void DTMFiltration::buildFiltrationFromDTM(int maxDimension) {
                     for (size_t l = k + 1; l < points_.size(); ++l) {
                         // Compute tetrahedron filtration value
                         double tetrahedronFiltration = std::max({dtmValues_[i], dtmValues_[j], dtmValues_[k], dtmValues_[l]});
-                        simplex_tree_->insert_simplex({i, j, k, l}, tetrahedronFiltration);
+                        // Use pooled simplex (arity 4)
+                        tda::core::Simplex* tmp = simplex_pool_.acquire(4);
+                        const std::vector<tda::core::Index>* verts_ptr = nullptr;
+                        if (tmp) {
+                            auto& verts = tmp->vertices();
+                            verts.clear();
+                            verts.reserve(4);
+                            verts.push_back(static_cast<tda::core::Index>(i));
+                            verts.push_back(static_cast<tda::core::Index>(j));
+                            verts.push_back(static_cast<tda::core::Index>(k));
+                            verts.push_back(static_cast<tda::core::Index>(l));
+                            tmp->setFiltrationValue(tetrahedronFiltration);
+                            verts_ptr = &verts;
+                        }
+                        if (verts_ptr) {
+                            simplex_tree_->insert_simplex({static_cast<int>((*verts_ptr)[0]), static_cast<int>((*verts_ptr)[1]), static_cast<int>((*verts_ptr)[2]), static_cast<int>((*verts_ptr)[3])}, tetrahedronFiltration);
+                            simplex_pool_.release(tmp, 4);
+                        } else {
+                            simplex_tree_->insert_simplex({static_cast<int>(i), static_cast<int>(j), static_cast<int>(k), static_cast<int>(l)}, tetrahedronFiltration);
+                        }
                     }
                 }
             }

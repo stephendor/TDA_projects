@@ -436,3 +436,14 @@ docker run -d \
 ### **Profiling & Validation**
 
 - **Add Profiler**: Add optional profiler integration and a small harness: `run_performance_validation.sh`, `analyze_performance_logs.py`. Track throughput, peak RSS, H1 counts, and manifest hashing as per plan.
+
+### **Phase 3 Enhancements (SimplexPool and Unit Tests)**
+- Before implementing the SimplexPool allocator, determine the correct location for it within the project structure (include/src folders).
+- Prior to implementation, consider existing simplex data structures to ensure alignment and consistency in design.
+- Create a unit test for the SimplexPool allocator to validate its functionality and memory management.
+
+## 📝 **COMMIT MESSAGE GUIDELINES**
+
+- Ensure commit messages are concise and clearly describe the changes made.
+- Include relevant references to plans (e.g., `docs/troubleshooting/RCA_Plan.md`, `memory_blowup_RCA_steps.md`).
+- Follow a consistent format (e.g., `feat(utils): add MemoryMonitor telemetry to StreamingDistanceMatrix`).

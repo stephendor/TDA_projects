@@ -7,6 +7,7 @@
 #include <vector>
 #include <memory>
 #include <functional>
+#include "tda/core/simplex_pool.hpp"
 
 namespace tda::algorithms {
 
@@ -121,6 +122,7 @@ private:
     
     std::unique_ptr<Simplex_tree> simplex_tree_;
     std::unique_ptr<Persistent_cohomology> persistent_cohomology_;
+    tda::core::SimplexPool simplex_pool_{};
     
     /**
      * @brief Compute DTM value for a single point

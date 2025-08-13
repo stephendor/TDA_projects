@@ -218,6 +218,7 @@ add_library(tda_core STATIC
     src/cpp/core/point_cloud.cpp
     src/cpp/core/simple_core.cpp
     src/cpp/core/simplex.cpp
+    src/cpp/core/simplex_pool.cpp
     src/cpp/core/types.cpp
 )
 
@@ -239,6 +240,7 @@ add_library(tda_algorithms STATIC
     src/cpp/algorithms/adaptive_sampling.cpp
     src/cpp/algorithms/cech_complex.cpp
     src/cpp/algorithms/dtm_filtration.cpp
+    src/cpp/algorithms/streaming_cech.cpp
 )
 
 add_library(tda_spatial STATIC

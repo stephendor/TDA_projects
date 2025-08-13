@@ -4,6 +4,7 @@
 #include "tda/spatial/spatial_index.hpp"
 #include <gudhi/Simplex_tree.h>
 #include <gudhi/Persistent_cohomology.h>
+#include "tda/core/simplex_pool.hpp"
 #include <vector>
 #include <memory>
 #include <functional>
@@ -136,6 +137,8 @@ private:
     Config config_;
     PointContainer points_;
     std::unique_ptr<tda::spatial::SpatialIndex> spatialIndex_;
+    // Pooled temporaries to reduce allocation churn when constructing simplices
+    tda::core::SimplexPool simplex_pool_{};
 
     // GUDHI objects
     using Simplex_tree = Gudhi::Simplex_tree<Gudhi::Simplex_tree_options_fast_persistence>;
