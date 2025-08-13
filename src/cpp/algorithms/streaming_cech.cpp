@@ -5,6 +5,10 @@
 #include <cmath>
 #include <utility>
 #include <limits>
+#include <atomic>
+#ifdef _OPENMP
+#include <omp.h>
+#endif
 
 namespace tda::algorithms {
 
@@ -216,9 +220,10 @@ void StreamingCechComplex::buildNeighborsStreaming() {
     auto dmcfg = config_.dm;
     // Set threshold as 2*radius (edge if balls of radius r intersect => dist <= 2r)
     dmcfg.max_distance = 2.0 * config_.radius;
-    // Our onEdge callback is not thread-safe; keep threshold mode sequential
-    dmcfg.enable_parallel_threshold = false;
-    dmcfg.edge_callback_threadsafe = false;
+    // Honor caller/Config parallelization controls; we'll make the callback thread-safe below
+    // so we can optionally enable parallel threshold mode safely.
+    // Note: dmcfg.enable_parallel_threshold and dmcfg.edge_callback_threadsafe are already set in config_.dm
+    dmcfg.edge_callback_threadsafe = dmcfg.edge_callback_threadsafe || dmcfg.enable_parallel_threshold;
     dm.setConfig(dmcfg);
 
     const size_t N = points_.size();
@@ -227,6 +232,12 @@ void StreamingCechComplex::buildNeighborsStreaming() {
     const size_t K = std::max<size_t>(1, config_.maxNeighbors);
     std::vector<std::vector<std::pair<size_t,double>>> nbr_tmp(N);
     for (size_t i = 0; i < N; ++i) nbr_tmp[i].reserve(K);
+
+    // Lightweight per-vertex spinlocks to make updates thread-safe under parallel threshold mode
+    std::vector<std::atomic_flag> locks(N);
+    for (size_t i = 0; i < N; ++i) {
+        locks[i].clear();
+    }
 
     auto add_bounded = [&](size_t u, size_t v, double dist) {
         auto& vec = nbr_tmp[u];
@@ -244,8 +255,15 @@ void StreamingCechComplex::buildNeighborsStreaming() {
     };
 
     dm.onEdge([&](size_t i, size_t j, double d) {
+        // Thread-safe updates without holding two locks at once to avoid deadlocks
+        // Lock vertex i
+        while (locks[i].test_and_set(std::memory_order_acquire)) { /* spin */ }
         add_bounded(i, j, d);
+        locks[i].clear(std::memory_order_release);
+        // Lock vertex j
+        while (locks[j].test_and_set(std::memory_order_acquire)) { /* spin */ }
         add_bounded(j, i, d);
+        locks[j].clear(std::memory_order_release);
     });
 
     dm_stats_ = dm.process(points_);
