@@ -1,11 +1,13 @@
 #include "tda/algorithms/vietoris_rips.hpp"
 #include "tda/core/types.hpp"
+#include "tda/core/thread_safe_containers.hpp"
 #include "tda/utils/simd_utils.hpp"
 #include <algorithm>
 #include <cmath>
 #include <execution>
 #include <numeric>
 #include <stdexcept>
+#include <omp.h>
 
 namespace tda::algorithms {
 
@@ -197,10 +199,10 @@ tda::core::Result<tda::core::ComplexStatistics> VietorisRipsImpl::getStatistics(
 
 std::vector<double> VietorisRipsImpl::computeDistancesBatch(const std::vector<std::vector<double>>& points, 
                                                            const std::vector<double>& query_point) {
-    std::vector<double> distances;
+    tda::core::ThreadSafeVector<double> distances;
     distances.reserve(points.size());
     
-    #pragma omp parallel for
+    #pragma omp parallel for schedule(dynamic)
     for (size_t i = 0; i < points.size(); ++i) {
         double dist = 0.0;
         for (size_t j = 0; j < query_point.size() && j < points[i].size(); ++j) {
@@ -210,7 +212,13 @@ std::vector<double> VietorisRipsImpl::computeDistancesBatch(const std::vector<st
         distances.push_back(std::sqrt(dist));
     }
     
-    return distances;
+    // Convert to regular vector for return
+    std::vector<double> result;
+    result.reserve(points.size());
+    distances.for_each([&result](const double& val) {
+        result.push_back(val);
+    });
+    return result;
 }
 
 // CRITICAL FIX: Implement cleanup method for RAII safety
