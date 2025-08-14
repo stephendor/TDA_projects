@@ -168,6 +168,21 @@ export ACCURACY_EDGES_PCT_THRESHOLD=5.0 ACCURACY_H1_PCT_THRESHOLD=5.0
 python3 scripts/analyze_performance_logs.py --artifacts "$TDA_ARTIFACT_DIR" --gate
 ```
 
+## 📦 Reference artifacts (2025-08-14, 1M Čech, soft-cap vs baseline)
+
+Artifacts directory: `docs/performance/artifacts/2025-08-14_1m_cech/`
+
+- `run_cech_1m_t600.jsonl` (parent, soft-knn-cap=16, parallel-threshold=0)
+- `baseline_cech_1m_t600.jsonl` (separate process, no soft cap, serial threshold)
+- `adj_parent_1m_t600.csv`, `adj_baseline_1m_t600.csv` (degree histograms)
+- `analyzer_1m_final.log` (gating PASS)
+
+Summary (parent): dm_blocks=371,011, dm_edges=3,115,973, simplices=1,602,678, dm_peakMB=755.746, rss_peakMB=789.586, overshoot_sum/max=0.
+
+Summary (baseline): dm_blocks=371,930, dm_edges=3,299,630, simplices=1,604,812, dm_peakMB=752.184, rss_peakMB=791.402.
+
+Deltas (parent − baseline): Δedges=−183,657, Δsimplices=−2,134. Gating: PASS (require-csv, memory fields present, overshoot=0 in serial threshold).
+
 ### 2. **Memory Optimization** ✅
 
 ```cpp

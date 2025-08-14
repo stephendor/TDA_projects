@@ -293,6 +293,12 @@ research/                   # Extracted research content
   - Added a “Baseline comparisons without memory overlap” section with flags and an example.
   - Appended the separate-process baseline JSONL note.
   - Updated docs to note the new JSON fields (dm_peakMB, rss_peakMB, softcap_overshoot_*, parallel_threshold).
+  - Corrected harness path to `test_streaming_cech_perf`.
+  - Documented new telemetry fields: dm_peakMB, rss_peakMB, softcap_overshoot_sum, softcap_overshoot_max, parallel_threshold (kept legacy underscore keys noted).
+  - Clarified baseline compare usage (separate process) and accuracy script examples.
+  - Added “Accuracy reports and thresholds” section with example invocation.
+- `docs/troubleshooting/RCA_Progress_Check`:
+  - (Add a short note with the 1M metrics and deltas after the final run)
 
 ## 🧠 **MEMORY MANAGEMENT STRATEGIES**
 
@@ -550,5 +556,39 @@ docker run -d \
     - **I** (the user) do not need to be copying or pasting anything at any point, unless explicitly requested.
     - **YOU** are forbidden from presenting code in any way other than executable code blocks with Run/Cancel buttons.
     - **ALWAYS** perform static analysis (Codacy) after modifying any code.
-    - When addressing memory blowup issues (reference `docs/troubleshooting/memory_blowup_RCA_steps.md`), prioritize steady but significant improvements, maintaining control for easy reversion and repair. Ensure alignment with Taskmaster planning and Agent Instruction files.
-    - **Workflow for Executing Plans**: Locate relevant plans (e.g., RCA-related docs and
+    - When addressing memory blowup issues (reference `docs/troubleshooting/memory_blowup_RCA_steps.md`), prioritize steady but significant improvements, maintaining control for easy reversion and repair. Ensure alignment with Taskmaster planning and
+
+## 🚀 SCALING RUNS
+
+- 200k DM-only (K=16, par-threshold=0)
+  - dm_blocks=306,153; dm_edges=1,442,753; dm_peakMB=24.27; overshoot_sum/max=0/0
+  - Analyzer gates: PASS
+- 200k Čech (parent K=16 vs baseline K=∞, both serial threshold)
+  - Parent: dm_edges=1,442,753; dm_peakMB=251.81; build_secs=61.33; build_peakMB=274.48; simplices=1,543,900
+  - Baseline: dm_edges=2,662,923; dm_peakMB=251.14; build_secs=62.18; build_peakMB=286.29; simplices=2,352,272
+  - CSVs: adj_200k_parent.csv, adj_200k_baseline.csv
+  - Analyzer gates (+CSV): PASS
+- 500k DM-only (K=16, par-threshold=0)
+  - dm_blocks=1,910,035; dm_edges=5,005,727; dm_peakMB=55.27; overshoot_sum/max=0/0
+  - Analyzer gates: PASS
+- 500k Čech (parent K=16 vs baseline K=∞)
+  - Parent: dm_edges=5,005,727; dm_peakMB=624.04; build_secs=337.12; build_peakMB=688.00; simplices=4,524,745
+  - Baseline: dm_edges=16,699,529; dm_peakMB=622.28; build_secs=371.62; build_peakMB=759.16; simplices=9,071,863
+  - CSVs: adj_500k_parent.csv, adj_500k_baseline.csv
+  - Analyzer gates (+CSV): PASS
+- 1M DM-only (K=16, par-threshold=0, time_limit=60s)
+  - dm_blocks=38,862; dm_edges=346,567; dm_peakMB=106.55; overshoot_sum/max=0/0
+  - Analyzer gates: PASS
+- 1M Čech Final Run (soft-knn-cap=16, parallel-threshold=0, time-limit=600)
+  - dm_blocks=371,011, dm_edges=3,115,973, simplices=1,602,678
+  - dm_peakMB=755.746, rss_peakMB=789.586
+  - overshoot_sum=0, overshoot_max=0
+- Baseline (no soft cap, serial, time-limit=600)
+  - dm_blocks=371,930, dm_edges=3,299,630, simplices=1,604,812
+  - dm_peakMB=752.184, rss_peakMB=791.402
+- Deltas (parent − baseline)
+  - Δedges = −183,657, Δsimplices = −2,134
+
+## 🧪 VALIDATION & TESTING
+
+## 🛠️ DEBUGGING

@@ -169,12 +169,33 @@ def main() -> int:
 
     if args.require_csv:
         csvs = sorted(glob.glob(os.path.join(art, "*.csv")))
-        have_parent = any("_parent.csv" in c for c in csvs)
+        # Accept several naming patterns for flexibility:
+        #  - *_parent.csv (legacy)
+        #  - adj_parent_*.csv (current)
+        #  - parent_*.csv (fallback)
+        # Baseline CSVs are optional for gating, but we detect them for info.
+        basenames = [os.path.basename(c) for c in csvs]
+        have_parent = any(
+            name.endswith("_parent.csv")
+            or name.startswith("adj_parent_")
+            or name.startswith("parent_")
+            for name in basenames
+        )
+        have_baseline = any(
+            name.endswith("_baseline.csv")
+            or name.startswith("adj_baseline_")
+            or name.startswith("baseline_")
+            for name in basenames
+        )
         if not csvs or not have_parent:
-            print("[analyzer] ERROR: adjacency histogram CSVs missing")
+            print("[analyzer] ERROR: adjacency histogram CSVs missing (no parent CSV found)")
+            if csvs:
+                print("[analyzer]   found CSVs:")
+                for name in basenames:
+                    print(f"[analyzer]    - {name}")
             ok = False
         else:
-            print(f"[analyzer] CSVs present: {len(csvs)} (sample: {os.path.basename(csvs[0])})")
+            print(f"[analyzer] CSVs present: {len(csvs)} (parent={'YES' if have_parent else 'NO'}, baseline={'YES' if have_baseline else 'NO'})")
 
     # Accuracy analysis (non-blocking by default unless --accuracy-gate)
     acc_ok, acc_count = analyze_accuracy_reports(
