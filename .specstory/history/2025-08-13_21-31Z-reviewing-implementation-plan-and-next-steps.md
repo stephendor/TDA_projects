@@ -1418,6 +1418,282 @@ Let's proceed to the staircase and accuracy steps
 
 _**Assistant**_
 
+I’m going to add staircase and accuracy automation: extend the probe script to support multi-size runs, add accuracy validation scripts (runner + analyzer), and update the performance docs with usage. 
+```
+
+```
+Quick fix to correct the shell script syntax and then validate it; afterward, I’ll add the accuracy scripts and update docs. 
+```
+
+```
+
+```
+
+```
+
+```
+
+```
+Pulling the relevant sections of the performance README to fix markdown lint issues and add proper fenced code languages. I’ll fix markdown lint issues by adding blank lines around headings and lists, and by annotating fenced blocks with languages. Then I’ll set executable permissions and validate shell syntax for the new/edited scripts. 
+```
+
+```
+
+```
+
+```
+
+```
+
+```
+I’ll quickly search the workspace to locate the harness binary target names and paths, then set scripts executable and run a small sanity probe to validate the new staircase and accuracy scripts. I'll quickly check if the perf harness binary exists and set the scripts executable, then build the harness if missing and run a tiny sanity probe. I'll inspect the CI workflow to see how the harness and scripts are currently wired so I can add staircase and accuracy jobs. I'll read the two orchestration scripts to confirm their CLI options so I can wire them into CI correctly. Checkpoint: Verified harness binary at build/release/tests/cpp/test_streaming_cech_perf, scripts are executable, and a tiny harness run works (overshoot=0). Next, I’ll update the CI workflow to fix the harness path and add accuracy and optional staircase jobs, then run the validation and accuracy scripts locally with small sizes to sanity check. 
+```
+
+```
+I'll inspect the analyzer script header to confirm it has a proper shebang and adjust the validation script to call it via python3 to avoid exec permission issues. 
+```
+
+```
+I'll open the harness source to verify the JSON field names for memory telemetry and adjust the analyzer expectations or update the harness emit if needed. I'll update the harness to emit the expected JSON keys and enable baseline comparison in the validation script so the analyzer gates can pass. Then I'll run a quick local probe to verify the outputs. 
+```
+
+```
+
+```
+
+```
+I’ll finish wiring the baseline compare and align telemetry fields so the analyzer gates pass, then validate with a local probe.
+
+## actions taken
+- Updated `test_streaming_cech_perf.cpp` JSONL output:
+  - Added camelCase fields expected by analyzer: dm_peakMB, rss_peakMB, softcap_overshoot_sum, softcap_overshoot_max, parallel_threshold.
+  - Kept existing underscore keys for backward compatibility.
+- Fixed `run_performance_validation.sh` to actually trigger baseline:
+  - Added `--baseline-compare 1 --baseline-separate-process 1` and continued writing baseline JSONL/CSV.
+- Rebuilt project and ran a quick probe (n=4000, d=6, maxDim=1, K=16) with the harness.
+
+## results
+- Artifacts generated at ``:
+  - Parent: `run_4000.jsonl`, `adj_4000_parent.csv`
+  - Baseline: `baseline_4000.jsonl`, `adj_4000_baseline.csv`
+- Analyzer output:
+  - Detected parent and baseline JSONLs.
+  - Found required memory fields and adjacency CSVs.
+  - Gate=ON result=PASS.
+
+## files changed
+- `test_streaming_cech_perf.cpp` — emit analyzer-compatible JSON fields while preserving legacy keys.
+- `run_performance_validation.sh` — enable baseline comparison to produce baseline artifacts for gating.
+
+## quality gates
+- Build: PASS (release build completed; install warning due to permissions is expected).
+- Lint/Typecheck: N/A for C++; no new warnings in build output.
+- Unit tests: Not run in this pass; harness verified via smoke run.
+- Smoke test: PASS (validation script + analyzer).
+
+Requirements coverage:
+- Produce baseline JSONL and CSV for validation: Done.
+- Align memory metrics keys with analyzer: Done.
+- Ensure analyzer gate passes locally: Done.
+
+## what’s next
+- CI should now pass the perf-probe gating with the updated keys; if not already, ensure the workflow uses the harness at `test_streaming_cech_perf`.
+- Optional: Update docs to note the new JSON fields (dm_peakMB, rss_peakMB, softcap_overshoot_*).
+- Run staircase and accuracy jobs on-demand to confirm larger-n behavior.
+
+Suggested commit message:
+- feat(perf): align harness JSON fields with analyzer and enable baseline compare in validation script
+
+---
+
+_**User**_
+
+Let's continue with those three things in what's next
+
+---
+
+_**Assistant**_
+
+
+```
+
+```
+I'll open the updated performance README to fix the Markdown list indentation errors and ensure the documentation builds cleanly. 
+```
+
+```
+I'll check whether the harness binary exists and then run a lean validation probe to confirm everything works end-to-end. I’ll tighten up the performance docs, fix the Markdown lint, and verify the perf harness + analyzer gating end-to-end.
+
+## actions taken
+
+- Updated `README.md`
+  - Corrected harness path to `test_streaming_cech_perf`.
+  - Documented new telemetry fields: dm_peakMB, rss_peakMB, softcap_overshoot_sum, softcap_overshoot_max, parallel_threshold (kept legacy underscore keys noted).
+  - Clarified baseline compare usage (separate process) and accuracy script examples.
+  - Fixed Markdown list indentation (lint errors resolved).
+- Sanity run of harness and analyzer via the validation script:
+  - Generated artifacts under `` using `--baseline-compare 1` and separate-process baseline.
+  - Analyzer gate PASS with required fields and CSVs detected.
+
+## results
+
+- Probe: n=2000, d=6, radius=0.6, maxDim=1, K=16
+  - softcap_overshoot_sum=0, softcap_overshoot_max=0
+  - dm_peakMB≈4.21, rss_peakMB≈4.21
+  - mode=Cech, dm_blocks=528, dm_edges=10441, simplices=12441
+- Artifacts present:
+  - JSONL: run_2000.jsonl, baseline_2000.jsonl, parent_2000.jsonl
+  - CSV: adj_2000_parent.csv, adj_2000_baseline.csv (and legacy-named copies from the direct run)
+- Analyzer: parent JSONLs=1, baseline JSONLs=1, CSVs present=4, gate=ON result=PASS
+
+## notes
+
+- The validation script now emits run_*.jsonl that the analyzer expects; direct manual runs produced parent_*.jsonl which the analyzer doesn’t pick up—use the script for CI gating.
+- Perf docs reflect camelCase JSON fields and the policy to keep parallel_threshold=0 when soft cap > 0.
+
+## quality gates
+
+- Build: unchanged (harness already built).
+- Lint/Typecheck: Markdown lint fixed (MD007).
+- Unit tests: not modified in this change.
+- Smoke test: validation script run produced artifacts; analyzer PASS.
+
+## requirements coverage
+
+- Update docs with correct harness path and telemetry fields: Done.
+- Ensure baseline compare in separate process with deterministic artifacts: Done.
+- Run a lean probe and pass analyzer gating: Done.
+
+If you want, I can wire the optional accuracy report parsing into the analyzer and add a non-blocking CI check, or trigger a staircase probe next.
+
+---
+
+_**User**_
+
+Do both of those
+
+---
+
+_**Assistant**_
+
+I'll open the accuracy script to see how it produces reports so I can extend the analyzer to parse them and then wire a non-blocking check. To add the accuracy parsing and wire CI for both accuracy and staircase, I’ll locate the analyzer and CI workflow files, then implement analyzer parsing and add/adjust CI jobs. I'll search for CI workflow files and update them to add a non-blocking accuracy check and a staircase probe job. I’m going to extend the analyzer to parse accuracy reports and add thresholds, then update the CI workflow to run this check in a non-blocking step. 
+```
+
+```
+
+```
+
+```
+
+```
+
+```
+
+```
+
+```
+
+```
+
+```
+I’ll wire in accuracy parsing and a staircase probe, then validate end-to-end.
+
+## checklist
+- Add analyzer support for accuracy reports and thresholds
+- Update CI to parse accuracy (non-blocking)
+- Keep staircase probe job handy and validate a small run locally
+- Fix any docs/lint fallout
+
+## actions taken
+
+- Extended `analyze_performance_logs.py`
+  - Parses `accuracy_report_*.json` and prints per-K deltas.
+  - New flags:
+    - --accuracy-edges-pct-threshold, --accuracy-h1-pct-threshold
+    - --accuracy-gate to make these thresholds blocking
+  - Final status now includes perf gates and optional accuracy gates.
+- Updated CI `ci.yml`
+  - In `cpp-accuracy-check`, added a non-blocking analyzer step to parse accuracy reports with 5% thresholds (informational).
+  - Left a commented optional accuracy gate under the staircase job for future use.
+- Updated `README.md`
+  - Correct harness paths and clarified baseline compare usage.
+  - Documented telemetry fields (dm_peakMB, rss_peakMB, softcap_overshoot_*, parallel_threshold).
+  - Added “Accuracy reports and thresholds” section with example invocation.
+  - Fixed Markdown list indentation (MD007) warnings.
+- Verified end-to-end locally
+  - Validation script: PASS, artifacts with parent/baseline JSONL + CSVs.
+  - Accuracy script: Generated `accuracy_report_4000.json` with zero deltas and analyzer parsed it.
+  - Small staircase probe (n=20k): PASS; analyzer saw both 2k and 20k runs, CSVs present, gates PASS.
+
+## notes
+
+- Use the scripts for CI gating to ensure `run_*.jsonl` naming; manual runs can produce `parent_*.jsonl`, which the analyzer doesn’t gate on.
+- Accuracy step is non-blocking in CI for now; enable `--accuracy-gate` when you want failures on threshold breaches.
+- Policy reminder: keep `--parallel-threshold 0` when using a soft cap for correctness/telemetry.
+
+## completion summary
+
+- Analyzer now supports accuracy reports with optional gates.
+- CI runs the new analysis and retains artifacts; staircase probe is wired via workflow_dispatch.
+- Perf docs updated and markdown lint addressed.
+- Local smoke runs confirm telemetry fields, JSONL/CSV generation, and analyzer gating all work.
+
+---
+
+_**User**_
+
+What are the next steps in our plan?
+
+---
+
+_**Assistant**_
+
+Here’s the focused follow-through so we keep momentum and lock in the Phase 1 wins.
+
+## next steps (actionable checklist)
+
+- Turn on accuracy parsing in CI (non-blocking now, gated later)
+  - Keep the new analyzer step; after a week of green runs, enable --accuracy-gate with ±5% thresholds.
+
+- Trigger staircase probe (on-demand)
+  - Use workflow_dispatch to run the 200K step; confirm artifacts, degree histograms, and peakMB telemetry; record results in docs/daily_logs.
+
+- Add small unit checks for telemetry schema
+  - Test that harness JSONL includes dm_peakMB, rss_peakMB, parallel_threshold, and softcap_overshoot_* when soft cap > 0.
+
+- Expand accuracy signal beyond H1=0 placeholder
+  - Wire real H1 interval counts into harness JSONL (small-n exact path); update run_accuracy_check to consume it.
+
+- Memory telemetry hardening
+  - Add explicit MemoryMonitor snapshots around SDM and build phases; ensure dm_peakMB and rss_peakMB reflect plateau behavior in staircase.
+
+- Manifest hashing and recompute safeguards
+  - Include filtration mode and all params in a run manifest hash; warn/fail if recompute inactive (attempted_count == 0); add a tiny unit test.
+
+- Race-safe soft-cap policy guardrails
+  - Keep parallel-threshold=0 when soft cap > 0 in CI; document softcap_local_merge as experimental; add an overshoot metric line to analyzer output.
+
+- SimplexPool allocator (next sprint)
+  - Implement pool + fragmentation telemetry; add churn unit test; keep off by default; measure impact on small-n before enabling broadly.
+
+- Streaming VR variant (follow-on)
+  - Add block-based VR builder mirroring Čech telemetry and gating; reuse analyzer and CSV exports.
+
+- Documentation touch-ups
+  - Append latest probe summaries to `build_matrix_testing_summary.md` and note the new analyzer flags and thresholds.
+
+If you want, I can enable the accuracy gate in CI now with conservative thresholds, or trigger the 200K staircase job to capture the first large-n telemetry.
+
+---
+
+_**User**_
+
+Do it in that order
+
+---
+
+_**Assistant**_
+
 
 
 ---

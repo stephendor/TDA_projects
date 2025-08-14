@@ -73,7 +73,7 @@ double distance_simd(const Point& p1, const Point& p2) {
 
 ```bash
 ./scripts/run_performance_validation.sh \
-    --harness ./build/release/controlled_performance_test \
+    --harness build/release/tests/cpp/test_streaming_cech_perf \
     --n 8000 --d 8 --radius 0.5 --maxDim 1 --K 16
 ```
 
@@ -81,13 +81,13 @@ Staircase runs (comma-separated sizes):
 
 ```bash
 ./scripts/run_performance_validation.sh \
-    --harness ./build/release/controlled_performance_test \
+    --harness build/release/tests/cpp/test_streaming_cech_perf \
     --staircase 200000,500000,1000000 --d 8 --radius 0.5 --maxDim 1 --K 16
 ```
  
 For QA and accuracy checks, compare a soft-cap run against a race-free baseline (no soft cap, serial threshold). To avoid cumulative peak RSS when running both paths, use the separate-process baseline mode:
 
-- --baseline-compare 1: enable baseline compare in Čech mode
+- --baseline-compare 1: enable baseline compare in Čech mode (separate subprocess recommended)
 
 ## Accuracy checks (small-n exact vs soft-cap)
 
@@ -97,7 +97,7 @@ Example:
 
 ```bash
 ./scripts/run_accuracy_check.sh \
-    --harness ./build/release/controlled_performance_test \
+    --harness build/release/tests/cpp/test_streaming_cech_perf \
     --n 4000 --d 8 --radius 0.5 --maxDim 1 --klist 8,16,32
 ```
 
@@ -124,8 +124,32 @@ build/release/tests/cpp/test_streaming_cech_perf \
 Notes:
 
 - Keep --parallel-threshold 0 when using a soft cap for correctness/telemetry runs.
-- Inspect overshoot telemetry (overshoot_sum/overshoot_max) in CSV/JSON outputs.
+- Inspect overshoot telemetry (softcap_overshoot_sum / softcap_overshoot_max) in JSON outputs, and overshoot_sum/overshoot_max in CSV.
 - The separate baseline process will print its own summary line before the parent prints the delta summary and the parent’s final line; this is expected ordering.
+
+### Telemetry fields written by the harness (JSONL)
+
+- dm_blocks, dm_edges: total processed blocks and emitted edges
+- dm_peakMB: peak memory during distance streaming (MiB)
+- rss_peakMB: peak memory during build (MiB)
+- simplices: total simplices built (when mode=Cech)
+- parallel_threshold: 0 or 1 (used by analyzer to enforce race-free runs under soft cap)
+- softcap_overshoot_sum, softcap_overshoot_max: overshoot telemetry for soft kNN cap
+
+Backward-compatible underscore keys are also present: dm_peak_mb, build_peak_mb, overshoot_sum, overshoot_max.
+
+### Accuracy reports and thresholds
+
+Use `scripts/run_accuracy_check.sh` to emit `accuracy_report_*.json` comparing exact (serial, no soft cap) to soft-cap variants (e.g., K=8,16,32). The analyzer can parse these and optionally enforce percentage thresholds:
+
+```bash
+python3 scripts/analyze_performance_logs.py \
+    --artifacts /tmp/tda-artifacts \
+    --accuracy-edges-pct-threshold 5.0 \
+    --accuracy-h1-pct-threshold 5.0
+```
+
+To gate on these thresholds (CI-fail), add `--accuracy-gate --gate`.
 
 ### 2. **Memory Optimization** ✅
 
@@ -384,7 +408,7 @@ Example:
 
 ```bash
 ./scripts/run_performance_validation.sh \
-    --harness build/release/bin/test_streaming_cech_perf \
+    --harness build/release/tests/cpp/test_streaming_cech_perf \
     --artifacts /tmp/tda-artifacts
 ```
 

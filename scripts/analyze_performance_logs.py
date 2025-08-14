@@ -17,7 +17,7 @@ import json
 import os
 import sys
 import glob
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Tuple
 
 FIELDS = [
     "mode",
@@ -54,11 +54,61 @@ def summarize_jsonl(path: str) -> Dict[str, Any]:
     return {k: last.get(k) for k in FIELDS if k in last}
 
 
+def find_accuracy_reports(artifacts_dir: str) -> List[str]:
+    return sorted(glob.glob(os.path.join(artifacts_dir, "accuracy_report_*.json")))
+
+
+def load_accuracy_report(path: str) -> Dict[str, Any]:
+    with open(path, "r") as fh:
+        return json.load(fh)
+
+
+def analyze_accuracy_reports(artifacts_dir: str, thr_edges: float | None, thr_h1: float | None, gate: bool) -> Tuple[bool, int]:
+    """
+    Parse accuracy_report_*.json files and optionally enforce delta thresholds.
+
+    Returns (ok, count_reports).
+    """
+    reports = find_accuracy_reports(artifacts_dir)
+    if not reports:
+        print("[analyzer] accuracy: no accuracy_report_*.json found")
+        return True, 0
+
+    ok = True
+    for rp in reports:
+        data = load_accuracy_report(rp)
+        base = data.get("baseline", {})
+        be, bh = base.get("edges", 0), base.get("h1", 0)
+        print(f"[analyzer] accuracy: {os.path.basename(rp)} baseline edges={be}, h1={bh}")
+        worst_edges_pct = 0.0
+        worst_h1_pct = 0.0
+        for v in data.get("variants", []):
+            k = v.get("K")
+            de_pct = float(v.get("delta_edges_pct", 0.0) or 0.0)
+            dh_pct = float(v.get("delta_h1_pct", 0.0) or 0.0)
+            worst_edges_pct = max(worst_edges_pct, abs(de_pct))
+            worst_h1_pct = max(worst_h1_pct, abs(dh_pct))
+            print(f"[analyzer]  - K={k}: Δedges%={de_pct:.3f}, Δh1%={dh_pct:.3f}")
+        print(f"[analyzer] accuracy: worst Δedges%={worst_edges_pct:.3f}, worst Δh1%={worst_h1_pct:.3f}")
+        if gate:
+            if thr_edges is not None and worst_edges_pct > thr_edges:
+                print(f"[analyzer] WARNING: Δedges% {worst_edges_pct:.3f} exceeds {thr_edges:.3f}")
+                ok = False
+            if thr_h1 is not None and worst_h1_pct > thr_h1:
+                print(f"[analyzer] WARNING: Δh1% {worst_h1_pct:.3f} exceeds {thr_h1:.3f}")
+                ok = False
+    return ok, len(reports)
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--artifacts", required=True, help="Directory with jsonl/csv outputs")
-    ap.add_argument("--gate", action="store_true", help="Exit non-zero on violations")
+    ap.add_argument("--gate", action="store_true", help="Exit non-zero on violations (perf + optional accuracy)")
     ap.add_argument("--require-csv", action="store_true", help="Require adjacency histogram CSVs")
+    # Accuracy thresholds (non-blocking unless --accuracy-gate is provided)
+    ap.add_argument("--accuracy-edges-pct-threshold", type=float, default=None, help="Max allowed |Δedges%| across variants")
+    ap.add_argument("--accuracy-h1-pct-threshold", type=float, default=None, help="Max allowed |Δh1%| across variants")
+    ap.add_argument("--accuracy-gate", action="store_true", help="Apply gating to accuracy thresholds (otherwise just print)")
     args = ap.parse_args()
 
     art = os.path.abspath(args.artifacts)
@@ -107,8 +157,19 @@ def main() -> int:
         else:
             print(f"[analyzer] CSVs present: {len(csvs)} (sample: {os.path.basename(csvs[0])})")
 
-    print(f"[analyzer] gate={'ON' if args.gate else 'OFF'} result={'PASS' if ok else 'FAIL'}")
-    return 0 if (ok or not args.gate) else 2
+    # Accuracy analysis (non-blocking by default unless --accuracy-gate)
+    acc_ok, acc_count = analyze_accuracy_reports(
+        art,
+        args.accuracy_edges_pct_threshold,
+        args.accuracy_h1_pct_threshold,
+        args.accuracy_gate,
+    )
+    if acc_count > 0:
+        print(f"[analyzer] accuracy gate={'ON' if args.accuracy_gate else 'OFF'} result={'PASS' if acc_ok else 'FAIL'}")
+    # Final status considers perf gating and optional accuracy gating
+    final_ok = ok and (acc_ok or not args.accuracy_gate)
+    print(f"[analyzer] gate={'ON' if args.gate else 'OFF'} result={'PASS' if final_ok else 'FAIL'}")
+    return 0 if (final_ok or not args.gate) else 2
 
 
 if __name__ == "__main__":

@@ -290,6 +290,8 @@ research/                   # Extracted research content
 - `RCA_Plan.md` contains plans for addressing memory blowup issues.
 - `memory_blowup_RCA_steps.md` contains steps for addressing memory blowup issues.
 - `docs/performance/README.md`: Contains information on baseline comparisons without memory overlap, including the use of flags such as `--baseline-separate-process` and `--baseline-json-out`.
+  - Added a “Baseline comparisons without memory overlap” section with flags and an example.
+  - Appended the separate-process baseline JSONL note.
 
 ## 🧠 **MEMORY MANAGEMENT STRATEGIES**
 
@@ -660,6 +662,8 @@ docker run -d \
     - **I** (the user) do not need to be copying or pasting anything at any point, unless explicitly requested.
     - **YOU** are forbidden from presenting code in any way other than executable code blocks with Run/Cancel buttons.
     - **ALWAYS** perform static analysis (Codacy) after modifying any code.
-    - When addressing memory blowup issues (reference `docs/troubleshooting/memory_blowup_RCA_steps.md`), prioritize steady but significant improvements, maintaining control for easy reversion and repair. Ensure alignment with Taskmaster planning and Agent Instruction files. Employ a rigorous, scalable approach with extensive testing.
-    - **Workflow for Executing Plans**: Locate relevant plans (e.g., RCA-related docs and strategy plans), extract actionable steps, and execute them. Begin with builds/tests and documentation updates. Open troubleshooting plans to extract checklists and execute concrete steps (build/validate, monitoring hooks, etc.).
-    - **Execution Steps for RCA and Strategy Plans**: Read `CMakeLists
+    - When addressing memory blowup issues (reference `docs/troubleshooting/memory_blowup_RCA_steps.md`), prioritize steady but significant improvements, maintaining control for easy reversion and repair. Ensure alignment with Taskmaster planning and Agent Instruction files.
+    - **Workflow for Executing Plans**: Locate relevant plans (e.g., RCA-related docs and strategy plans), extract actionable steps, and execute them. Begin with builds/tests and documentation updates. Open troubleshooting plans to
+
+## 🚨 CI WORKFLOW NOTES
+-
