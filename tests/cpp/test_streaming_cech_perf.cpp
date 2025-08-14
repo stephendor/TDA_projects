@@ -318,12 +318,21 @@ int main(int argc, char** argv) {
         std::ofstream jout(jsonPath, std::ios::app);
         std::time_t t = std::time(nullptr);
         char buf[32]; std::strftime(buf, sizeof(buf), "%Y-%m-%dT%H:%M:%S", std::localtime(&t));
-    jout << "{\"timestamp\":\"" << buf << "\",";
-        jout << "\"n\":" << n << ",\"d\":" << d << ",\"mode\":\"" << mode << "\",";
-    jout << "\"radius\":" << radius << ",\"maxDim\":" << maxDim << ",\"maxNeighbors\":" << maxNeighbors << ",\"block\":" << block << ",\"maxBlocks\":" << max_blocks << ",\"maxPairs\":" << max_pairs << ",\"timeLimit\":" << time_limit << ",";
-    jout << "\"dm_blocks\":" << dm_blocks << ",\"dm_edges\":" << dm_edges << ",\"dm_peak_mb\":" << dm_peak_mb << ",";
-    jout << "\"build_secs\":" << build_secs << ",\"build_peak_mb\":" << build_peak_mb << ",\"simplices\":" << simplices
-         << ",\"overshoot_sum\":" << overshoot_sum << ",\"overshoot_max\":" << overshoot_max << "}\n";
+       jout << "{\"timestamp\":\"" << buf << "\",";
+       jout << "\"n\":" << n << ",\"d\":" << d << ",\"mode\":\"" << mode << "\",";
+       // Config echo
+       jout << "\"radius\":" << radius << ",\"maxDim\":" << maxDim << ",\"maxNeighbors\":" << maxNeighbors
+           << ",\"block\":" << block << ",\"maxBlocks\":" << max_blocks << ",\"maxPairs\":" << max_pairs
+           << ",\"timeLimit\":" << time_limit << ",\"parallel_threshold\":" << (par_thresh ? 1 : 0) << ",";
+       // Core telemetry (underscore keys maintained for backward compatibility)
+       jout << "\"dm_blocks\":" << dm_blocks << ",\"dm_edges\":" << dm_edges
+           << ",\"dm_peak_mb\":" << dm_peak_mb << ",\"build_secs\":" << build_secs
+           << ",\"build_peak_mb\":" << build_peak_mb << ",\"simplices\":" << simplices
+           << ",\"overshoot_sum\":" << overshoot_sum << ",\"overshoot_max\":" << overshoot_max << ",";
+       // Duplicate fields with camelCase expected by analyzer
+       jout << "\"dm_peakMB\":" << dm_peak_mb << ",\"rss_peakMB\":" << build_peak_mb
+           << ",\"softcap_overshoot_sum\":" << overshoot_sum
+           << ",\"softcap_overshoot_max\":" << overshoot_max << "}\n";
     }
 
     return 0;

@@ -20,6 +20,7 @@ D=8
 RADIUS=0.5
 MAXDIM=1
 K_SOFT=16
+STAIRCASE=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -37,6 +38,8 @@ while [[ $# -gt 0 ]]; do
       MAXDIM="$2"; shift 2;;
     --K|--soft-knn-cap)
       K_SOFT="$2"; shift 2;;
+    --staircase)
+      STAIRCASE="$2"; shift 2;;
     *)
       echo "Unknown arg: $1" >&2; exit 2;;
   esac
@@ -48,22 +51,35 @@ if [[ -z "$HARNESS" ]]; then
 fi
 
 mkdir -p "$ARTIFACTS_DIR"
-PARENT_JSON="$ARTIFACTS_DIR/run_${N}.jsonl"
-BASE_JSON="$ARTIFACTS_DIR/baseline_${N}.jsonl"
-ADJ_PARENT="$ARTIFACTS_DIR/adj_${N}_parent.csv"
-ADJ_BASE="$ARTIFACTS_DIR/adj_${N}_baseline.csv"
 
-echo "[run_performance_validation] Running probe: n=$N d=$D K=$K_SOFT radius=$RADIUS maxDim=$MAXDIM"
-"$HARNESS" \
-  --n "$N" --d "$D" --radius "$RADIUS" --maxDim "$MAXDIM" \
-  --soft-knn-cap "$K_SOFT" --parallel-threshold 0 \
-  --baseline-separate-process --baseline-maxDim "$MAXDIM" \
-  --baseline-json-out "$BASE_JSON" \
-  --adj-hist-csv "$ADJ_PARENT" \
-  --adj-hist-csv-baseline "$ADJ_BASE" \
-  --json "$PARENT_JSON"
+run_one() {
+  local nval="$1"
+  local pjson="$ARTIFACTS_DIR/run_${nval}.jsonl"
+  local bjson="$ARTIFACTS_DIR/baseline_${nval}.jsonl"
+  local adjp="$ARTIFACTS_DIR/adj_${nval}_parent.csv"
+  local adjb="$ARTIFACTS_DIR/adj_${nval}_baseline.csv"
+
+  echo "[run_performance_validation] Running probe: n=$nval d=$D K=$K_SOFT radius=$RADIUS maxDim=$MAXDIM"
+  "$HARNESS" \
+    --n "$nval" --d "$D" --radius "$RADIUS" --maxDim "$MAXDIM" \
+    --soft-knn-cap "$K_SOFT" --parallel-threshold 0 \
+  --baseline-compare 1 --baseline-separate-process 1 --baseline-maxDim "$MAXDIM" \
+    --baseline-json-out "$bjson" \
+    --adj-hist-csv "$adjp" \
+    --adj-hist-csv-baseline "$adjb" \
+    --json "$pjson"
+}
+
+if [[ -n "$STAIRCASE" ]]; then
+  IFS=',' read -r -a sizes <<< "$STAIRCASE"
+  for s in "${sizes[@]}"; do
+    run_one "$s"
+  done
+else
+  run_one "$N"
+fi
 
 echo "[run_performance_validation] Analyzing artifacts in $ARTIFACTS_DIR"
-"$(dirname "$0")/analyze_performance_logs.py" --artifacts "$ARTIFACTS_DIR" --gate --require-csv
+python3 "$(dirname "$0")/analyze_performance_logs.py" --artifacts "$ARTIFACTS_DIR" --gate --require-csv
 
 echo "[run_performance_validation] Done"

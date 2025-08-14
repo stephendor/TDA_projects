@@ -55,7 +55,7 @@ globs: *
 - **Finance Module**: Market regime detection, portfolio analysis, systemic risk assessment
 - **Cybersecurity Module**: Real-time anomaly detection, threat classification, network analysis
 - **Streaming Infrastructure**: Kafka + Flink for real-time processing
-- **Performance Requirements**: <100ms latency, >10,000 events/second, >20GB datasets
+- **Performance Requirements**: <100ms latency, >10000 events/second, >20GB datasets
 
 ### **Current Implementation Status**
 - **Clean C++23 Structure**: Ready for core TDA engine implementation

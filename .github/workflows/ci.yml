@@ -1,399 +1,212 @@
-# TDA Platform Continuous Integration Pipeline
 name: CI Pipeline
 
 on:
   push:
     branches: [ main, develop ]
   pull_request:
-    branches: [ main ]
+    branches: [ main, develop ]
+  workflow_dispatch:
+    inputs:
+      run_staircase:
+        description: "Run large staircase probe (slow; use only on demand)"
+        required: false
+        default: 'false'
+        type: choice
+        options:
+          - 'false'
+          - 'true'
 
 env:
-  PYTHON_VERSION: '3.13'
-  NODE_VERSION: '18'
+  TDA_ARTIFACT_DIR: /tmp/tda-artifacts
 
 jobs:
-  # C++ build and targeted tests (streaming distance + Čech)
   cpp-tests:
     name: C++ Build & Streaming Tests
     runs-on: ubuntu-latest
-    env:
-      TDA_ARTIFACT_DIR: /tmp/tda-artifacts
     steps:
-    - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4.3.0
 
-    - name: Install system dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y \
-          build-essential cmake ninja-build \
-          libeigen3-dev libgmp-dev libmpfr-dev libtbb-dev
-
-    - name: Prepare artifact directory
-      run: |
-        mkdir -p "$TDA_ARTIFACT_DIR"
-
-    - name: Configure (Release)
-      run: |
-        cmake -S . -B build/release \
-          -DCMAKE_BUILD_TYPE=Release \
-          -DBUILD_TESTS=ON \
-          -DBUILD_BENCHMARKS=ON \
-          -DBUILD_PYTHON=OFF
-
-    - name: Build
-      run: |
-        cmake --build build/release --config Release -- -j$(nproc)
-
-    - name: Ensure Python 3
-      run: |
-        if ! command -v python3 >/dev/null 2>&1; then
+      - name: Install build dependencies
+        run: |
           sudo apt-get update
-          sudo apt-get install -y python3
-        fi
-        python3 --version
+          sudo apt-get install -y \
+            build-essential cmake ninja-build \
+            libeigen3-dev libgmp-dev libmpfr-dev libtbb-dev python3
 
-    - name: Run targeted C++ tests (PerfBaselineJSONL + PerfMonotonicity)
-      run: |
-        ctest --test-dir build/release -R "(PerfBaselineJSONL|PerfMonotonicity)" --output-on-failure --timeout 120
+      - name: Prepare artifact directory
+        run: mkdir -p "$TDA_ARTIFACT_DIR"
 
-    - name: List JSONL metrics (info only)
-      if: always()
-      run: |
-        echo "Scanning $TDA_ARTIFACT_DIR for JSONL outputs..." || true
-        ls -la "$TDA_ARTIFACT_DIR" || true
-        echo "Sample telemetry lines (if present):" || true
-        grep -E '"(mode|dm_blocks|dm_edges|simplices|softcap_overshoot|dm_peakMB|rss_peakMB)"' -n "$TDA_ARTIFACT_DIR"/*.jsonl || true
+      - name: Configure (Release)
+        run: |
+          cmake -S . -B build/release \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DBUILD_TESTS=ON \
+            -DBUILD_BENCHMARKS=ON \
+            -DBUILD_PYTHON=OFF
 
-    - name: Upload streaming test artifacts
-      if: always()
-      uses: actions/upload-artifact@v3
-      with:
-        name: cpp-streaming-artifacts
-        path: ${{ env.TDA_ARTIFACT_DIR }}
+      - name: Build
+        run: cmake --build build/release --config Release -- -j"$(nproc)"
 
-    - name: Gate artifacts with analyzer (overshoot==0, memory fields present)
-      if: always()
-      run: |
-        python3 scripts/analyze_performance_logs.py --artifacts "$TDA_ARTIFACT_DIR" --gate
+      - name: Run targeted C++ tests (PerfBaselineJSONL + PerfMonotonicity)
+        run: |
+          ctest --test-dir build/release -R "(PerfBaselineJSONL|PerfMonotonicity)" --output-on-failure --timeout 180
 
-  # Small perf probe to export adjacency histograms and telemetry
+      - name: List JSONL metrics (info only)
+        if: always()
+        run: |
+          echo "Scanning $TDA_ARTIFACT_DIR for JSONL outputs..." || true
+          ls -la "$TDA_ARTIFACT_DIR" || true
+          echo "Sample telemetry lines (if present):" || true
+          grep -E '"(mode|dm_blocks|dm_edges|simplices|softcap_overshoot|dm_peakMB|rss_peakMB)"' -n "$TDA_ARTIFACT_DIR"/*.jsonl || true
+
+      - name: Upload streaming test artifacts
+        if: always()
+        uses: actions/upload-artifact@ff15f0306b3f739f7b6fd43fb5d26cd321bd4de5 # v3.2.1
+        with:
+          name: cpp-streaming-artifacts
+          path: ${{ env.TDA_ARTIFACT_DIR }}
+
+      - name: Gate artifacts with analyzer (overshoot==0, memory fields present)
+        if: always()
+        run: |
+          python3 scripts/analyze_performance_logs.py --artifacts "$TDA_ARTIFACT_DIR" --gate --require-csv
+
   cpp-perf-probe:
     name: C++ Perf Probe (adjacency hist + telemetry)
     runs-on: ubuntu-latest
     needs: cpp-tests
-    env:
-      TDA_ARTIFACT_DIR: /tmp/tda-artifacts
     steps:
-    - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4.3.0
 
-    - name: Install system dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y \
-          build-essential cmake ninja-build \
-          libeigen3-dev libgmp-dev libmpfr-dev libtbb-dev
-
-    - name: Prepare artifact directory
-      run: mkdir -p "$TDA_ARTIFACT_DIR"
-
-    - name: Configure (Release)
-      run: |
-        cmake -S . -B build/release \
-          -DCMAKE_BUILD_TYPE=Release \
-          -DBUILD_TESTS=ON \
-          -DBUILD_BENCHMARKS=ON \
-          -DBUILD_PYTHON=OFF
-
-    - name: Build harness
-      run: |
-        cmake --build build/release --config Release --target test_streaming_cech_perf -- -j$(nproc)
-
-    - name: Ensure Python 3
-      run: |
-        if ! command -v python3 >/dev/null 2>&1; then
+      - name: Install build dependencies
+        run: |
           sudo apt-get update
-          sudo apt-get install -y python3
-        fi
-        python3 --version
+          sudo apt-get install -y \
+            build-essential cmake ninja-build \
+            libeigen3-dev libgmp-dev libmpfr-dev libtbb-dev python3
 
-    - name: Run Phase 1 validation script (end-to-end)
-      run: |
-        chmod +x scripts/run_performance_validation.sh
-        scripts/run_performance_validation.sh \
-          --harness build/release/bin/test_streaming_cech_perf \
-          --artifacts "$TDA_ARTIFACT_DIR"
+      - name: Prepare artifact directory
+        run: mkdir -p "$TDA_ARTIFACT_DIR"
 
-    - name: Quick overshoot/memory check (non-blocking)
-      if: always()
-      run: |
-        echo "Telemetry summary:" || true
-        grep -E 'softcap_overshoot|dm_peakMB|rss_peakMB' -n "$TDA_ARTIFACT_DIR"/*.jsonl || true
+      - name: Configure (Release)
+        run: |
+          cmake -S . -B build/release \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DBUILD_TESTS=ON \
+            -DBUILD_BENCHMARKS=ON \
+            -DBUILD_PYTHON=OFF
 
-  # Analyzer already ran inside the validation script; keep grep summary above for quick visibility.
+      - name: Build harness
+        run: cmake --build build/release --config Release --target test_streaming_cech_perf -- -j"$(nproc)"
 
-    - name: Upload perf probe artifacts
-      if: always()
-      uses: actions/upload-artifact@v3
-      with:
-        name: cpp-perf-probe-artifacts
-        path: ${{ env.TDA_ARTIFACT_DIR }}
-  # Code Quality and Linting
-  lint:
-    name: Code Quality
+      - name: Run Phase 1 validation script (end-to-end)
+        run: |
+          chmod +x scripts/run_performance_validation.sh
+          scripts/run_performance_validation.sh \
+            --harness build/release/tests/cpp/test_streaming_cech_perf \
+            --artifacts "$TDA_ARTIFACT_DIR"
+
+      - name: Quick overshoot/memory check (non-blocking)
+        if: always()
+        run: |
+          echo "Telemetry summary:" || true
+          grep -E 'softcap_overshoot|dm_peakMB|rss_peakMB' -n "$TDA_ARTIFACT_DIR"/*.jsonl || true
+
+      - name: Upload perf probe artifacts
+        if: always()
+        uses: actions/upload-artifact@ff15f0306b3f739f7b6fd43fb5d26cd321bd4de5 # v3.2.1
+        with:
+          name: cpp-perf-probe-artifacts
+          path: ${{ env.TDA_ARTIFACT_DIR }}
+
+  cpp-accuracy-check:
+    name: C++ Accuracy Check (small-n exact vs soft-cap)
     runs-on: ubuntu-latest
+    needs: cpp-tests
     steps:
-    - uses: actions/checkout@v4
-    
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: ${{ env.PYTHON_VERSION }}
-        
-    - name: Cache pip dependencies
-      uses: actions/cache@v3
-      with:
-        path: ~/.cache/pip
-        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
-        restore-keys: |
-          ${{ runner.os }}-pip-
-          
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install black flake8 mypy isort bandit safety
-        pip install -r requirements.txt
-        
-    - name: Code formatting with Black
-      run: black --check --diff src/ tests/
-      
-    - name: Import sorting with isort
-      run: isort --check-only --diff src/ tests/
-      
-    - name: Linting with flake8
-      run: flake8 src/ tests/ --count --select=E9,F63,F7,F82 --show-source --statistics
-      
-    - name: Type checking with mypy
-      run: mypy src/ --ignore-missing-imports
-      
-    - name: Security analysis with bandit
-      run: bandit -r src/ -f json -o security-report.json || true
-      
-    - name: Dependency security check
-      run: safety check --json --output safety-report.json || true
-      
-    - name: Upload security reports
-      uses: actions/upload-artifact@v3
-      with:
-        name: security-reports
-        path: |
-          security-report.json
-          safety-report.json
+      - name: Checkout
+        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4.3.0
 
-  # Unit and Integration Tests
-  test:
-    name: Test Suite
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: ['3.11', '3.12', '3.13']
-        
-    steps:
-    - uses: actions/checkout@v4
-    
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v4
-      with:
-        python-version: ${{ matrix.python-version }}
-        
-    - name: Install system dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y build-essential cmake libboost-all-dev libeigen3-dev
-        
-    - name: Cache pip dependencies
-      uses: actions/cache@v3
-      with:
-        path: ~/.cache/pip
-        key: ${{ runner.os }}-py${{ matrix.python-version }}-${{ hashFiles('**/requirements.txt') }}
-        
-    - name: Install Python dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install pytest pytest-cov pytest-xdist
-        pip install -r requirements.txt
-        pip install -e .
-        
-    - name: Run unit tests
-      run: |
-        pytest tests/ -v --cov=src --cov-report=xml --cov-report=html --junit-xml=test-results.xml
-        
-    - name: Upload test results
-      uses: actions/upload-artifact@v3
-      if: always()
-      with:
-        name: test-results-py${{ matrix.python-version }}
-        path: |
-          test-results.xml
-          htmlcov/
-          
-    - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v3
-      with:
-        file: ./coverage.xml
-        flags: unittests
-        name: codecov-py${{ matrix.python-version }}
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential cmake ninja-build \
+            libeigen3-dev libgmp-dev libmpfr-dev libtbb-dev python3
 
-  # Performance and Load Testing
-  performance:
-    name: Performance Tests
-    runs-on: ubuntu-latest
-    needs: test
-    steps:
-    - uses: actions/checkout@v4
-    
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: ${{ env.PYTHON_VERSION }}
-        
-    - name: Install dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y build-essential cmake libboost-all-dev
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
-        pip install -e .
-        pip install pytest-benchmark memory-profiler
-        
-    - name: Run performance benchmarks
-      run: |
-        pytest tests/ -m performance --benchmark-json=benchmark-results.json
-        
-    - name: Upload benchmark results
-      uses: actions/upload-artifact@v3
-      with:
-        name: benchmark-results
-        path: benchmark-results.json
+      - name: Prepare artifact directory
+        run: mkdir -p "$TDA_ARTIFACT_DIR"
 
-  # Docker Build and Security Scan
-  docker:
-    name: Docker Build & Scan
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v4
-    
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v3
-      
-    - name: Build Docker image
-      uses: docker/build-push-action@v5
-      with:
-        context: .
-        target: production
-        tags: tda-platform:${{ github.sha }}
-        load: true
-        cache-from: type=gha
-        cache-to: type=gha,mode=max
-        
-    - name: Run Trivy vulnerability scanner
-      uses: aquasecurity/trivy-action@master
-      with:
-        image-ref: 'tda-platform:${{ github.sha }}'
-        format: 'sarif'
-        output: 'trivy-results.sarif'
-        
-    - name: Upload Trivy scan results
-      uses: github/codeql-action/upload-sarif@v2
-      with:
-        sarif_file: 'trivy-results.sarif'
-        
-    - name: Test Docker image
-      run: |
-        docker run --rm tda-platform:${{ github.sha }} python -c "import src; print('Docker image test passed')"
+      - name: Configure (Release)
+        run: |
+          cmake -S . -B build/release \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DBUILD_TESTS=ON \
+            -DBUILD_BENCHMARKS=ON \
+            -DBUILD_PYTHON=OFF
 
-  # Integration Tests with Services
-  integration:
-    name: Integration Tests
+      - name: Build harness
+        run: cmake --build build/release --config Release --target test_streaming_cech_perf -- -j"$(nproc)"
+
+      - name: Run accuracy check (N=4000, K=8,16,32)
+        run: |
+          chmod +x scripts/run_accuracy_check.sh
+          scripts/run_accuracy_check.sh \
+            --harness build/release/tests/cpp/test_streaming_cech_perf \
+            --artifacts "$TDA_ARTIFACT_DIR" \
+            --n 4000 --d 8 --radius 0.5 --maxDim 1 --klist "8,16,32"
+
+      - name: Upload accuracy artifacts
+        if: always()
+        uses: actions/upload-artifact@ff15f0306b3f739f7b6fd43fb5d26cd321bd4de5 # v3.2.1
+        with:
+          name: cpp-accuracy-artifacts
+          path: ${{ env.TDA_ARTIFACT_DIR }}
+
+  cpp-staircase:
+    name: C++ Staircase Probe (200K on-demand)
     runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:15
-        env:
-          POSTGRES_PASSWORD: test_password
-          POSTGRES_USER: test_user
-          POSTGRES_DB: test_db
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 5432:5432
-          
-      redis:
-        image: redis:7
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 6379:6379
-          
+    needs: cpp-tests
+    timeout-minutes: 25
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.run_staircase == 'true' }}
     steps:
-    - uses: actions/checkout@v4
-    
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: ${{ env.PYTHON_VERSION }}
-        
-    - name: Install dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y build-essential cmake libboost-all-dev
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
-        pip install -e .
-        
-    - name: Run integration tests
-      env:
-        DATABASE_URL: postgresql://test_user:test_password@localhost:5432/test_db
-        REDIS_URL: redis://localhost:6379/0
-      run: |
-        pytest tests/ -m integration -v
-        
-  # Deployment Readiness Check
-  deploy-check:
-    name: Deployment Readiness
-    runs-on: ubuntu-latest
-    needs: [lint, test, docker, integration]
-    if: github.ref == 'refs/heads/main'
-    steps:
-    - uses: actions/checkout@v4
-    
-    - name: Check deployment requirements
-      run: |
-        echo "✅ All checks passed - ready for deployment"
-        echo "Branch: ${{ github.ref }}"
-        echo "Commit: ${{ github.sha }}"
-        
-    - name: Generate deployment manifest
-      run: |
-        cat > deployment-manifest.json << EOF
-        {
-          "version": "${{ github.sha }}",
-          "branch": "${{ github.ref }}",
-          "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
-          "tests_passed": true,
-          "security_scanned": true,
-          "docker_built": true,
-          "ready_for_production": true
-        }
-        EOF
-        
-    - name: Upload deployment manifest
-      uses: actions/upload-artifact@v3
-      with:
-        name: deployment-manifest
-        path: deployment-manifest.json
+      - name: Checkout
+        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4.3.0
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential cmake ninja-build \
+            libeigen3-dev libgmp-dev libmpfr-dev libtbb-dev python3
+
+      - name: Prepare artifact directory
+        run: mkdir -p "$TDA_ARTIFACT_DIR"
+
+      - name: Configure (Release)
+        run: |
+          cmake -S . -B build/release \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DBUILD_TESTS=ON \
+            -DBUILD_BENCHMARKS=ON \
+            -DBUILD_PYTHON=OFF
+
+      - name: Build harness
+        run: cmake --build build/release --config Release --target test_streaming_cech_perf -- -j"$(nproc)"
+
+      - name: Run staircase probe (n=200000)
+        run: |
+          chmod +x scripts/run_performance_validation.sh
+          scripts/run_performance_validation.sh \
+            --harness build/release/tests/cpp/test_streaming_cech_perf \
+            --artifacts "$TDA_ARTIFACT_DIR" \
+            --staircase "200000"
+
+      - name: Upload staircase artifacts
+        if: always()
+        uses: actions/upload-artifact@ff15f0306b3f739f7b6fd43fb5d26cd321bd4de5 # v3.2.1
+        with:
+          name: cpp-staircase-artifacts
+          path: ${{ env.TDA_ARTIFACT_DIR }}

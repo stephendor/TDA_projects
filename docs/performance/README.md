@@ -71,13 +71,41 @@ double distance_simd(const Point& p1, const Point& p2) {
 
 ## Experimental Feature Notes
 
-See softcap_local_merge.md for the experimental soft kNN cap local-merge mode in the streaming distance matrix. It is OFF by default; enable it only for controlled experiments and monitor overshoot telemetry and adjacency histograms. Use baseline comparisons to validate accuracy impact.
+```bash
+./scripts/run_performance_validation.sh \
+    --harness ./build/release/controlled_performance_test \
+    --n 8000 --d 8 --radius 0.5 --maxDim 1 --K 16
+```
 
-### Baseline comparisons without memory overlap
+Staircase runs (comma-separated sizes):
 
+```bash
+./scripts/run_performance_validation.sh \
+    --harness ./build/release/controlled_performance_test \
+    --staircase 200000,500000,1000000 --d 8 --radius 0.5 --maxDim 1 --K 16
+```
+ 
 For QA and accuracy checks, compare a soft-cap run against a race-free baseline (no soft cap, serial threshold). To avoid cumulative peak RSS when running both paths, use the separate-process baseline mode:
 
 - --baseline-compare 1: enable baseline compare in Čech mode
+
+## Accuracy checks (small-n exact vs soft-cap)
+
+Use `scripts/run_accuracy_check.sh` to generate an accuracy report comparing exact small-n runs against soft-cap variants (K in a list). It computes deltas in edge counts and H1 intervals and emits a compact JSON report.
+
+Example:
+
+```bash
+./scripts/run_accuracy_check.sh \
+    --harness ./build/release/controlled_performance_test \
+    --n 4000 --d 8 --radius 0.5 --maxDim 1 --klist 8,16,32
+```
+
+Artifacts:
+
+- `accuracy_baseline_N.jsonl` and child `accuracy_baseline_child_N.jsonl`
+- `accuracy_KK_N.jsonl` for each K
+- `accuracy_report_N.json` with per-K deltas (% and absolute)
 - --baseline-separate-process 1: run the baseline in a fresh process to avoid allocator page retention
 - --baseline-maxDim N: optionally override maxDim for the baseline run
 - --baseline-json-out \<path\>: direct the child baseline process to write its JSONL telemetry to a deterministic file you control (useful for CI parsing)
