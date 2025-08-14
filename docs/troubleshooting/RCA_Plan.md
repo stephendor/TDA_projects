@@ -162,6 +162,15 @@ TEST_F(BottleneckProfiler, IdentifyBottleneck10K) {
     
     // Phase 2: Distance Matrix
     auto dist_matrix = ComputeDistanceMatrix(points);
+---
+
+### Appendix: Baseline comparison without peak RSS overlap
+
+When comparing soft-cap runs to a serial, no-soft-cap baseline during RCA:
+
+- Use perf harness flags `--baseline-compare 1 --baseline-separate-process 1` to run the baseline in a new process and avoid allocator page retention between runs.
+- Optionally pass `--baseline-maxDim N` to constrain the baseline's dimension.
+- This yields clearer peak memory telemetry per path and reduces false positives in memory blowup investigations.
     RecordPhase("Distance Matrix");
     
     // Phase 3: Čech Complex Construction
@@ -482,6 +491,7 @@ python3 scripts/analyze_performance_logs.py results_*.log
 ## 🎯 **Success Criteria & Validation**
 
 ### **Immediate Validation (Today)**
+
 ````bash
 # Test current state
 ./scripts/run_performance_validation.sh
@@ -493,6 +503,7 @@ python3 scripts/analyze_performance_logs.py results_*.log
 ````
 
 ### **Accuracy Validation**
+
 ````python
 import numpy as np
 from gudhi import CechComplex
@@ -533,14 +544,16 @@ def validate_approximation_accuracy(n_points=10000):
 ## 🎬 **Next Immediate Actions**
 
 1. **Run bottleneck profiling** to confirm Čech complex is the issue:
+
 ````bash
 ./scripts/build_matrix.sh
 find . -name "test*.cpp" | xargs grep -l "cech\|Cech\|CECH"
 ````
 
-2. **Implement memory monitor** first (highest impact, lowest risk)
+1. **Implement memory monitor** first (highest impact, lowest risk)
 
-3. **Test with financial/cyber-like data** (high dimensionality):
+2. **Test with financial/cyber-like data** (high dimensionality):
+
 ````python
 # Generate realistic test data
 import numpy as np

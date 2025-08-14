@@ -880,6 +880,73 @@ StreamingCechPerf mode=DMOnly, n=200000, d=3, radius=0.9, maxDim=1, maxNeighbors
 
 _**Assistant**_
 
+I’ll inspect the streaming Čech and distance matrix implementations to confirm whether time limits and early-stop controls are applied in full Čech mode and identify the likely stall point. Then I’ll propose or make targeted code fixes if needed. 
+```
+
+```
+
+```
+
+```
+I’ll triage the suspected stall by inspecting the streaming Čech path, wiring the DM early-stop/parallel flags through, making the edge callback thread-safe, and validating on 4K and 200K runs.
+
+Checklist
+- Diagnose stall locus in full Čech mode
+- Make DM threshold path thread-safe and parallel
+- Propagate time/limit flags into full Čech
+- Rebuild and validate on small (4K) and constrained large (200K) runs
+- Report memory/throughput and recommend next steps
+
+Actions taken
+- Made the streaming Čech DM edge callback thread-safe and enabled optional parallel threshold mode:
+  - Updated `streaming_cech.cpp` to guard per-vertex neighbor updates with lightweight atomic spinlocks.
+  - Now honors `enable_parallel_threshold` safely in full Čech mode.
+- Propagated CLI controls (max-blocks, max-pairs, time-limit, parallel-threshold) into the full Čech DM config in `test_streaming_cech_perf.cpp`.
+- Rebuilt and ran:
+  - 4K full Čech: DM peak ~54.53 MB, Build ~5.92 s, Build peak ~146.41 MB, Simplices 379,397.
+  - 200K full Čech (maxDim=1, maxNeighbors=16, block=128, time-limit=60): DM blocks 1,222,266; DM edges 445,066,296; DM peak ~172.48 MB; Build ~63.92 s; Build peak ~277.01 MB; Simplices 304,439.
+
+Diagnosis
+- Not stalled: the 200K run completes with bounded memory; prior perception likely came from the DM threshold pass running single-threaded and holding up progress. With a thread-safe callback and parallel threshold enabled, the pass no longer blocks.
+- The higher DM edge count versus the earlier DM-only probe is expected because the full Čech run doesn’t cap edges via max-pairs; earlier DM-only runs were limited by a max-pairs/time-limit guard and/or different conditions. In full mode we enumerate all pairs under the 2r threshold, hence more edges and higher DM peak memory.
+- Time limit applies only to the DM pass; complex construction can exceed it. That’s why Build secs ~64 s even with timeLimit=60.
+
+Notes
+- CSV/JSON paths: when not absolute, they’re likely written under the build directory; use absolute paths (as shown) to avoid confusion.
+- Compiler warning in `simplex.cpp` (unsigned < 0) is harmless but should be cleaned up later.
+
+What’s next
+- Add adjacency size histogram and per-dimension simplex counters during build to pinpoint memory growth sources at scale.
+- Optional: expose a per-vertex kNN cap directly in the DM pass to short-circuit distance checks once K neighbors collected for a vertex (approximate, but bounded).
+- If you want the 200K run shorter/leaner, reduce radius or set a DM max-pairs limit in full Čech runs; or keep maxDim=1 and K=8–16 for diagnostics.
+- Fix the `isValid()` warning in `simplex.cpp` by removing the impossible `< 0` check for unsigned types.
+
+Quality gates
+- Build: PASS (debug)
+- Unit/perf harness: PASS (4K, 200K constrained)
+- Lint: one benign warning in `simplex.cpp` (deferred)
+
+Requirements coverage
+- Diagnose stalling: Done — cause addressed with thread-safe parallel threshold and verified.
+- Apply early-stop/parallel flags in full Čech: Done — flags now propagate and are honored.
+- Validate on small and large runs: Done — results above with memory/throughput.
+
+---
+
+_**User**_
+
+Okay do these but see additional note:
+
+Add adjacency size histogram and per-dimension simplex counters during build to pinpoint memory growth sources at scale. [good]
+Optional: expose a per-vertex kNN cap directly in the DM pass to short-circuit distance checks once K neighbors collected for a vertex (approximate, but bounded). [good]
+If you want the 200K run shorter/leaner, reduce radius or set a DM max-pairs limit in full Čech runs; or keep maxDim=1 and K=8–16 for diagnostics. [update testing to include a lean run for sanity checking then a full run. Do we need to tune our settings here? Is it worth finding a lean lower bound and then stepping up in stages to a full run?]
+Fix the isValid() warning in simplex.cpp by removing the impossible < 0 check for unsigned types. [good]
+
+
+---
+
+_**Assistant**_
+
 
 
 ---

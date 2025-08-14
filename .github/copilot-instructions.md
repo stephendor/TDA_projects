@@ -113,6 +113,7 @@ research/                   # Extracted research content
 - **Deep Learning**: PyTorch, custom TDA layers
 - **Performance**: SIMD, OpenMP, CUDA (optional)
 - **Deployment**: Docker, Kubernetes, horizontal scaling
+- **Gudhi:** (version 3.11.0 or later) is used for filtration computations.
 
 ## 🎯 **IMPLEMENTATION PRIORITIES**
 
@@ -259,11 +260,15 @@ research/                   # Extracted research content
 - If any variant run crashes, analyze the terminal output, fix the issue, and rerun the variant.
 - If the manifest hash does not change as expected for a variant, investigate the hashing logic and correct it.
 - If filtration recompute is not active (attempted_count is 0), ensure that point clouds are generated and accessible in the expected location.
+- If the process appears to stall, particularly with large datasets, inspect the performance harness source and target wiring to understand the exact parameters, modes, and potential blocking points. Run small DM-only probes and constrained runs with time/memory stats to diagnose the issue.
 
 ## 🧪 **VALIDATION & TESTING**
 
 - If leakage is detected (potential_leakage_flag is true), stop all further tuning and investigate manifest construction.
 - Before accepting a new configuration, always validate full vs pruned pipeline once.
+- Update testing to include a lean run for sanity checking, then a full run. Determine if settings need tuning. Find a lean lower bound and then step up in stages to a full run.
+- **ALWAYS** run a lean 200K sanity probe (e.g., maxDim=1, K=8–16, tighter radius or time/pair caps), then step up to fuller config and compare adjacency histograms and peak RSS at each step.
+- Validate that DM knn_cap_per_vertex_soft reduces work without unacceptable loss; compare simplex counts and adjacency degree distributions across runs.
 
 ## 🗑️ **METHODOLOGY GRAVEYARD**
 - Document all failed approaches and their rationale in `METHODOLOGY_GRAVEYARD.md`.
@@ -280,11 +285,11 @@ research/                   # Extracted research content
 ## 💾 **VERSION UPDATES**
 - Ensure changes to parameters and settings are reflected in manifest hashes.
 
-## 🧰 **TECH STACK**
-- **Gudhi:** (version 3.11.0 or later) is used for filtration computations.
-
 ## 📚 **PROJECT DOCUMENTATION & CONTEXT SYSTEM**
 - UNIFIED_AGENT_INSTRUCTIONS.md contains high-level instructions for the AI coding assistant.
+- `RCA_Plan.md` contains plans for addressing memory blowup issues.
+- `memory_blowup_RCA_steps.md` contains steps for addressing memory blowup issues.
+- `docs/performance/README.md`: Contains information on baseline comparisons without memory overlap.
 
 ## 🧠 **MEMORY MANAGEMENT STRATEGIES**
 
@@ -455,3 +460,80 @@ docker run -d \
 ## 📈 **SCALING**
 
 - **Neighbor Accumulation**: For large datasets (e.g., n=200k), limit neighbor accumulation in streaming Čech to K nearest neighbors on the fly to avoid memory spikes due to massive temporary adjacency growth.
+
+- To diagnose 200k run behavior, inspect the perf harness source and the large target wiring to see exact parameters, modes, and potential blocking points. Run a small DM-only probe and a constrained 200k run with time/memory stats.
+
+## ✅ **CODE IMPROVEMENTS**
+
+- Fix the `isValid()` warning in `simplex.cpp` by removing the impossible `< 0` check for unsigned types.
+
+## 🚨 **RACE CONDITION MITIGATION**
+- When using `--soft-knn-cap > 0`, **ALWAYS** disable `--parallel-threshold 0` for stable, race-free telemetry, **unless** degree_softcap updates are made thread-safe (e.g., using `std::atomic<uint32_t>` or per-thread local caps with bounded checks).
+
+## ⚖️ **PERFORMANCE VS. ACCURACY TRADEOFFS**
+
+### **Per-Thread Local Counters with Bounded Merges vs. Global Atomics**
+
+- **Performance and Contention**
+    - **Per-thread local + bounded merges**
+        - Pro: Greatly reduces cache-line bouncing and atomic contention; higher throughput at high core counts and "hot" vertices.
+        - Con: Merge phases add small latency spikes; tuning batch size/merge frequency is required.
+    - **Global atomics per edge (current parallel path)**
+        - Pro: Simple and always correct wrt local increments; no merge phase.
+        - Con: Heavy contention on popular vertices; can be 10–50x slower in dense regions (as observed).
+
+- **Memory Footprint**
+    - **Per-thread local**
+        - Pro: If scoped to block-local vertex ranges (i_len + j_len), overhead is modest and cache-friendly.
+        - Con: Full per-thread arrays of size n are infeasible; must use block-local arrays or sparse maps. Sparse maps add hashing overhead.
+    - **Global atomics**
+        - Pro: Single global array only.
+        - Con: False sharing and cache thrash under contention.
+
+- **Correctness vs “soft cap” Semantics**
+    - **Per-thread local**
+        - Pro: Can bound overshoot tightly (e.g., ≤ per-thread batch size per vertex) with pre-checks against a snapshot.
+        - Con: Not strictly exact; edges emitted between snapshot and merge can push degrees slightly above K. Avoiding overshoot exactly requires serializing updates or buffering edges until commit (complex and memory-costly).
+    - **Global atomics**
+        - Pro: Stronger immediate consistency; each increment is visible. Still may allow minimal overshoot if checks and increments aren’t atomic together, but typically tighter than local-batch.
+        - Con: The price is contention.
+
+- **Determinism and Reproducibility**
+    - **Per-thread local**
+        - Con: Edge emission order varies; degree overshoot and emitted set can differ across runs/cores. Not ideal for canonical telemetry.
+    - **Global atomics**
+        - Con: Still non-deterministic ordering; typically smaller variance than local-batch, but not guaranteed deterministic.
+    - **Race-free sequential threshold (baseline)**
+        - Pro: Deterministic and telemetry-stable; preferred for “official” measurements.
+
+- **Implementation Complexity**
+    - **Per-thread local**
+        - Con: More code paths: thread-local buffers, periodic merges, and careful cap checks. If dropping edges on cap is required, edges must be delayed or retracted (hard).
+    - **Global atomics**
+        - Pro: Simple to reason about and maintain.
+
+- **Telemetry and SLO Alignment**
+    - **Per-thread local**
+        - Con: Needs explicit “overshoot budget” metrics (e.g., max/avg overshoot per vertex) to monitor approximation.
+    - **Global atomics**
+        - Pro: Easier to interpret degree stats; no extra metrics needed beyond existing counters.
+
+- **Pragmatic Guidance**
+    - For correctness/telemetry runs and regressions: use race-free threshold path (parallel-threshold=0) when soft-knn-cap > 0.
+    - For high-throughput parallel runs:
+        - If soft-knn-cap is active and contention hurts latency, per-thread local with bounded merges is recommended.
+        - Keep a small per-thread batch (or per-block local arrays) and merge frequently to bound overshoot tightly (e.g., ≤1–2 per vertex).
+        - Expose and log an “overshoot” metric and the effective average degree to ensure the cap’s usefulness.
+    - Keep the global-atomic path available for simplicity but expect severe slowdowns under dense workloads.
+
+## ⚙️ **CONFIGURATION AND SAFEGUARDS**
+
+- Softcap Local Merge: Default `softcap_local_merge` is off for production. Mark it as experimental in documentation.
+
+## 🛠️ **PARALLEL OVERSHOOT REDUCTION**
+
+- To reduce parallel overshoot, consider mid-block partial merges or smaller tiles; or periodic resnapshot to bound `overshoot_max` tightly.
+
+## ✅ **ACCURACY VALIDATION**
+
+- Perform accuracy checks against small-n exact baselines and adjacency histogram exports for QA.

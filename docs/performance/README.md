@@ -69,7 +69,35 @@ double distance_simd(const Point& p1, const Point& p2) {
 }
 ```
 
+## Experimental Feature Notes
+
+See softcap_local_merge.md for the experimental soft kNN cap local-merge mode in the streaming distance matrix. It is OFF by default; enable it only for controlled experiments and monitor overshoot telemetry and adjacency histograms. Use baseline comparisons to validate accuracy impact.
+
+### Baseline comparisons without memory overlap
+
+For QA and accuracy checks, compare a soft-cap run against a race-free baseline (no soft cap, serial threshold). To avoid cumulative peak RSS when running both paths, use the separate-process baseline mode:
+
+- --baseline-compare 1: enable baseline compare in Čech mode
+- --baseline-separate-process 1: run the baseline in a fresh process to avoid allocator page retention
+- --baseline-maxDim N: optionally override maxDim for the baseline run
+
+Example:
+
+```bash
+build/release/tests/cpp/test_streaming_cech_perf \
+    --n 8000 --d 3 --radius 0.9 --maxDim 2 --maxNeighbors 32 --block 128 \
+    --soft-knn-cap 16 --parallel-threshold 0 \
+    --baseline-compare 1 --baseline-separate-process 1 \
+    --adj-hist-csv /tmp/adj_cur.csv --adj-hist-csv-baseline /tmp/adj_base.csv
+```
+
+Notes:
+
+- Keep --parallel-threshold 0 when using a soft cap for correctness/telemetry runs.
+- Inspect overshoot telemetry (overshoot_sum/overshoot_max) in CSV/JSON outputs.
+
 ### 2. **Memory Optimization** ✅
+
 ```cpp
 // Memory pool for simplex allocation
 class SimplexPool {
@@ -94,6 +122,7 @@ public:
 ```
 
 ### 3. **Parallelization Strategies** ✅
+
 ```cpp
 // OpenMP parallelization for distance matrix computation
 void compute_distance_matrix_parallel(
@@ -116,6 +145,7 @@ void compute_distance_matrix_parallel(
 ## 📊 Benchmarking Framework
 
 ### Performance Test Suite ✅
+
 ```cpp
 // Comprehensive performance testing
 class PerformanceTestSuite {
@@ -150,6 +180,7 @@ public:
 ```
 
 ### Profiling Tools Integration ✅
+
 ```cpp
 // Custom performance monitoring
 class PerformanceMonitor {
@@ -186,6 +217,7 @@ public:
 ## 🚀 High-Performance Computing
 
 ### GPU Acceleration with CUDA 🔄
+
 ```cpp
 // CUDA kernel for distance computation
 __global__ void compute_distances_kernel(
@@ -221,6 +253,7 @@ public:
 ```
 
 ### Distributed Computing with Apache Spark 🔄
+
 ```python
 from pyspark.sql import SparkSession
 from pyspark.ml.feature import VectorAssembler
@@ -247,6 +280,7 @@ def compute_persistence_distributed(spark, points_rdd):
 ## 🔧 Performance Tuning
 
 ### Build Optimization ✅
+
 ```bash
 # Release build with maximum optimization
 ./build.sh release OFF false false false
@@ -261,6 +295,7 @@ cmake ../.. \
 ```
 
 ### Runtime Configuration ✅
+
 ```cpp
 // Performance configuration
 struct PerformanceConfig {
@@ -280,6 +315,7 @@ struct PerformanceConfig {
 ## 📈 Performance Monitoring
 
 ### Real-time Metrics ✅
+
 ```cpp
 // Performance metrics collection
 class MetricsCollector {
@@ -298,6 +334,7 @@ public:
 ```
 
 ### Performance Dashboards 🔄
+
 - **Grafana Dashboards** - Real-time performance monitoring (planned)
 - **Prometheus Metrics** - Time-series performance data (planned)
 - **Custom Visualizations** - Algorithm-specific performance charts (planned)
@@ -305,21 +342,25 @@ public:
 ## 🎯 Best Practices
 
 ### 1. **Profile First, Optimize Second** ✅
+
 - Use profiling tools to identify bottlenecks ✅
 - Focus optimization efforts on the slowest 20% of code ✅
 - Measure before and after each optimization ✅
 
 ### 2. **Memory Management** ✅
+
 - Minimize allocations in hot paths ✅
 - Use memory pools for frequently allocated objects ✅
 - Prefer stack allocation over heap allocation ✅
 
 ### 3. **Algorithm Selection** ✅
+
 - Choose the right algorithm for your data characteristics ✅
 - Consider approximation algorithms for large datasets ✅
 - Balance accuracy vs. performance requirements ✅
 
 ### 4. **Parallelization Strategy** ✅
+
 - Start with OpenMP for shared-memory parallelism ✅
 - Use std::thread for more control ✅
 - Consider distributed computing for very large datasets 🔄
@@ -340,6 +381,7 @@ public:
 ## 🚧 Implementation Status
 
 ### ✅ **Completed Optimizations**
+
 - **SIMD Vectorization**: AVX2/AVX-512 support for distance computations
 - **Memory Management**: Memory pools, efficient data structures
 - **Parallelization**: OpenMP integration for complex operations
@@ -348,11 +390,13 @@ public:
 - **Performance Profiling**: Comprehensive benchmarking framework
 
 ### 🔄 **In Development**
+
 - **GPU Acceleration**: CUDA implementation for distance matrix computation
 - **Distributed Computing**: Spark/Flink integration for very large datasets
 - **Performance Dashboards**: Real-time monitoring and visualization
 
 ### 🔄 **Planned Features**
+
 - **Cloud Optimization**: AWS, GCP, Azure deployment strategies
 - **Container Performance**: Docker and Kubernetes optimization
 - **Advanced Profiling**: Custom performance analysis tools

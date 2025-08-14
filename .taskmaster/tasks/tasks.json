@@ -349,55 +349,192 @@
         "subtasks": [
           {
             "id": 1,
-            "title": "Design and Implement FastAPI Application with C++ TDA Core Integration",
-            "description": "Create the initial FastAPI project structure and implement the mechanism to call the C++ persistent homology algorithms developed in Task 1.",
-            "dependencies": [],
-            "details": "Set up a FastAPI application. Develop Python bindings using pybind11 or a subprocess-based wrapper to invoke the C++ TDA engine. Create a preliminary API endpoint to test the invocation of a C++ computation (e.g., Vietoris-Rips) and confirm that results can be passed back to the Python layer. This subtask is dependent on the completion of the C++ engine from Task 1.",
+            "title": "Set up Python project structure and dependencies",
+            "description": "Create backend/ directory with FastAPI project structure, set up pyproject.toml with all required dependencies (FastAPI, pybind11, etc.), and create virtual environment and dependency management",
+            "details": "",
             "status": "done",
-            "testStrategy": "Unit test the C++ wrapper/binding to ensure it correctly passes data and receives results. Create an integration test for the initial API endpoint to confirm it can trigger a C++ computation and handle the output."
+            "dependencies": [],
+            "parentTaskId": 3
           },
           {
             "id": 2,
-            "title": "Develop API Endpoints for TDA Computation Orchestration",
-            "description": "Implement the full set of RESTful API endpoints required to manage the lifecycle of TDA computations, from data submission to result retrieval.",
-            "dependencies": [
-              "3.1"
-            ],
-            "details": "Create endpoints for: 1) Uploading point cloud data. 2) Initiating an asynchronous TDA computation job, specifying the algorithm and its parameters. 3) Checking the status of a running job. 4) Retrieving computation results (e.g., persistence diagrams, Betti numbers) once complete. These endpoints will orchestrate the C++ core via the integration layer from subtask 3.1.",
+            "title": "Enhance existing C++ Python bindings",
+            "description": "Review and complete the pybind11 bindings in src/python/, ensure proper data transfer between NumPy arrays and C++ (Eigen/std::vector), and add comprehensive error handling across language boundary",
+            "details": "",
             "status": "done",
-            "testStrategy": "Implement unit tests for each endpoint's logic (validation, job queuing). Conduct integration tests to verify the end-to-end workflow from data submission to result retrieval, mocking the C++ execution time."
+            "dependencies": [],
+            "parentTaskId": 3
           },
           {
             "id": 3,
-            "title": "Install and Configure Apache Kafka Cluster",
-            "description": "Set up a foundational Apache Kafka cluster to serve as the backbone for high-throughput, real-time event streaming.",
-            "dependencies": [],
-            "details": "Deploy a Kafka cluster using Docker Compose for a reproducible development environment. Configure brokers and ZooKeeper. Create the initial topics required for the data pipeline (e.g., `raw_data_events`, `tda_feature_results`) and define their partition and replication strategies to support future scalability needs.",
+            "title": "Create FastAPI application foundation",
+            "description": "Implement basic FastAPI app structure with async support, set up middleware (CORS, logging, compression), and create health check endpoints",
+            "details": "",
             "status": "done",
-            "testStrategy": "Use Kafka's command-line tools to manually produce and consume messages from the created topics to verify the cluster is operational and topics are configured correctly. Check cluster health via JMX metrics or management tools."
+            "dependencies": [],
+            "parentTaskId": 3
           },
           {
             "id": 4,
-            "title": "Integrate Kafka Producer into the Backend API",
-            "description": "Implement functionality within the Python API to produce messages to the Kafka cluster, enabling real-time event publishing.",
-            "dependencies": [
-              "3.1",
-              "3.3"
-            ],
-            "details": "Add a Kafka client library (e.g., `kafka-python`) to the FastAPI application. Create a service or utility function that allows API endpoints to publish events. For example, when a TDA computation is completed, the API will publish the resulting features to the `tda_feature_results` topic.",
-            "status": "in-progress",
-            "testStrategy": "Write integration tests that trigger an API endpoint and verify that the corresponding message is successfully published to the correct Kafka topic. Monitor the topic to confirm message format, content, and headers."
+            "title": "Implement C++ wrapper service",
+            "description": "Create Python service class to manage C++ TDA engine calls, implement data validation and preprocessing, and add result serialization/deserialization",
+            "details": "",
+            "status": "done",
+            "dependencies": [],
+            "parentTaskId": 3
           },
           {
             "id": 5,
-            "title": "Set Up Initial Apache Flink Project for Stream Consumption",
-            "description": "Create a basic Flink stream processing application that consumes data from Kafka to validate the end-to-end streaming infrastructure.",
-            "dependencies": [
-              "3.3"
-            ],
-            "details": "Set up a Flink development environment. Create a simple Flink job (using Python's DataStream API) that connects to the Kafka cluster as a source, reads messages from a topic (e.g., `tda_feature_results`), performs a trivial transformation (e.g., logging the message or counting features), and writes the output to a log sink. This confirms the Flink-Kafka connector is working.",
-            "status": "in-progress",
-            "testStrategy": "Deploy and run the Flink job. Produce messages to the source Kafka topic (either manually or via the API from subtask 3.4) and verify that the Flink job processes them and produces the expected output in the configured sink (e.g., Flink's logs)."
+            "title": "Design API schema and models",
+            "description": "Create Pydantic models for request/response schemas, define job status tracking models, and design persistence diagram and result formats",
+            "details": "",
+            "status": "done",
+            "dependencies": [],
+            "parentTaskId": 3
+          },
+          {
+            "id": 6,
+            "title": "Implement data upload endpoints",
+            "description": "Point cloud data upload with validation, support multiple formats (JSON, CSV, binary), and add file size and format validation",
+            "details": "",
+            "status": "done",
+            "dependencies": [],
+            "parentTaskId": 3
+          },
+          {
+            "id": 7,
+            "title": "Create asynchronous job management",
+            "description": "Job queue system using async/await, job status tracking (pending, running, completed, failed), and result caching and retrieval",
+            "details": "",
+            "status": "done",
+            "dependencies": [],
+            "parentTaskId": 3
+          },
+          {
+            "id": 8,
+            "title": "Implement TDA computation endpoints",
+            "description": "Vietoris-Rips computation endpoint, Alpha complex computation endpoint, parameter validation and algorithm selection, and progress tracking for long-running computations",
+            "details": "",
+            "status": "done",
+            "dependencies": [],
+            "parentTaskId": 3
+          },
+          {
+            "id": 9,
+            "title": "Add result retrieval endpoints",
+            "description": "Get job status and progress, download persistence diagrams and barcodes, and retrieve Betti numbers and statistics",
+            "details": "",
+            "status": "done",
+            "dependencies": [],
+            "parentTaskId": 3
+          },
+          {
+            "id": 10,
+            "title": "Design Kafka architecture",
+            "description": "Define topic structure (tda_jobs, tda_results, tda_events), plan partition strategy for scalability, and design message schemas and serialization",
+            "details": "",
+            "status": "done",
+            "dependencies": [],
+            "parentTaskId": 3
+          },
+          {
+            "id": 11,
+            "title": "Create Docker Compose configuration",
+            "description": "Multi-broker Kafka cluster setup, ZooKeeper configuration, and network and volume configurations",
+            "details": "",
+            "status": "done",
+            "dependencies": [],
+            "parentTaskId": 3
+          },
+          {
+            "id": 12,
+            "title": "Implement topic management",
+            "description": "Automated topic creation scripts, configuration for retention policies, and monitoring and health check setup",
+            "details": "",
+            "status": "done",
+            "dependencies": [],
+            "parentTaskId": 3
+          },
+          {
+            "id": 13,
+            "title": "Add Kafka management tools",
+            "description": "Kafka UI for monitoring and debugging, scripts for topic administration, and performance monitoring setup",
+            "details": "",
+            "status": "done",
+            "dependencies": [],
+            "parentTaskId": 3
+          },
+          {
+            "id": 14,
+            "title": "Implement Kafka client service",
+            "description": "Async Kafka producer using aiokafka, connection pooling and error handling, and message serialization (JSON, Avro, or Protocol Buffers)",
+            "details": "",
+            "status": "pending",
+            "dependencies": [],
+            "parentTaskId": 3
+          },
+          {
+            "id": 15,
+            "title": "Integrate producer into API endpoints",
+            "description": "Publish job start/completion events, send TDA results to appropriate topics, and add event metadata and tracing",
+            "details": "",
+            "status": "pending",
+            "dependencies": [],
+            "parentTaskId": 3
+          },
+          {
+            "id": 16,
+            "title": "Implement message schemas",
+            "description": "Define event types and message formats, add schema validation, and version management for message formats",
+            "details": "",
+            "status": "pending",
+            "dependencies": [],
+            "parentTaskId": 3
+          },
+          {
+            "id": 17,
+            "title": "Add monitoring and metrics",
+            "description": "Producer performance metrics, message delivery confirmation, and error tracking and alerting",
+            "details": "",
+            "status": "pending",
+            "dependencies": [],
+            "parentTaskId": 3
+          },
+          {
+            "id": 18,
+            "title": "Set up Flink development environment",
+            "description": "Flink cluster configuration, Python DataStream API setup, and integration with Kafka connectors",
+            "details": "",
+            "status": "pending",
+            "dependencies": [],
+            "parentTaskId": 3
+          },
+          {
+            "id": 19,
+            "title": "Implement basic stream processing job",
+            "description": "Kafka source connector configuration, simple message processing and transformation, and output to logging sink for validation",
+            "details": "",
+            "status": "pending",
+            "dependencies": [],
+            "parentTaskId": 3
+          },
+          {
+            "id": 20,
+            "title": "Create TDA feature processing pipeline",
+            "description": "Stream processing for real-time TDA features, windowing operations for time-series data, and state management for incremental computations",
+            "details": "",
+            "status": "pending",
+            "dependencies": [],
+            "parentTaskId": 3
+          },
+          {
+            "id": 21,
+            "title": "Add job management and monitoring",
+            "description": "Flink job deployment automation, performance monitoring and metrics, and error handling and recovery mechanisms",
+            "details": "",
+            "status": "pending",
+            "dependencies": [],
+            "parentTaskId": 3
           }
         ]
       },

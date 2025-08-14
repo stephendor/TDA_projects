@@ -21,6 +21,12 @@ struct StreamingDMConfig {
     // Parallelization control for threshold (edge) mode
     bool enable_parallel_threshold = true; // allow OpenMP in threshold mode
     bool edge_callback_threadsafe = false; // set true only if callback is thread-safe
+    // Approximate kNN cap: if >0 in threshold mode, skip distance eval when both endpoints
+    // already have >= K emitted edges. This is a soft cap and reduces work/memory.
+    size_t knn_cap_per_vertex_soft = 0;    // 0 disables
+    // If true, use per-thread local counters within each block and merge once per block
+    // (reduces contention vs per-edge atomics, may introduce small bounded overshoot).
+    bool softcap_local_merge = false;
 };
 
 struct StreamingDMStats {
@@ -33,6 +39,9 @@ struct StreamingDMStats {
     size_t memory_before_bytes = 0;
     size_t memory_after_bytes = 0;
     size_t peak_memory_bytes = 0;
+    // Soft-cap telemetry (when knn_cap_per_vertex_soft > 0)
+    size_t softcap_overshoot_sum = 0; // total vertices-by-amount over K observed during merges
+    uint32_t softcap_overshoot_max = 0; // max per-vertex overshoot observed in merges
 };
 
 // Callback signatures

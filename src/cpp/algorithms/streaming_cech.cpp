@@ -68,9 +68,11 @@ tda::core::Result<void> StreamingCechComplex::computeComplex() {
     buildNeighborsStreaming();
 
     // Add vertices
+    if (build_stats_.simplex_count_by_dim.size() < 4) build_stats_.simplex_count_by_dim.assign(4, 0);
     for (size_t i = 0; i < points_.size(); ++i) {
         std::vector<size_t> v = {i};
         addSimplexToTree(v, 0.0);
+        build_stats_.simplex_count_by_dim[0]++;
     }
 
     // Build higher-dimensional simplices up to config_.maxDimension using bounded neighbors
@@ -82,13 +84,15 @@ tda::core::Result<void> StreamingCechComplex::computeComplex() {
         // Cap neighbor list
         if (nbrs.size() > config_.maxNeighbors) nbrs.resize(config_.maxNeighbors);
 
-        // 1-simplex edges already implied by adjacency; we'll add them via addSimplexToTree
+    // 1-simplex edges already implied by adjacency; we'll add them via addSimplexToTree
         for (size_t jidx = 0; jidx < nbrs.size(); ++jidx) {
             size_t j = nbrs[jidx];
             if (j <= i) continue; // avoid duplicates
             std::vector<size_t> e = {i, j};
             double filt = max_pairwise_distance(points_, e);
             addSimplexToTree(e, filt);
+        if (build_stats_.simplex_count_by_dim.size() < 2) build_stats_.simplex_count_by_dim.resize(2, 0);
+        build_stats_.simplex_count_by_dim[1]++;
         }
 
         if (max_dim >= 2) {
@@ -105,6 +109,8 @@ tda::core::Result<void> StreamingCechComplex::computeComplex() {
                     std::vector<size_t> tri = {i, j, k};
                     double filt = max_pairwise_distance(points_, tri);
                     addSimplexToTree(tri, filt);
+            if (build_stats_.simplex_count_by_dim.size() < 3) build_stats_.simplex_count_by_dim.resize(3, 0);
+            build_stats_.simplex_count_by_dim[2]++;
                 }
             }
         }
@@ -125,6 +131,8 @@ tda::core::Result<void> StreamingCechComplex::computeComplex() {
                         std::vector<size_t> tet = {i, j, k, l};
                         double filt = max_pairwise_distance(points_, tet);
                         addSimplexToTree(tet, filt);
+                        if (build_stats_.simplex_count_by_dim.size() < 4) build_stats_.simplex_count_by_dim.resize(4, 0);
+                        build_stats_.simplex_count_by_dim[3]++;
                     }
                 }
             }
@@ -275,6 +283,15 @@ void StreamingCechComplex::buildNeighborsStreaming() {
         for (auto& p : tmp) neighbors_[i].push_back(p.first);
         std::sort(neighbors_[i].begin(), neighbors_[i].end());
         neighbors_[i].erase(std::unique(neighbors_[i].begin(), neighbors_[i].end()), neighbors_[i].end());
+    }
+
+    // Build adjacency histogram telemetry
+    size_t max_deg = 0;
+    for (const auto& v : neighbors_) max_deg = std::max(max_deg, v.size());
+    build_stats_.adjacency_max_degree = max_deg;
+    build_stats_.adjacency_histogram.assign(max_deg + 1, 0);
+    for (const auto& v : neighbors_) {
+        build_stats_.adjacency_histogram[v.size()]++;
     }
 }
 

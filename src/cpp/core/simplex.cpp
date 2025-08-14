@@ -66,11 +66,9 @@ bool Simplex::isValid() const noexcept {
     // A simplex is valid if it has at least one vertex
     // and all vertices are non-negative
     if (vertices_.empty()) return false;
-    
-    for (core::Index vertex : vertices_) {
-        if (vertex < 0) return false;
-    }
-    
+    // core::Index is unsigned; negative values aren't representable.
+    // We only need to ensure the list is non-empty; additional invariants
+    // (sorted, unique) are enforced elsewhere.
     return true;
 }
 

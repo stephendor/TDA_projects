@@ -93,6 +93,21 @@ if(TDA_ENABLE_OPENMP AND OpenMP_CXX_FOUND)
 endif()
 add_test(NAME StreamingDistanceTelemetry COMMAND test_streaming_distance_telemetry)
 
+# Streaming distance matrix early-stop tests
+add_executable(test_streaming_distance_earlystop
+    test_streaming_distance_earlystop.cpp
+)
+target_link_libraries(test_streaming_distance_earlystop 
+    tda_utils 
+    tda_core 
+    Eigen3::Eigen 
+    Threads::Threads
+)
+if(TDA_ENABLE_OPENMP AND OpenMP_CXX_FOUND)
+    target_link_libraries(test_streaming_distance_earlystop OpenMP::OpenMP_CXX)
+endif()
+add_test(NAME StreamingDistanceEarlyStop COMMAND test_streaming_distance_earlystop)
+
 # Simplex pool tests
 add_executable(test_simplex_pool
     test_simplex_pool.cpp

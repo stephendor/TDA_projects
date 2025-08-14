@@ -4,6 +4,7 @@
 #include <cmath>
 #include <chrono>
 #include <vector>
+#include <atomic>
 #include "tda/core/memory_monitor.hpp"
 #ifdef _OPENMP
 #include <omp.h>
@@ -46,22 +47,29 @@ StreamingDMStats StreamingDistanceMatrix::process(const PointContainer& points) 
     stats.peak_memory_bytes = stats.memory_before_bytes;
 
     const size_t nblocks = ceil_div(n, B);
+    // We track processed blocks incrementally; do not set stats.total_blocks to planned.
     const size_t planned_blocks = symmetric ? (nblocks * (nblocks + 1)) / 2 : (nblocks * nblocks);
-    stats.total_blocks = planned_blocks;
 
     size_t processed_blocks = 0;
+    // Optional per-vertex soft cap for threshold mode
+    // Use a plain counter array and std::atomic_ref for thread-safe ops in parallel path
+    std::vector<uint32_t> degree_softcap_counts;
+    const bool soft_cap_enabled = threshold_mode && config_.knn_cap_per_vertex_soft > 0;
+    if (soft_cap_enabled) {
+        degree_softcap_counts.assign(n, 0u);
+    }
     for (size_t bi = 0; bi < n; bi += B) {
         const size_t i_end = std::min(bi + B, n);
         const size_t i_len = i_end - bi;
 
         for (size_t bj = symmetric ? bi : 0; bj < n; bj += B) {
-            const size_t j_end = std::min(bj + B, n);
-            const size_t j_len = j_end - bj;
-            processed_blocks++;
-            // Early stop: blocks
-            if (config_.max_blocks > 0 && processed_blocks > config_.max_blocks) {
+            // Early stop: respect max_blocks before starting a new block
+            if (config_.max_blocks > 0 && processed_blocks >= config_.max_blocks) {
                 goto early_stop;
             }
+            const size_t j_end = std::min(bj + B, n);
+            const size_t j_len = j_end - bj;
+            // processed_blocks is incremented after block compute at label after_block_compute
 
             // Optional tile buffer only if block callback is used.
             std::vector<std::vector<double>> tile;
@@ -72,20 +80,38 @@ StreamingDMStats StreamingDistanceMatrix::process(const PointContainer& points) 
             // Compute tile
             if (symmetric && bi == bj) {
                 // Diagonal block: compute only upper triangle (i < j)
-        for (size_t i = bi; i < i_end; ++i) {
+                for (size_t i = bi; i < i_end; ++i) {
                     const size_t j_start = i + 1; // upper triangle only
                     for (size_t j = j_start; j < j_end; ++j) {
-                        double d = euclidean(points[i], points[j]);
-                        stats.total_pairs++;
+                        // Optional soft cap: if both endpoints already have >=K neighbors, skip
+                        if (!threshold_mode || !soft_cap_enabled ||
+                            degree_softcap_counts[i] < config_.knn_cap_per_vertex_soft || degree_softcap_counts[j] < config_.knn_cap_per_vertex_soft) {
+                            double d = euclidean(points[i], points[j]);
+                            stats.total_pairs++;
 
-                        if (threshold_mode) {
-                            if (d <= config_.max_distance && edge_cb_) {
-                                edge_cb_(i, j, d);
-                                stats.emitted_edges++;
+                            if (threshold_mode) {
+                                if (d <= config_.max_distance && edge_cb_) {
+                                    edge_cb_(i, j, d);
+                                    stats.emitted_edges++;
+                                    if (soft_cap_enabled) { degree_softcap_counts[i]++; degree_softcap_counts[j]++; }
+                                }
+                            } else if (block_cb_) {
+                                tile[i - bi][j - bj] = d;
+                                // mirror not stored to save memory; consumer can infer symmetry
                             }
-            } else if (block_cb_) {
-                            tile[i - bi][j - bj] = d;
-                            // mirror not stored to save memory; consumer can infer symmetry
+                        }
+
+                        // Early stop: pairs
+                        if (config_.max_pairs > 0 && stats.total_pairs >= config_.max_pairs) {
+                            goto after_block_compute;
+                        }
+                        // Early stop: time
+                        if (config_.time_limit_seconds > 0.0) {
+                            auto now = std::chrono::high_resolution_clock::now();
+                            double elapsed = std::chrono::duration<double>(now - t0).count();
+                            if (elapsed >= config_.time_limit_seconds) {
+                                goto after_block_compute;
+                            }
                         }
                     }
                 }
@@ -116,34 +142,117 @@ StreamingDMStats StreamingDistanceMatrix::process(const PointContainer& points) 
                     bool do_parallel_threshold = false;
 #endif
                     if (do_parallel_threshold) {
+                        const bool local_merge = soft_cap_enabled && config_.softcap_local_merge;
 #ifdef _OPENMP
                         size_t local_emitted = 0;
                         size_t local_pairs = 0;
+                        // Local-merge path: use a per-block shared counter array with a global snapshot
+                        // Map global vertices to 0..(i_len+j_len-1)
+                        auto map_global = [&](size_t idx)->size_t { return (idx >= bi && idx < i_end) ? (idx - bi) : (i_len + (idx - bj)); };
+                        std::vector<uint32_t> base_counts; // snapshot of global degrees for vertices touched by this block
+                        std::vector<uint32_t> block_counts; // shared within block, updated atomically via atomic_ref
+                        if (local_merge) {
+                            base_counts.resize(i_len + j_len, 0u);
+                            block_counts.resize(i_len + j_len, 0u);
+                            // Take relaxed snapshot once per block
+                            for (size_t r = 0; r < i_len; ++r) {
+                                base_counts[r] = std::atomic_ref<uint32_t>(degree_softcap_counts[bi + r]).load(std::memory_order_relaxed);
+                            }
+                            for (size_t r = 0; r < j_len; ++r) {
+                                base_counts[i_len + r] = std::atomic_ref<uint32_t>(degree_softcap_counts[bj + r]).load(std::memory_order_relaxed);
+                            }
+                        }
 #pragma omp parallel for collapse(2) reduction(+:local_emitted,local_pairs) schedule(static)
                         for (size_t ii = 0; ii < i_len; ++ii) {
                             for (size_t jj = 0; jj < j_len; ++jj) {
                                 size_t i = bi + ii;
                                 size_t j = bj + jj;
+                                if (soft_cap_enabled) {
+                                    if (local_merge) {
+                                        size_t li = map_global(i);
+                                        size_t lj = map_global(j);
+                                        auto bi_now = base_counts[li];
+                                        auto bj_now = base_counts[lj];
+                                        auto li_block = std::atomic_ref<uint32_t>(block_counts[li]).load(std::memory_order_relaxed);
+                                        auto lj_block = std::atomic_ref<uint32_t>(block_counts[lj]).load(std::memory_order_relaxed);
+                                        if (bi_now + li_block >= config_.knn_cap_per_vertex_soft && bj_now + lj_block >= config_.knn_cap_per_vertex_soft) continue;
+                                    } else {
+                                        // Atomic-ref snapshot check
+                                        auto di = std::atomic_ref<uint32_t>(degree_softcap_counts[i]).load(std::memory_order_relaxed);
+                                        auto dj = std::atomic_ref<uint32_t>(degree_softcap_counts[j]).load(std::memory_order_relaxed);
+                                        if (di >= config_.knn_cap_per_vertex_soft && dj >= config_.knn_cap_per_vertex_soft) continue;
+                                    }
+                                }
                                 double d = euclidean(points[i], points[j]);
                                 local_pairs++;
                                 if (d <= config_.max_distance) {
                                     if (edge_cb_) edge_cb_(i, j, d);
                                     local_emitted++;
+                                    if (soft_cap_enabled) {
+                                        if (local_merge) {
+                                            size_t li2 = map_global(i);
+                                            size_t lj2 = map_global(j);
+                                            std::atomic_ref<uint32_t>(block_counts[li2]).fetch_add(1u, std::memory_order_relaxed);
+                                            std::atomic_ref<uint32_t>(block_counts[lj2]).fetch_add(1u, std::memory_order_relaxed);
+                                        } else {
+                                            std::atomic_ref<uint32_t> ai(degree_softcap_counts[i]);
+                                            std::atomic_ref<uint32_t> aj(degree_softcap_counts[j]);
+                                            ai.fetch_add(1, std::memory_order_relaxed);
+                                            aj.fetch_add(1, std::memory_order_relaxed);
+                                        }
+                                    }
                                 }
                             }
                         }
                         stats.total_pairs += local_pairs;
                         stats.emitted_edges += local_emitted;
+                        // Merge per-block counts once (bounded overshoot) and compute overshoot telemetry
+                        if (soft_cap_enabled && local_merge) {
+                            uint32_t kcap = static_cast<uint32_t>(config_.knn_cap_per_vertex_soft);
+                            uint32_t block_overshoot_max = 0;
+                            size_t block_overshoot_sum = 0;
+                            // i-side vertices
+                            for (size_t r = 0; r < i_len; ++r) {
+                                uint32_t add = std::atomic_ref<uint32_t>(block_counts[r]).load(std::memory_order_relaxed);
+                                if (add == 0) continue;
+                                auto newv = std::atomic_ref<uint32_t>(degree_softcap_counts[bi + r]).fetch_add(add, std::memory_order_relaxed) + add;
+                                if (newv > kcap) {
+                                    uint32_t over = static_cast<uint32_t>(newv - kcap);
+                                    block_overshoot_sum += over;
+                                    block_overshoot_max = std::max(block_overshoot_max, over);
+                                }
+                            }
+                            // j-side vertices
+                            for (size_t r = 0; r < j_len; ++r) {
+                                uint32_t add = std::atomic_ref<uint32_t>(block_counts[i_len + r]).load(std::memory_order_relaxed);
+                                if (add == 0) continue;
+                                auto newv = std::atomic_ref<uint32_t>(degree_softcap_counts[bj + r]).fetch_add(add, std::memory_order_relaxed) + add;
+                                if (newv > kcap) {
+                                    uint32_t over = static_cast<uint32_t>(newv - kcap);
+                                    block_overshoot_sum += over;
+                                    block_overshoot_max = std::max(block_overshoot_max, over);
+                                }
+                            }
+                            stats.softcap_overshoot_sum += block_overshoot_sum;
+                            stats.softcap_overshoot_max = std::max(stats.softcap_overshoot_max, block_overshoot_max);
+                        }
 #endif
                     } else {
                         for (size_t i = bi; i < i_end; ++i) {
                             for (size_t j = bj; j < j_end; ++j) {
+                                if (soft_cap_enabled) {
+                                    if (degree_softcap_counts[i] >= config_.knn_cap_per_vertex_soft && degree_softcap_counts[j] >= config_.knn_cap_per_vertex_soft) {
+                                        // still count pair only if we need accurate pair counts; skip compute for speed
+                                        continue;
+                                    }
+                                }
                                 double d = euclidean(points[i], points[j]);
                                 stats.total_pairs++;
                                 if (threshold_mode) {
                                     if (d <= config_.max_distance && edge_cb_) {
                                         edge_cb_(i, j, d);
                                         stats.emitted_edges++;
+                                        if (soft_cap_enabled) { degree_softcap_counts[i]++; degree_softcap_counts[j]++; }
                                     }
                                 } else if (block_cb_) {
                                     tile[i - bi][j - bj] = d;
@@ -172,7 +281,10 @@ StreamingDMStats StreamingDistanceMatrix::process(const PointContainer& points) 
             if (!threshold_mode && block_cb_) {
                 block_cb_(bi, bj, tile);
             }
-        after_block_compute: ;
+        after_block_compute:
+            // Count this block as processed (even if partial)
+            processed_blocks++;
+            ;
             // If we broke out early due to pair/time limits, finish gracefully
             if (config_.max_pairs > 0 || config_.time_limit_seconds > 0.0) {
                 if (config_.max_pairs > 0 && stats.total_pairs >= config_.max_pairs) {
@@ -190,6 +302,8 @@ StreamingDMStats StreamingDistanceMatrix::process(const PointContainer& points) 
     }
 
 early_stop:
+    // Report actually processed blocks (not planned), which is meaningful under early-stop.
+    stats.total_blocks = processed_blocks;
     auto t1 = std::chrono::high_resolution_clock::now();
     stats.elapsed_seconds = std::chrono::duration<double>(t1 - t0).count();
     stats.memory_after_bytes = tda::core::MemoryMonitor::getCurrentMemoryUsage();

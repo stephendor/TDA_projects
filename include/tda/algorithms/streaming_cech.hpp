@@ -60,6 +60,10 @@ public:
         size_t peak_memory_bytes = 0;
         double elapsed_seconds = 0.0;
         size_t num_simplices_built = 0;
+    // New telemetry
+    std::vector<size_t> simplex_count_by_dim; // counts per dimension built during computeComplex
+    std::vector<size_t> adjacency_histogram;  // histogram of neighbor list sizes
+    size_t adjacency_max_degree = 0;          // max degree observed
     };
     BuildStats getBuildStats() const { return build_stats_; }
 
