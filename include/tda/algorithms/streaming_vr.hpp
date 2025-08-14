@@ -10,33 +10,31 @@
 
 namespace tda::algorithms {
 
-// A bounded-memory, streaming-friendly Čech-like complex builder.
-// Uses StreamingDistanceMatrix to form neighbor adjacency under a global threshold,
-// then constructs simplices up to maxDimension, with optional adaptive radius heuristics.
-class StreamingCechComplex {
+// A bounded-memory, streaming-friendly Vietoris–Rips complex builder.
+// Uses StreamingDistanceMatrix to form neighbor adjacency under a global epsilon threshold,
+// then constructs simplices up to maxDimension. Filtration value is max pairwise distance.
+class StreamingVRComplex {
 public:
     using Point = std::vector<double>;
     using PointContainer = std::vector<Point>;
 
     struct Config {
         // Geometric knobs
-        double radius = 1.0;               // base radius
-        double radiusMultiplier = 1.5;     // for adaptive radius cap
-        size_t maxDimension = 3;           // max simplex dimension
-        size_t maxNeighbors = 64;          // cap per-vertex neighbors
-        bool useAdaptiveRadius = true;     // estimate per-vertex radius from local distances
+        double epsilon = 1.0;             // Rips threshold ε
+        size_t maxDimension = 3;          // max simplex dimension
+        size_t maxNeighbors = 64;         // cap per-vertex neighbors (for bounded construction)
 
         // Streaming distance matrix knobs
         tda::utils::StreamingDMConfig dm = {
             /*block_size*/ 64,
             /*symmetric*/ true,
-            /*max_distance*/ -1.0, // will be set from radius at runtime
+            /*max_distance*/ -1.0, // will be set from epsilon at runtime
             /*use_parallel*/ true
         };
     };
 
-    StreamingCechComplex() = default;
-    explicit StreamingCechComplex(const Config& cfg) : config_(cfg) {}
+    StreamingVRComplex() = default;
+    explicit StreamingVRComplex(const Config& cfg) : config_(cfg) {}
 
     // Lifecycle
     tda::core::Result<void> initialize(const PointContainer& points);
@@ -52,7 +50,7 @@ public:
 
     // Telemetry from the streaming distance pass
     tda::utils::StreamingDMStats getStreamingStats() const { return dm_stats_; }
-    
+
     // Telemetry for complex construction (this class's computeComplex phase)
     struct BuildStats {
         size_t memory_before_bytes = 0;
@@ -60,10 +58,10 @@ public:
         size_t peak_memory_bytes = 0;
         double elapsed_seconds = 0.0;
         size_t num_simplices_built = 0;
-    // New telemetry
-    std::vector<size_t> simplex_count_by_dim; // counts per dimension built during computeComplex
-    std::vector<size_t> adjacency_histogram;  // histogram of neighbor list sizes
-    size_t adjacency_max_degree = 0;          // max degree observed
+        // Extended telemetry
+        std::vector<size_t> simplex_count_by_dim; // counts per dimension built during computeComplex
+        std::vector<size_t> adjacency_histogram;  // histogram of neighbor list sizes
+        size_t adjacency_max_degree = 0;          // max degree observed
     // SimplexPool telemetry
     size_t pool_total_blocks = 0;             // total blocks across all buckets
     size_t pool_free_blocks = 0;              // free blocks across all buckets
@@ -96,7 +94,7 @@ private:
 
     // Helpers
     static double euclidean(const Point& a, const Point& b);
-    double estimateAdaptiveRadius(size_t idx) const;
+    static double max_pairwise_distance(const PointContainer& pts, const std::vector<size_t>& simplex);
     void buildNeighborsStreaming();
     void addSimplexToTree(const std::vector<size_t>& simplex, double filtrationValue);
 };

@@ -1,4 +1,4 @@
-#include "tda/algorithms/streaming_cech.hpp"
+#include "tda/algorithms/streaming_vr.hpp"
 #include "tda/utils/streaming_distance_matrix.hpp"
 #include "tda/core/memory_monitor.hpp"
 #include <algorithm>
@@ -39,7 +39,7 @@
 
 // Lifecycle
 
-tda::core::Result<void> StreamingCechComplex::initialize(const PointContainer& points) {
+tda::core::Result<void> StreamingVRComplex::initialize(const PointContainer& points) {
     if (points.empty()) {
         return tda::core::Result<void>::failure("Empty point cloud provided");
     }
@@ -59,7 +59,7 @@ tda::core::Result<void> StreamingCechComplex::initialize(const PointContainer& p
     return tda::core::Result<void>::success();
 }
 
-tda::core::Result<void> StreamingCechComplex::computeComplex() {
+tda::core::Result<void> StreamingVRComplex::computeComplex() {
     if (points_.empty() || !simplex_tree_) {
         return tda::core::Result<void>::failure("Must call initialize() first");
     }
@@ -71,7 +71,7 @@ tda::core::Result<void> StreamingCechComplex::computeComplex() {
     build_stats_.memory_before_bytes = tda::core::MemoryMonitor::getCurrentMemoryUsage();
     build_stats_.peak_memory_bytes = build_stats_.memory_before_bytes;
 
-    // Build neighbor adjacency using streaming distances under global radius threshold
+    // Build neighbor adjacency using streaming distances under epsilon threshold
     buildNeighborsStreaming();
 
     // Add vertices
@@ -91,15 +91,15 @@ tda::core::Result<void> StreamingCechComplex::computeComplex() {
         // Cap neighbor list
         if (nbrs.size() > config_.maxNeighbors) nbrs.resize(config_.maxNeighbors);
 
-    // 1-simplex edges already implied by adjacency; we'll add them via addSimplexToTree
+        // 1-simplex edges implied by adjacency; add them
         for (size_t jidx = 0; jidx < nbrs.size(); ++jidx) {
             size_t j = nbrs[jidx];
             if (j <= i) continue; // avoid duplicates
             std::vector<size_t> e = {i, j};
-            double filt = max_pairwise_distance(points_, e);
+            double filt = max_pairwise_distance_pts(points_, e);
             addSimplexToTree(e, filt);
-        if (build_stats_.simplex_count_by_dim.size() < 2) build_stats_.simplex_count_by_dim.resize(2, 0);
-        build_stats_.simplex_count_by_dim[1]++;
+            if (build_stats_.simplex_count_by_dim.size() < 2) build_stats_.simplex_count_by_dim.resize(2, 0);
+            build_stats_.simplex_count_by_dim[1]++;
         }
 
         if (max_dim >= 2) {
@@ -111,19 +111,17 @@ tda::core::Result<void> StreamingCechComplex::computeComplex() {
                     size_t k = nbrs[b];
                     if (k <= j) continue;
                     // Check that (j,k) is also an edge
-                    // naive check within bounded neighbor sets
                     if (std::find(neighbors_[j].begin(), neighbors_[j].end(), k) == neighbors_[j].end()) continue;
                     std::vector<size_t> tri = {i, j, k};
-                    double filt = max_pairwise_distance(points_, tri);
+                    double filt = max_pairwise_distance_pts(points_, tri);
                     addSimplexToTree(tri, filt);
-            if (build_stats_.simplex_count_by_dim.size() < 3) build_stats_.simplex_count_by_dim.resize(3, 0);
-            build_stats_.simplex_count_by_dim[2]++;
+                    if (build_stats_.simplex_count_by_dim.size() < 3) build_stats_.simplex_count_by_dim.resize(3, 0);
+                    build_stats_.simplex_count_by_dim[2]++;
                 }
             }
         }
 
         if (max_dim >= 3) {
-            // Build 3-simplices (tetrahedra) from triangles plus one more neighbor, bounded
             const auto& nbrs_i = nbrs;
             for (size_t a = 0; a < nbrs_i.size(); ++a) {
                 size_t j = nbrs_i[a]; if (j <= i) continue;
@@ -136,7 +134,7 @@ tda::core::Result<void> StreamingCechComplex::computeComplex() {
                         if (std::find(neighbors_[j].begin(), neighbors_[j].end(), l) == neighbors_[j].end()) continue;
                         if (std::find(neighbors_[k].begin(), neighbors_[k].end(), l) == neighbors_[k].end()) continue;
                         std::vector<size_t> tet = {i, j, k, l};
-                        double filt = max_pairwise_distance(points_, tet);
+                        double filt = max_pairwise_distance_pts(points_, tet);
                         addSimplexToTree(tet, filt);
                         if (build_stats_.simplex_count_by_dim.size() < 4) build_stats_.simplex_count_by_dim.resize(4, 0);
                         build_stats_.simplex_count_by_dim[3]++;
@@ -145,7 +143,7 @@ tda::core::Result<void> StreamingCechComplex::computeComplex() {
             }
         }
     }
-    // End build-phase telemetry
+
     auto t1 = std::chrono::high_resolution_clock::now();
     build_stats_.elapsed_seconds = std::chrono::duration<double>(t1 - t0).count();
     build_stats_.memory_after_bytes = tda::core::MemoryMonitor::getCurrentMemoryUsage();
@@ -167,7 +165,7 @@ tda::core::Result<void> StreamingCechComplex::computeComplex() {
     return tda::core::Result<void>::success();
 }
 
-tda::core::Result<void> StreamingCechComplex::computePersistence(int coefficientField) {
+tda::core::Result<void> StreamingVRComplex::computePersistence(int coefficientField) {
     if (!simplex_tree_ || !persistent_cohomology_) {
         return tda::core::Result<void>::failure("Complex not computed");
     }
@@ -180,7 +178,7 @@ tda::core::Result<void> StreamingCechComplex::computePersistence(int coefficient
     return tda::core::Result<void>::success();
 }
 
-tda::core::Result<std::vector<tda::core::SimplexInfo>> StreamingCechComplex::getSimplices() const {
+tda::core::Result<std::vector<tda::core::SimplexInfo>> StreamingVRComplex::getSimplices() const {
     if (!simplex_tree_) return tda::core::Result<std::vector<tda::core::SimplexInfo>>::failure("Complex not computed");
     std::vector<tda::core::SimplexInfo> out;
     for (auto s : simplex_tree_->complex_simplex_range()) {
@@ -195,7 +193,7 @@ tda::core::Result<std::vector<tda::core::SimplexInfo>> StreamingCechComplex::get
     return tda::core::Result<std::vector<tda::core::SimplexInfo>>::success(std::move(out));
 }
 
-tda::core::Result<tda::core::ComplexStatistics> StreamingCechComplex::getStatistics() const {
+tda::core::Result<tda::core::ComplexStatistics> StreamingVRComplex::getStatistics() const {
     if (!simplex_tree_) return tda::core::Result<tda::core::ComplexStatistics>::failure("Complex not computed");
     tda::core::ComplexStatistics stats;
     stats.num_points = points_.size();
@@ -213,7 +211,7 @@ tda::core::Result<tda::core::ComplexStatistics> StreamingCechComplex::getStatist
     return tda::core::Result<tda::core::ComplexStatistics>::success(std::move(stats));
 }
 
-void StreamingCechComplex::clear() {
+void StreamingVRComplex::clear() {
     points_.clear();
     neighbors_.clear();
     simplex_tree_.reset();
@@ -222,50 +220,33 @@ void StreamingCechComplex::clear() {
 
 // Helpers
 
-double StreamingCechComplex::euclidean(const Point& a, const Point& b) {
+double StreamingVRComplex::euclidean(const Point& a, const Point& b) {
     double s = 0.0; for (size_t i = 0; i < a.size(); ++i) { double d = a[i] - b[i]; s += d * d; } return std::sqrt(s);
 }
 
-double StreamingCechComplex::estimateAdaptiveRadius(size_t idx) const {
-    if (!config_.useAdaptiveRadius) return config_.radius;
-    // Use simple heuristic: average distance to first K neighbors seen in adjacency
-    const auto& nbrs = neighbors_[idx];
-    if (nbrs.empty()) return config_.radius;
-    size_t K = std::min<size_t>(nbrs.size(), 8);
-    double s = 0.0; size_t cnt = 0;
-    for (size_t t = 0; t < K; ++t) {
-        size_t j = nbrs[t];
-        s += euclidean(points_[idx], points_[j]);
-        cnt++;
-    }
-    double avg = s / std::max<size_t>(1, cnt);
-    return std::min(config_.radius * config_.radiusMultiplier, avg);
+double StreamingVRComplex::max_pairwise_distance(const PointContainer& pts, const std::vector<size_t>& simplex) {
+    return max_pairwise_distance_pts(pts, simplex);
 }
 
-void StreamingCechComplex::buildNeighborsStreaming() {
+void StreamingVRComplex::buildNeighborsStreaming() {
     // Configure streaming distance matrix
     tda::utils::StreamingDistanceMatrix dm;
     auto dmcfg = config_.dm;
-    // Set threshold as 2*radius (edge if balls of radius r intersect => dist <= 2r)
-    dmcfg.max_distance = 2.0 * config_.radius;
-    // Honor caller/Config parallelization controls; we'll make the callback thread-safe below
-    // so we can optionally enable parallel threshold mode safely.
-    // Note: dmcfg.enable_parallel_threshold and dmcfg.edge_callback_threadsafe are already set in config_.dm
+    // Set threshold as epsilon
+    dmcfg.max_distance = config_.epsilon;
+    // Respect parallel controls; we'll make callback thread-safe
     dmcfg.edge_callback_threadsafe = dmcfg.edge_callback_threadsafe || dmcfg.enable_parallel_threshold;
     dm.setConfig(dmcfg);
 
     const size_t N = points_.size();
     neighbors_.assign(N, {});
-    // Temporary bounded neighbor buffers with distances
     const size_t K = std::max<size_t>(1, config_.maxNeighbors);
     std::vector<std::vector<std::pair<size_t,double>>> nbr_tmp(N);
     for (size_t i = 0; i < N; ++i) nbr_tmp[i].reserve(K);
 
-    // Lightweight per-vertex spinlocks to make updates thread-safe under parallel threshold mode
+    // Lightweight per-vertex spinlocks
     std::vector<std::atomic_flag> locks(N);
-    for (size_t i = 0; i < N; ++i) {
-        locks[i].clear();
-    }
+    for (size_t i = 0; i < N; ++i) locks[i].clear();
 
     auto add_bounded = [&](size_t u, size_t v, double dist) {
         auto& vec = nbr_tmp[u];
@@ -274,8 +255,7 @@ void StreamingCechComplex::buildNeighborsStreaming() {
             return;
         }
         // Find worst (max distance) and replace if this is closer
-        size_t worst_idx = 0;
-        double worst_d = -std::numeric_limits<double>::infinity();
+        size_t worst_idx = 0; double worst_d = -std::numeric_limits<double>::infinity();
         for (size_t t = 0; t < vec.size(); ++t) {
             if (vec[t].second > worst_d) { worst_d = vec[t].second; worst_idx = t; }
         }
@@ -283,12 +263,10 @@ void StreamingCechComplex::buildNeighborsStreaming() {
     };
 
     dm.onEdge([&](size_t i, size_t j, double d) {
-        // Thread-safe updates without holding two locks at once to avoid deadlocks
-        // Lock vertex i
+        // Thread-safe updates
         while (locks[i].test_and_set(std::memory_order_acquire)) { /* spin */ }
         add_bounded(i, j, d);
         locks[i].clear(std::memory_order_release);
-        // Lock vertex j
         while (locks[j].test_and_set(std::memory_order_acquire)) { /* spin */ }
         add_bounded(j, i, d);
         locks[j].clear(std::memory_order_release);
@@ -296,7 +274,7 @@ void StreamingCechComplex::buildNeighborsStreaming() {
 
     dm_stats_ = dm.process(points_);
 
-    // Convert to index-only neighbor lists, sorted by vertex id for fast lookup
+    // Convert to index-only neighbor lists, sorted by vertex id
     for (size_t i = 0; i < N; ++i) {
         auto& tmp = nbr_tmp[i];
         neighbors_[i].reserve(tmp.size());
@@ -315,7 +293,7 @@ void StreamingCechComplex::buildNeighborsStreaming() {
     }
 }
 
-void StreamingCechComplex::addSimplexToTree(const std::vector<size_t>& simplex, double filtrationValue) {
+void StreamingVRComplex::addSimplexToTree(const std::vector<size_t>& simplex, double filtrationValue) {
     if (!simplex_tree_) return;
     // pooled temp
     tda::core::Simplex* tmp = simplex_pool_.acquire(simplex.size());

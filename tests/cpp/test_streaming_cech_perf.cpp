@@ -1,4 +1,5 @@
 #include "tda/algorithms/streaming_cech.hpp"
+#include "tda/algorithms/streaming_vr.hpp"
 #include "tda/utils/streaming_distance_matrix.hpp"
 #include <iostream>
 #include <vector>
@@ -12,6 +13,7 @@
 using std::strcmp;
 
 using tda::algorithms::StreamingCechComplex;
+using tda::algorithms::StreamingVRComplex;
 
 static StreamingCechComplex::PointContainer make_points(size_t n, size_t d, uint32_t seed=42) {
     std::mt19937 rng(seed);
@@ -29,7 +31,8 @@ static StreamingCechComplex::PointContainer make_points(size_t n, size_t d, uint
 int main(int argc, char** argv) {
     // Defaults
     size_t n = 2000, d = 3; // keep CI fast by default
-    double radius = 0.9;
+    double radius = 0.9;     // Čech radius
+    double epsilon = 0.9;    // VR epsilon
     int maxDim = 2;
     int maxNeighbors = 64;
     int block = 64;
@@ -40,6 +43,7 @@ int main(int argc, char** argv) {
     const char* adjHistCsvBaseline = nullptr;   // export baseline adjacency histogram (baseline run)
     const char* baselineJsonOut = nullptr;      // optional: where the separate-process baseline writes its JSONL
     bool dmOnly = false;
+    std::string modeSel = "cech"; // cech|vr
     int baseline_compare = 0; // if 1 and not dmOnly, run a baseline (no soft cap, serial threshold)
     int baseline_separate_process = 0; // if 1, run baseline in a separate process to avoid cumulative memory
     int baseline_maxDim = -1; // if >=0, override maxDim for baseline run
@@ -57,6 +61,7 @@ int main(int argc, char** argv) {
         if (!strcmp(argv[i], "--n") && i+1 < argc) { n = static_cast<size_t>(std::strtoull(argv[++i], nullptr, 10)); }
         else if (!strcmp(argv[i], "--d") && i+1 < argc) { d = static_cast<size_t>(std::strtoull(argv[++i], nullptr, 10)); }
         else if (!strcmp(argv[i], "--radius") && i+1 < argc) { radius = std::strtod(argv[++i], nullptr); }
+        else if (!strcmp(argv[i], "--epsilon") && i+1 < argc) { epsilon = std::strtod(argv[++i], nullptr); }
         else if (!strcmp(argv[i], "--maxDim") && i+1 < argc) { maxDim = std::atoi(argv[++i]); }
         else if (!strcmp(argv[i], "--maxNeighbors") && i+1 < argc) { maxNeighbors = std::atoi(argv[++i]); }
         else if (!strcmp(argv[i], "--block") && i+1 < argc) { block = std::atoi(argv[++i]); }
@@ -67,6 +72,7 @@ int main(int argc, char** argv) {
     else if (!strcmp(argv[i], "--adj-hist-csv-baseline") && i+1 < argc) { adjHistCsvBaseline = argv[++i]; }
     else if (!strcmp(argv[i], "--baseline-json-out") && i+1 < argc) { baselineJsonOut = argv[++i]; }
     else if (!strcmp(argv[i], "--dm-only")) { dmOnly = true; }
+    else if (!strcmp(argv[i], "--mode") && i+1 < argc) { modeSel = argv[++i]; }
     else if (!strcmp(argv[i], "--max-blocks") && i+1 < argc) { max_blocks = static_cast<size_t>(std::strtoull(argv[++i], nullptr, 10)); }
     else if (!strcmp(argv[i], "--max-pairs") && i+1 < argc) { max_pairs = static_cast<size_t>(std::strtoull(argv[++i], nullptr, 10)); }
     else if (!strcmp(argv[i], "--time-limit") && i+1 < argc) { time_limit = std::strtod(argv[++i], nullptr); }
@@ -91,10 +97,18 @@ int main(int argc, char** argv) {
     double build_secs = 0.0;
     double build_peak_mb = 0.0;
     size_t simplices = 0;
+    // SimplexPool telemetry (aggregate)
+    size_t pool_total_blocks = 0;
+    size_t pool_free_blocks = 0;
+    double pool_fragmentation = 0.0;
+    std::string pool_bucket_stats_compact; // e.g., "1:10/2;2:5/1"
     // Soft-cap telemetry
     size_t overshoot_sum = 0;
     size_t overshoot_max = 0;
-    std::string mode = dmOnly ? "DMOnly" : "Cech";
+    // Normalize mode selector
+    for (auto& c : modeSel) c = static_cast<char>(::tolower(c));
+    bool useVR = (modeSel == "vr");
+    std::string mode = dmOnly ? "DMOnly" : (useVR ? "VR" : "Cech");
 
     if (dmOnly) {
         // Stream only the distance matrix edges/blocks under threshold 2*radius
@@ -127,143 +141,301 @@ int main(int argc, char** argv) {
                       << ", overshoot_max=" << stats.softcap_overshoot_max << std::endl;
         }
     } else {
-        // Full streaming Čech path
-        StreamingCechComplex::Config cfg;
-        cfg.radius = radius;
-        cfg.maxDimension = static_cast<size_t>(maxDim);
-        cfg.maxNeighbors = static_cast<size_t>(maxNeighbors);
-        cfg.useAdaptiveRadius = false;
-        cfg.dm.block_size = static_cast<size_t>(block);
-        cfg.dm.symmetric = true;
-        cfg.dm.max_distance = -1.0; // set internally from radius
-    // Propagate early-stop and parallel controls to the DM used inside Cech
-    cfg.dm.max_blocks = max_blocks;
-    cfg.dm.max_pairs = max_pairs;
-    cfg.dm.time_limit_seconds = time_limit;
-    cfg.dm.enable_parallel_threshold = par_thresh;
-    cfg.dm.edge_callback_threadsafe = true; // guarded updates in builder
-    cfg.dm.knn_cap_per_vertex_soft = static_cast<size_t>(soft_knn_cap > 0 ? soft_knn_cap : 0);
-    cfg.dm.softcap_local_merge = (softcap_local_merge != 0);
+        // Full streaming complex path: Čech or VR based on modeSel
+        if (!useVR) {
+            // Čech
+            StreamingCechComplex::Config cfg;
+            cfg.radius = radius;
+            cfg.maxDimension = static_cast<size_t>(maxDim);
+            cfg.maxNeighbors = static_cast<size_t>(maxNeighbors);
+            cfg.useAdaptiveRadius = false;
+            cfg.dm.block_size = static_cast<size_t>(block);
+            cfg.dm.symmetric = true;
+            cfg.dm.max_distance = -1.0; // set internally from radius
+            // Propagate early-stop and parallel controls to the DM used inside Cech
+            cfg.dm.max_blocks = max_blocks;
+            cfg.dm.max_pairs = max_pairs;
+            cfg.dm.time_limit_seconds = time_limit;
+            cfg.dm.enable_parallel_threshold = par_thresh;
+            cfg.dm.edge_callback_threadsafe = true; // guarded updates in builder
+            cfg.dm.knn_cap_per_vertex_soft = static_cast<size_t>(soft_knn_cap > 0 ? soft_knn_cap : 0);
+            cfg.dm.softcap_local_merge = (softcap_local_merge != 0);
 
-        // Run primary build in a limited scope to free memory before optional baseline compare
-        StreamingCechComplex::BuildStats b;
-        tda::utils::StreamingDMStats dm;
-        {
-            StreamingCechComplex cech(cfg);
-            auto r1 = cech.initialize(pts);
-            if (r1.has_error()) { std::cerr << r1.error() << "\n"; return 1; }
-            auto r2 = cech.computeComplex();
-            if (r2.has_error()) { std::cerr << r2.error() << "\n"; return 1; }
-            dm = cech.getStreamingStats();
-            b  = cech.getBuildStats();
-            // Optional: export adjacency histogram for QA (do it before cech is destroyed)
-            if (adjHistCsv) {
-                std::ofstream out(adjHistCsv);
-                if (!out.good()) {
-                    std::cerr << "Failed to open adj histogram file: " << adjHistCsv << "\n";
+            // Run primary build in a limited scope to free memory before optional baseline compare
+            StreamingCechComplex::BuildStats b;
+            tda::utils::StreamingDMStats dm;
+            {
+                StreamingCechComplex cech(cfg);
+                auto r1 = cech.initialize(pts);
+                if (r1.has_error()) { std::cerr << r1.error() << "\n"; return 1; }
+                auto r2 = cech.computeComplex();
+                if (r2.has_error()) { std::cerr << r2.error() << "\n"; return 1; }
+                dm = cech.getStreamingStats();
+                b  = cech.getBuildStats();
+                // Optional: export adjacency histogram for QA (do it before cech is destroyed)
+                if (adjHistCsv) {
+                    std::ofstream out(adjHistCsv);
+                    if (!out.good()) {
+                        std::cerr << "Failed to open adj histogram file: " << adjHistCsv << "\n";
+                    } else {
+                        out << "degree,count\n";
+                        for (size_t deg = 0; deg < b.adjacency_histogram.size(); ++deg) {
+                            out << deg << "," << b.adjacency_histogram[deg] << "\n";
+                        }
+                    }
+                }
+                // Capture pool stats (aggregate + compact per-bucket string)
+                pool_total_blocks = b.pool_total_blocks;
+                pool_free_blocks = b.pool_free_blocks;
+                pool_fragmentation = b.pool_fragmentation;
+                if (!b.pool_bucket_stats.empty()) {
+                    std::ostringstream oss;
+                    // Order by arity ascending for stability, limit to first 12 entries to keep it short
+                    size_t count = 0;
+                    for (const auto& ent : b.pool_bucket_stats) {
+                        if (count++) oss << ";";
+                        oss << ent.first << ":" << ent.second.first << "/" << ent.second.second;
+                        if (count >= 12) break;
+                    }
+                    pool_bucket_stats_compact = oss.str();
                 } else {
-                    out << "degree,count\n";
-                    for (size_t deg = 0; deg < b.adjacency_histogram.size(); ++deg) {
-                        out << deg << "," << b.adjacency_histogram[deg] << "\n";
+                    pool_bucket_stats_compact.clear();
+                }
+            } // cech destroyed here to reduce overlapping memory with baseline
+            dm_blocks = dm.total_blocks;
+            dm_edges = dm.emitted_edges;
+            dm_peak_mb = dm.peak_memory_bytes / (1024.0 * 1024.0);
+            overshoot_sum = dm.softcap_overshoot_sum;
+            overshoot_max = dm.softcap_overshoot_max;
+            build_secs = b.elapsed_seconds;
+            build_peak_mb = b.peak_memory_bytes / (1024.0 * 1024.0);
+            simplices = b.num_simplices_built;
+            if (soft_knn_cap > 0) {
+                std::cout << "  [softcap] overshoot_sum=" << dm.softcap_overshoot_sum
+                          << ", overshoot_max=" << dm.softcap_overshoot_max << std::endl;
+            }
+            // Optional: run a baseline (no soft cap, serial threshold) for accuracy QA and compare
+            if (baseline_compare && soft_knn_cap > 0) {
+                StreamingCechComplex::Config baseCfg = cfg;
+                baseCfg.dm.knn_cap_per_vertex_soft = 0; // disable soft cap
+                baseCfg.dm.enable_parallel_threshold = false; // race-free deterministic
+                baseCfg.dm.softcap_local_merge = false;
+                if (baseline_maxDim >= 0) baseCfg.maxDimension = static_cast<size_t>(baseline_maxDim);
+                if (baseline_separate_process) {
+                    // Run separate process to avoid cumulative memory
+                    char tmpPath[256];
+                    if (baselineJsonOut && std::strlen(baselineJsonOut) > 0) {
+                        std::snprintf(tmpPath, sizeof(tmpPath), "%s", baselineJsonOut);
+                    } else {
+                        std::snprintf(tmpPath, sizeof(tmpPath), "/tmp/tda_baseline_%ld_%d.jsonl", static_cast<long>(std::time(nullptr)), static_cast<int>(::getpid()));
+                    }
+                    std::ostringstream cmd;
+                    cmd << argv[0]
+                        << " --n " << n
+                        << " --d " << d
+                        << " --radius " << radius
+                        << " --maxDim " << baseCfg.maxDimension
+                        << " --maxNeighbors " << maxNeighbors
+                        << " --block " << block
+                        << " --seed " << seed
+                        << " --parallel-threshold 0"
+                        << " --soft-knn-cap 0"
+                        << " --json " << tmpPath;
+                    if (adjHistCsvBaseline) {
+                        cmd << " --adj-hist-csv " << adjHistCsvBaseline;
+                    }
+                    int rc = std::system(cmd.str().c_str());
+                    if (rc != 0) {
+                        std::cerr << "Baseline subprocess failed with code " << rc << "\n";
+                    } else {
+                        std::ifstream jin(tmpPath);
+                        std::string line, last;
+                        while (std::getline(jin, line)) { if (!line.empty()) last = line; }
+                        size_t dm_pos = last.find("\"dm_edges\":");
+                        size_t sx_pos = last.find("\"simplices\":");
+                        size_t dm_val = 0; size_t sx_val = 0;
+                        if (dm_pos != std::string::npos) dm_val = std::strtoull(last.c_str() + dm_pos + 11, nullptr, 10);
+                        if (sx_pos != std::string::npos) sx_val = std::strtoull(last.c_str() + sx_pos + 12, nullptr, 10);
+                        long delta_edges = static_cast<long>(dm_edges) - static_cast<long>(dm_val);
+                        long delta_sx   = static_cast<long>(simplices) - static_cast<long>(sx_val);
+                        std::cout << "Baseline (separate, no soft cap, serial) dm_edges=" << dm_val
+                                  << ", simplices=" << sx_val
+                                  << ", delta_edges=" << delta_edges
+                                  << ", delta_simplices=" << delta_sx << std::endl;
+                    }
+                } else {
+                    StreamingCechComplex::BuildStats b2;
+                    tda::utils::StreamingDMStats dm2;
+                    {
+                        StreamingCechComplex cechBase(baseCfg);
+                        auto rb1 = cechBase.initialize(pts);
+                        if (rb1.has_error()) { std::cerr << rb1.error() << "\n"; return 1; }
+                        auto rb2 = cechBase.computeComplex();
+                        if (rb2.has_error()) { std::cerr << rb2.error() << "\n"; return 1; }
+                        dm2 = cechBase.getStreamingStats();
+                        b2  = cechBase.getBuildStats();
+                    }
+                    long delta_edges = static_cast<long>(dm_edges) - static_cast<long>(dm2.emitted_edges);
+                    long delta_sx   = static_cast<long>(simplices) - static_cast<long>(b2.num_simplices_built);
+                    std::cout << "Baseline (no soft cap, serial) dm_edges=" << dm2.emitted_edges
+                              << ", simplices=" << b2.num_simplices_built
+                              << ", delta_edges=" << delta_edges
+                              << ", delta_simplices=" << delta_sx << std::endl;
+                    if (adjHistCsvBaseline) {
+                        std::ofstream out2(adjHistCsvBaseline);
+                        if (!out2.good()) {
+                            std::cerr << "Failed to open baseline adj histogram file: " << adjHistCsvBaseline << "\n";
+                        } else {
+                            out2 << "degree,count\n";
+                            for (size_t deg = 0; deg < b2.adjacency_histogram.size(); ++deg) {
+                                out2 << deg << "," << b2.adjacency_histogram[deg] << "\n";
+                            }
+                        }
                     }
                 }
             }
-        } // cech destroyed here to reduce overlapping memory with baseline
-    dm_blocks = dm.total_blocks;
-    dm_edges = dm.emitted_edges;
-    dm_peak_mb = dm.peak_memory_bytes / (1024.0 * 1024.0);
-    overshoot_sum = dm.softcap_overshoot_sum;
-    overshoot_max = dm.softcap_overshoot_max;
-        build_secs = b.elapsed_seconds;
-        build_peak_mb = b.peak_memory_bytes / (1024.0 * 1024.0);
-        simplices = b.num_simplices_built;
-        if (soft_knn_cap > 0) {
-            std::cout << "  [softcap] overshoot_sum=" << dm.softcap_overshoot_sum
-                      << ", overshoot_max=" << dm.softcap_overshoot_max << std::endl;
-        }
-        // Optional: run a baseline (no soft cap, serial threshold) for accuracy QA and compare
-        if (baseline_compare && soft_knn_cap > 0) {
-            StreamingCechComplex::Config baseCfg = cfg;
-            baseCfg.dm.knn_cap_per_vertex_soft = 0; // disable soft cap
-            baseCfg.dm.enable_parallel_threshold = false; // race-free deterministic
-            baseCfg.dm.softcap_local_merge = false;
-            if (baseline_maxDim >= 0) baseCfg.maxDimension = static_cast<size_t>(baseline_maxDim);
-            if (baseline_separate_process) {
-                // Run separate process to avoid cumulative memory
-                // Prepare temp JSONL file path
-                char tmpPath[256];
-                if (baselineJsonOut && std::strlen(baselineJsonOut) > 0) {
-                    std::snprintf(tmpPath, sizeof(tmpPath), "%s", baselineJsonOut);
-                } else {
-                    std::snprintf(tmpPath, sizeof(tmpPath), "/tmp/tda_baseline_%ld_%d.jsonl", static_cast<long>(std::time(nullptr)), static_cast<int>(::getpid()));
-                }
-                std::ostringstream cmd;
-                // Use argv[0] as the same binary
-                cmd << argv[0]
-                    << " --n " << n
-                    << " --d " << d
-                    << " --radius " << radius
-                    << " --maxDim " << baseCfg.maxDimension
-                    << " --maxNeighbors " << maxNeighbors
-                    << " --block " << block
-                    << " --seed " << seed
-                    << " --parallel-threshold 0"
-                    << " --soft-knn-cap 0"
-                    << " --json " << tmpPath;
-                if (adjHistCsvBaseline) {
-                    cmd << " --adj-hist-csv " << adjHistCsvBaseline;
-                }
-                int rc = std::system(cmd.str().c_str());
-                if (rc != 0) {
-                    std::cerr << "Baseline subprocess failed with code " << rc << "\n";
-                } else {
-                    // Parse last line of JSONL for dm_edges and simplices
-                    std::ifstream jin(tmpPath);
-                    std::string line, last;
-                    while (std::getline(jin, line)) { if (!line.empty()) last = line; }
-                    size_t dm_pos = last.find("\"dm_edges\":");
-                    size_t sx_pos = last.find("\"simplices\":");
-                    size_t dm_val = 0; size_t sx_val = 0;
-                    if (dm_pos != std::string::npos) {
-                        dm_val = std::strtoull(last.c_str() + dm_pos + 11, nullptr, 10);
+        } else {
+            // VR
+            StreamingVRComplex::Config cfg;
+            cfg.epsilon = epsilon;
+            cfg.maxDimension = static_cast<size_t>(maxDim);
+            cfg.maxNeighbors = static_cast<size_t>(maxNeighbors);
+            cfg.dm.block_size = static_cast<size_t>(block);
+            cfg.dm.symmetric = true;
+            cfg.dm.max_distance = -1.0; // will be set from epsilon internally
+            cfg.dm.max_blocks = max_blocks;
+            cfg.dm.max_pairs = max_pairs;
+            cfg.dm.time_limit_seconds = time_limit;
+            cfg.dm.enable_parallel_threshold = par_thresh;
+            cfg.dm.edge_callback_threadsafe = true;
+            cfg.dm.knn_cap_per_vertex_soft = static_cast<size_t>(soft_knn_cap > 0 ? soft_knn_cap : 0);
+            cfg.dm.softcap_local_merge = (softcap_local_merge != 0);
+
+            StreamingVRComplex::BuildStats b;
+            tda::utils::StreamingDMStats dm;
+            {
+                StreamingVRComplex vr(cfg);
+                auto r1 = vr.initialize(pts);
+                if (r1.has_error()) { std::cerr << r1.error() << "\n"; return 1; }
+                auto r2 = vr.computeComplex();
+                if (r2.has_error()) { std::cerr << r2.error() << "\n"; return 1; }
+                dm = vr.getStreamingStats();
+                b  = vr.getBuildStats();
+                if (adjHistCsv) {
+                    std::ofstream out(adjHistCsv);
+                    if (!out.good()) {
+                        std::cerr << "Failed to open adj histogram file: " << adjHistCsv << "\n";
+                    } else {
+                        out << "degree,count\n";
+                        for (size_t deg = 0; deg < b.adjacency_histogram.size(); ++deg) {
+                            out << deg << "," << b.adjacency_histogram[deg] << "\n";
+                        }
                     }
-                    if (sx_pos != std::string::npos) {
-                        sx_val = std::strtoull(last.c_str() + sx_pos + 12, nullptr, 10);
+                }
+                // Capture pool stats (aggregate + compact per-bucket string)
+                pool_total_blocks = b.pool_total_blocks;
+                pool_free_blocks = b.pool_free_blocks;
+                pool_fragmentation = b.pool_fragmentation;
+                if (!b.pool_bucket_stats.empty()) {
+                    std::ostringstream oss;
+                    size_t count = 0;
+                    for (const auto& ent : b.pool_bucket_stats) {
+                        if (count++) oss << ";";
+                        oss << ent.first << ":" << ent.second.first << "/" << ent.second.second;
+                        if (count >= 12) break;
                     }
-                    long delta_edges = static_cast<long>(dm_edges) - static_cast<long>(dm_val);
-                    long delta_sx   = static_cast<long>(simplices) - static_cast<long>(sx_val);
-                    std::cout << "Baseline (separate, no soft cap, serial) dm_edges=" << dm_val
-                              << ", simplices=" << sx_val
+                    pool_bucket_stats_compact = oss.str();
+                } else {
+                    pool_bucket_stats_compact.clear();
+                }
+            }
+            dm_blocks = dm.total_blocks;
+            dm_edges = dm.emitted_edges;
+            dm_peak_mb = dm.peak_memory_bytes / (1024.0 * 1024.0);
+            overshoot_sum = dm.softcap_overshoot_sum;
+            overshoot_max = dm.softcap_overshoot_max;
+            build_secs = b.elapsed_seconds;
+            build_peak_mb = b.peak_memory_bytes / (1024.0 * 1024.0);
+            simplices = b.num_simplices_built;
+            if (soft_knn_cap > 0) {
+                std::cout << "  [softcap] overshoot_sum=" << dm.softcap_overshoot_sum
+                          << ", overshoot_max=" << dm.softcap_overshoot_max << std::endl;
+            }
+            if (baseline_compare && soft_knn_cap > 0) {
+                StreamingVRComplex::Config baseCfg = cfg;
+                baseCfg.dm.knn_cap_per_vertex_soft = 0;
+                baseCfg.dm.enable_parallel_threshold = false;
+                baseCfg.dm.softcap_local_merge = false;
+                if (baseline_maxDim >= 0) baseCfg.maxDimension = static_cast<size_t>(baseline_maxDim);
+                if (baseline_separate_process) {
+                    char tmpPath[256];
+                    if (baselineJsonOut && std::strlen(baselineJsonOut) > 0) {
+                        std::snprintf(tmpPath, sizeof(tmpPath), "%s", baselineJsonOut);
+                    } else {
+                        std::snprintf(tmpPath, sizeof(tmpPath), "/tmp/tda_baseline_%ld_%d.jsonl", static_cast<long>(std::time(nullptr)), static_cast<int>(::getpid()));
+                    }
+                    std::ostringstream cmd;
+                    cmd << argv[0]
+                        << " --mode vr"
+                        << " --n " << n
+                        << " --d " << d
+                        << " --epsilon " << epsilon
+                        << " --maxDim " << baseCfg.maxDimension
+                        << " --maxNeighbors " << maxNeighbors
+                        << " --block " << block
+                        << " --seed " << seed
+                        << " --parallel-threshold 0"
+                        << " --soft-knn-cap 0"
+                        << " --json " << tmpPath;
+                    if (adjHistCsvBaseline) {
+                        cmd << " --adj-hist-csv " << adjHistCsvBaseline;
+                    }
+                    int rc = std::system(cmd.str().c_str());
+                    if (rc != 0) {
+                        std::cerr << "Baseline subprocess failed with code " << rc << "\n";
+                    } else {
+                        std::ifstream jin(tmpPath);
+                        std::string line, last;
+                        while (std::getline(jin, line)) { if (!line.empty()) last = line; }
+                        size_t dm_pos = last.find("\"dm_edges\":");
+                        size_t sx_pos = last.find("\"simplices\":");
+                        size_t dm_val = 0; size_t sx_val = 0;
+                        if (dm_pos != std::string::npos) dm_val = std::strtoull(last.c_str() + dm_pos + 11, nullptr, 10);
+                        if (sx_pos != std::string::npos) sx_val = std::strtoull(last.c_str() + sx_pos + 12, nullptr, 10);
+                        long delta_edges = static_cast<long>(dm_edges) - static_cast<long>(dm_val);
+                        long delta_sx   = static_cast<long>(simplices) - static_cast<long>(sx_val);
+                        std::cout << "Baseline (VR separate, no soft cap, serial) dm_edges=" << dm_val
+                                  << ", simplices=" << sx_val
+                                  << ", delta_edges=" << delta_edges
+                                  << ", delta_simplices=" << delta_sx << std::endl;
+                    }
+                } else {
+                    StreamingVRComplex::BuildStats b2;
+                    tda::utils::StreamingDMStats dm2;
+                    {
+                        StreamingVRComplex vrBase(baseCfg);
+                        auto rb1 = vrBase.initialize(pts);
+                        if (rb1.has_error()) { std::cerr << rb1.error() << "\n"; return 1; }
+                        auto rb2 = vrBase.computeComplex();
+                        if (rb2.has_error()) { std::cerr << rb2.error() << "\n"; return 1; }
+                        dm2 = vrBase.getStreamingStats();
+                        b2  = vrBase.getBuildStats();
+                    }
+                    long delta_edges = static_cast<long>(dm_edges) - static_cast<long>(dm2.emitted_edges);
+                    long delta_sx   = static_cast<long>(simplices) - static_cast<long>(b2.num_simplices_built);
+                    std::cout << "Baseline (VR no soft cap, serial) dm_edges=" << dm2.emitted_edges
+                              << ", simplices=" << b2.num_simplices_built
                               << ", delta_edges=" << delta_edges
                               << ", delta_simplices=" << delta_sx << std::endl;
-                }
-            } else {
-                // In-process baseline run (may increase peak RSS due to allocator behavior)
-                StreamingCechComplex::BuildStats b2;
-                tda::utils::StreamingDMStats dm2;
-                {
-                    StreamingCechComplex cechBase(baseCfg);
-                    auto rb1 = cechBase.initialize(pts);
-                    if (rb1.has_error()) { std::cerr << rb1.error() << "\n"; return 1; }
-                    auto rb2 = cechBase.computeComplex();
-                    if (rb2.has_error()) { std::cerr << rb2.error() << "\n"; return 1; }
-                    dm2 = cechBase.getStreamingStats();
-                    b2  = cechBase.getBuildStats();
-                }
-                long delta_edges = static_cast<long>(dm_edges) - static_cast<long>(dm2.emitted_edges);
-                long delta_sx   = static_cast<long>(simplices) - static_cast<long>(b2.num_simplices_built);
-                std::cout << "Baseline (no soft cap, serial) dm_edges=" << dm2.emitted_edges
-                          << ", simplices=" << b2.num_simplices_built
-                          << ", delta_edges=" << delta_edges
-                          << ", delta_simplices=" << delta_sx << std::endl;
-                if (adjHistCsvBaseline) {
-                    std::ofstream out2(adjHistCsvBaseline);
-                    if (!out2.good()) {
-                        std::cerr << "Failed to open baseline adj histogram file: " << adjHistCsvBaseline << "\n";
-                    } else {
-                        out2 << "degree,count\n";
-                        for (size_t deg = 0; deg < b2.adjacency_histogram.size(); ++deg) {
-                            out2 << deg << "," << b2.adjacency_histogram[deg] << "\n";
+                    if (adjHistCsvBaseline) {
+                        std::ofstream out2(adjHistCsvBaseline);
+                        if (!out2.good()) {
+                            std::cerr << "Failed to open baseline adj histogram file: " << adjHistCsvBaseline << "\n";
+                        } else {
+                            out2 << "degree,count\n";
+                            for (size_t deg = 0; deg < b2.adjacency_histogram.size(); ++deg) {
+                                out2 << deg << "," << b2.adjacency_histogram[deg] << "\n";
+                            }
                         }
                     }
                 }
@@ -272,9 +444,9 @@ int main(int argc, char** argv) {
     }
 
     // Console output
-    std::cout << "StreamingCechPerf mode=" << mode
+    std::cout << "StreamingPerf mode=" << mode
               << ", n=" << n << ", d=" << d
-              << ", radius=" << radius
+              << (useVR ? ", epsilon=" : ", radius=") << (useVR ? epsilon : radius)
               << ", maxDim=" << maxDim
               << ", maxNeighbors=" << maxNeighbors
               << ", block=" << block
@@ -301,16 +473,18 @@ int main(int argc, char** argv) {
         }
         std::ofstream fout(csvPath, std::ios::app);
         if (writeHeader) {
-            fout << "timestamp,n,d,mode,radius,maxDim,maxNeighbors,block,maxBlocks,maxPairs,timeLimit,dm_blocks,dm_edges,dm_peak_mb,build_secs,build_peak_mb,simplices,overshoot_sum,overshoot_max\n";
+            fout << "timestamp,n,d,mode,threshold,maxDim,maxNeighbors,block,maxBlocks,maxPairs,timeLimit,dm_blocks,dm_edges,dm_peak_mb,build_secs,build_peak_mb,simplices,overshoot_sum,overshoot_max,pool_total_blocks,pool_free_blocks,pool_fragmentation\n";
         }
         // ISO-ish timestamp
         std::time_t t = std::time(nullptr);
         char buf[32];
         std::strftime(buf, sizeof(buf), "%Y-%m-%dT%H:%M:%S", std::localtime(&t));
-        fout << buf << "," << n << "," << d << "," << mode << "," << radius << ","
+        double thr = useVR ? epsilon : radius;
+    fout << buf << "," << n << "," << d << "," << mode << "," << thr << ","
              << maxDim << "," << maxNeighbors << "," << block << "," << max_blocks << "," << max_pairs << "," << time_limit << "," << dm_blocks << ","
-             << dm_edges << "," << dm_peak_mb << "," << build_secs << "," << build_peak_mb << ","
-             << simplices << "," << overshoot_sum << "," << overshoot_max << "\n";
+         << dm_edges << "," << dm_peak_mb << "," << build_secs << "," << build_peak_mb << ","
+         << simplices << "," << overshoot_sum << "," << overshoot_max << ","
+         << pool_total_blocks << "," << pool_free_blocks << "," << pool_fragmentation << "\n";
     }
 
     // JSONL logging (append one JSON object per line)
@@ -318,10 +492,11 @@ int main(int argc, char** argv) {
         std::ofstream jout(jsonPath, std::ios::app);
         std::time_t t = std::time(nullptr);
         char buf[32]; std::strftime(buf, sizeof(buf), "%Y-%m-%dT%H:%M:%S", std::localtime(&t));
-       jout << "{\"timestamp\":\"" << buf << "\",";
-       jout << "\"n\":" << n << ",\"d\":" << d << ",\"mode\":\"" << mode << "\",";
+    jout << "{\"timestamp\":\"" << buf << "\",";
+    jout << "\"n\":" << n << ",\"d\":" << d << ",\"mode\":\"" << mode << "\",";
        // Config echo
-       jout << "\"radius\":" << radius << ",\"maxDim\":" << maxDim << ",\"maxNeighbors\":" << maxNeighbors
+    if (useVR) { jout << "\"epsilon\":" << epsilon << ","; } else { jout << "\"radius\":" << radius << ","; }
+    jout << "\"maxDim\":" << maxDim << ",\"maxNeighbors\":" << maxNeighbors
            << ",\"block\":" << block << ",\"maxBlocks\":" << max_blocks << ",\"maxPairs\":" << max_pairs
            << ",\"timeLimit\":" << time_limit << ",\"parallel_threshold\":" << (par_thresh ? 1 : 0) << ",";
        // Core telemetry (underscore keys maintained for backward compatibility)
@@ -330,9 +505,15 @@ int main(int argc, char** argv) {
            << ",\"build_peak_mb\":" << build_peak_mb << ",\"simplices\":" << simplices
            << ",\"overshoot_sum\":" << overshoot_sum << ",\"overshoot_max\":" << overshoot_max << ",";
        // Duplicate fields with camelCase expected by analyzer
-       jout << "\"dm_peakMB\":" << dm_peak_mb << ",\"rss_peakMB\":" << build_peak_mb
+    jout << "\"dm_peakMB\":" << dm_peak_mb << ",\"rss_peakMB\":" << build_peak_mb
            << ",\"softcap_overshoot_sum\":" << overshoot_sum
-           << ",\"softcap_overshoot_max\":" << overshoot_max << "}\n";
+           << ",\"softcap_overshoot_max\":" << overshoot_max << ","
+           // Pool telemetry (aggregate)
+           << "\"pool_total_blocks\":" << pool_total_blocks << ",\"pool_free_blocks\":" << pool_free_blocks
+           << ",\"pool_fragmentation\":" << pool_fragmentation
+           // Optional compact per-bucket stats as string: "arity:total/free;..." (empty for now)
+           << ",\"pool_bucket_stats_compact\":\"" << pool_bucket_stats_compact << "\""
+           << "}" << "\n";
     }
 
     return 0;

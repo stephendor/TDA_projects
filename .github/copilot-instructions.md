@@ -257,6 +257,8 @@ research/                   # Extracted research content
 - The CI workflow must gate perf-probe artifacts with require-CSV.
 - The CI workflow must run the analyzer gate only if JSONL exists; no CSV requirement for unit tests.
 - The CI workflow should now include a brief “compact summary” echo step that extracts key fields from analyzer output to the PR logs for extra clarity.
+- The CI workflow includes the following jobs: `analyze-reference-artifacts`, `cpp-tests`, `cpp-perf-probe`, `cpp-dm-only-probe`, `cpp-accuracy-check`, `cpp-staircase`, `cpp-staircase-nightly`, and `cpp-vr-perf-probe`, `cpp-vr-nightly`.
+  - Ensure all compact “summary” heredoc blocks are properly nested under `run: |` and parse cleanly.
 
 ## 🛠️ **DEBUGGING**
 
@@ -302,6 +304,7 @@ research/                   # Extracted research content
   - Clarified baseline compare usage (separate process) and accuracy script examples.
   - Added “Accuracy reports and thresholds” section with example invocation.
   - Added “Reference artifacts (2025-08-14, 1M Čech…)”
+  - Fixed Markdown nested list indentation (MD007) under “Phase 1 Validation Scripts.”
 - `docs/troubleshooting/RCA_Progress_Check`:
   - (Add a short note with the 1M metrics and deltas after the final run)
   - Added 1M checkpoint summary

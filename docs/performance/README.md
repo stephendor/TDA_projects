@@ -5,23 +5,27 @@ This guide provides comprehensive performance optimization strategies, benchmark
 ## 📚 Performance Documentation Structure
 
 ### 🎯 [Performance Overview](./overview.md)
+
 - **Performance Targets** - Current benchmarks and goals ✅
 - **Bottleneck Analysis** - Identifying performance constraints ✅
 - **Scaling Strategies** - Horizontal and vertical scaling approaches ✅
 
 ### ⚡ [Optimization Techniques](./optimization/)
+
 - **SIMD Vectorization** - CPU instruction optimization ✅
 - **Memory Management** - Efficient data structures and allocation ✅
 - **Parallelization** - OpenMP, threading, and distributed computing ✅
 - **Algorithm Optimization** - Mathematical and computational improvements ✅
 
 ### 📊 [Benchmarking & Profiling](./benchmarking/)
+
 - **Performance Testing** - Comprehensive benchmark suites ✅
 - **Profiling Tools** - gprof, Valgrind, custom instrumentation ✅
 - **Metrics & KPIs** - Key performance indicators ✅
 - **Regression Testing** - Performance regression prevention 🔄
 
 ### 🚀 [High-Performance Computing](./hpc/)
+
 - **GPU Acceleration** - CUDA implementation strategies 🔄
 - **Distributed Computing** - Spark, Flink, and MPI 🔄
 - **Cloud Optimization** - AWS, GCP, and Azure strategies 🔄
@@ -30,12 +34,14 @@ This guide provides comprehensive performance optimization strategies, benchmark
 ## 🎯 Performance Targets
 
 ### Current Benchmarks (Task 1 Completed) ✅
+
 - **Small Datasets** (<10K points): <1 second ✅
 - **Medium Datasets** (100K points): <10 seconds ✅
 - **Large Datasets** (1M points): <60 seconds ✅ ⭐
 - **Very Large** (10M+ points): <600 seconds 🔄 (in validation)
 
 ### Performance KPIs
+
 - **Throughput**: Points processed per second ✅
 - **Latency**: Time to first result ✅
 - **Memory Efficiency**: RAM usage per million points ✅
@@ -44,6 +50,7 @@ This guide provides comprehensive performance optimization strategies, benchmark
 ## ⚡ Core Optimization Strategies
 
 ### 1. **SIMD Vectorization** ✅
+
 ```cpp
 // Before: Scalar distance computation
 double distance(const Point& p1, const Point& p2) {
@@ -126,6 +133,39 @@ Notes:
 - Keep --parallel-threshold 0 when using a soft cap for correctness/telemetry runs.
 - Inspect overshoot telemetry (softcap_overshoot_sum / softcap_overshoot_max) in JSON outputs, and overshoot_sum/overshoot_max in CSV.
 - The separate baseline process will print its own summary line before the parent prints the delta summary and the parent’s final line; this is expected ordering.
+
+## VR mode usage (Streaming Vietoris–Rips)
+
+The performance harness supports VR mode with telemetry parity to Čech. Use `--mode vr` and provide `--epsilon` (distance threshold). The filtration value for a simplex is the max pairwise edge distance.
+
+Examples:
+
+```bash
+# Small VR probe with soft-cap and serial threshold (telemetry-friendly)
+build/release/tests/cpp/test_streaming_cech_perf \
+    --mode vr --n 6000 --d 6 --epsilon 0.5 --maxDim 1 \
+    --soft-knn-cap 16 --parallel-threshold 0 \
+    --adj-hist-csv /tmp/adj_vr_parent.csv \
+    --json /tmp/run_vr.jsonl
+
+# Baseline compare pattern (recommended for Čech; for VR use single-run comparisons)
+scripts/run_performance_validation.sh \
+    --harness build/release/tests/cpp/test_streaming_cech_perf \
+    --artifacts /tmp/tda-artifacts \
+    --n 8000 --d 8 --maxDim 1 --K 16 --radius 0.5
+```
+
+Analyzer expectations in VR mode:
+
+- When `parallel_threshold==0` and soft cap is used, `softcap_overshoot_sum==0` and `softcap_overshoot_max==0` are required for a PASS gate.
+- Memory fields `dm_peakMB` and `rss_peakMB` must be present.
+- CSV adjacency histograms are optional unless `--require-csv` is set for the analyzer.
+
+Compact summary lines printed in CI (example):
+
+```text
+[summary] run_vr.jsonl: mode=vr, dm_blocks=38862, dm_edges=346567, dm_peakMB=106.55, rss_peakMB=120.31, softcap_overshoot_sum=0, softcap_overshoot_max=0, parallel_threshold=0
+```
 
 ### Telemetry fields written by the harness (JSONL)
 

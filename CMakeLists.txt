@@ -241,6 +241,7 @@ add_library(tda_algorithms STATIC
     src/cpp/algorithms/cech_complex.cpp
     src/cpp/algorithms/dtm_filtration.cpp
     src/cpp/algorithms/streaming_cech.cpp
+    src/cpp/algorithms/streaming_vr.cpp
 )
 
 add_library(tda_spatial STATIC

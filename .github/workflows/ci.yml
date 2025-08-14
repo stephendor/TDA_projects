@@ -42,48 +42,48 @@ jobs:
             --artifacts docs/performance/artifacts/2025-08-14_1m_cech \
             --gate --require-csv
 
-    - name: Compact analyzer summary
-    run: |
-      python3 - <<'PY'
-      import glob,json,os,sys
-      arts = "docs/performance/artifacts/2025-08-14_1m_cech"
-      files = sorted(glob.glob(os.path.join(arts, "*.jsonl")))
-      if not files:
-        print("[summary] No JSONL artifacts found.")
-        sys.exit(0)
-      def last_json(path):
-        data=None
-        with open(path,'r') as f:
-          for line in f:
-            line=line.strip()
-            if line:
+      - name: Compact analyzer summary
+        run: |
+          python3 - <<'PY'
+          import glob,json,os,sys
+          arts = "docs/performance/artifacts/2025-08-14_1m_cech"
+          files = sorted(glob.glob(os.path.join(arts, "*.jsonl")))
+          if not files:
+            print("[summary] No JSONL artifacts found.")
+            sys.exit(0)
+          def last_json(path):
+            data=None
+            with open(path,'r') as f:
+              for line in f:
+                line=line.strip()
+                if line:
+                  try:
+                    data=json.loads(line)
+                  except Exception:
+                    pass
+            return data or {}
+          def fmt(v):
+            return "-" if v is None else str(v)
+          parents=[p for p in files if "baseline" not in os.path.basename(p)]
+          baselines=[p for p in files if "baseline" in os.path.basename(p)]
+          def summary(tag, d):
+            keys=["mode","dm_blocks","dm_edges","simplices","dm_peakMB","rss_peakMB","softcap_overshoot_sum","softcap_overshoot_max","parallel_threshold","build_secs","build_peakMB","pool_total_blocks","pool_free_blocks","pool_fragmentation"]
+            kv=", ".join(f"{k}={fmt(d.get(k))}" for k in keys if k in d)
+            print(f"[summary] {tag}: {kv}")
+          pd = last_json(parents[0]) if parents else {}
+          bd = last_json(baselines[0]) if baselines else {}
+          if pd: summary("parent", pd)
+          if bd: summary("baseline", bd)
+          if pd and bd:
+            for f in ["dm_edges","simplices","dm_blocks","dm_peakMB","rss_peakMB"]:
               try:
-                data=json.loads(line)
+                av=pd.get(f); bv=bd.get(f)
+                if av is not None and bv is not None:
+                  print(f"[summary] delta {f} = {av - bv}")
               except Exception:
                 pass
-        return data or {}
-      def fmt(v):
-        return "-" if v is None else str(v)
-      parents=[p for p in files if "baseline" not in os.path.basename(p)]
-      baselines=[p for p in files if "baseline" in os.path.basename(p)]
-      def summary(tag, d):
-        keys=["mode","dm_blocks","dm_edges","simplices","dm_peakMB","rss_peakMB","softcap_overshoot_sum","softcap_overshoot_max","parallel_threshold","build_secs","build_peakMB"]
-        kv=", ".join(f"{k}={fmt(d.get(k))}" for k in keys if k in d)
-        print(f"[summary] {tag}: {kv}")
-      pd = last_json(parents[0]) if parents else {}
-      bd = last_json(baselines[0]) if baselines else {}
-      if pd: summary("parent", pd)
-      if bd: summary("baseline", bd)
-      if pd and bd:
-        for f in ["dm_edges","simplices","dm_blocks","dm_peakMB","rss_peakMB"]:
-          try:
-            av=pd.get(f); bv=bd.get(f)
-            if av is not None and bv is not None:
-              print(f"[summary] delta {f} = {av - bv}")
-          except Exception:
-            pass
-      print("[summary] files:", ", ".join(os.path.basename(x) for x in files))
-      PY
+          print("[summary] files:", ", ".join(os.path.basename(x) for x in files))
+          PY
 
       - name: Upload reference artifacts (for PR visibility)
         if: always()
@@ -120,9 +120,9 @@ jobs:
       - name: Build
         run: cmake --build build/release --config Release -- -j"$(nproc)"
 
-      - name: Run targeted C++ tests (PerfBaselineJSONL + PerfMonotonicity)
+      - name: Run targeted C++ tests (PerfBaselineJSONL + PerfMonotonicity + VR tests)
         run: |
-          ctest --test-dir build/release -R "(PerfBaselineJSONL|PerfMonotonicity)" --output-on-failure --timeout 180
+          ctest --test-dir build/release -R "(PerfBaselineJSONL|PerfMonotonicity|StreamingVRParity|VRTelemetryPresence)" --output-on-failure --timeout 180
 
       - name: List JSONL metrics (info only)
         if: always()
@@ -197,49 +197,49 @@ jobs:
             --artifacts "$TDA_ARTIFACT_DIR" \
             --gate --require-csv
 
-    - name: Compact analyzer summary
-    if: always()
-    run: |
-      python3 - <<'PY'
-      import glob,json,os,sys
-      arts = os.environ.get("TDA_ARTIFACT_DIR","/tmp/tda-artifacts")
-      files = sorted(glob.glob(os.path.join(arts, "*.jsonl")))
-      if not files:
-        print("[summary] No JSONL artifacts found.")
-        sys.exit(0)
-      def last_json(path):
-        data=None
-        with open(path,'r') as f:
-          for line in f:
-            line=line.strip()
-            if line:
+      - name: Compact analyzer summary
+        if: always()
+        run: |
+          python3 - <<'PY'
+          import glob,json,os,sys
+          arts = os.environ.get("TDA_ARTIFACT_DIR","/tmp/tda-artifacts")
+          files = sorted(glob.glob(os.path.join(arts, "*.jsonl")))
+          if not files:
+            print("[summary] No JSONL artifacts found.")
+            sys.exit(0)
+          def last_json(path):
+            data=None
+            with open(path,'r') as f:
+              for line in f:
+                line=line.strip()
+                if line:
+                  try:
+                    data=json.loads(line)
+                  except Exception:
+                    pass
+            return data or {}
+          def fmt(v):
+            return "-" if v is None else str(v)
+          parents=[p for p in files if "baseline" not in os.path.basename(p)]
+          baselines=[p for p in files if "baseline" in os.path.basename(p)]
+          def summary(tag, d):
+            keys=["mode","dm_blocks","dm_edges","simplices","dm_peakMB","rss_peakMB","softcap_overshoot_sum","softcap_overshoot_max","parallel_threshold","build_secs","build_peakMB","pool_total_blocks","pool_free_blocks","pool_fragmentation"]
+            kv=", ".join(f"{k}={fmt(d.get(k))}" for k in keys if k in d)
+            print(f"[summary] {tag}: {kv}")
+          pd = last_json(parents[0]) if parents else {}
+          bd = last_json(baselines[0]) if baselines else {}
+          if pd: summary("parent", pd)
+          if bd: summary("baseline", bd)
+          if pd and bd:
+            for f in ["dm_edges","simplices","dm_blocks","dm_peakMB","rss_peakMB"]:
               try:
-                data=json.loads(line)
+                av=pd.get(f); bv=bd.get(f)
+                if av is not None and bv is not None:
+                  print(f"[summary] delta {f} = {av - bv}")
               except Exception:
                 pass
-        return data or {}
-      def fmt(v):
-        return "-" if v is None else str(v)
-      parents=[p for p in files if "baseline" not in os.path.basename(p)]
-      baselines=[p for p in files if "baseline" in os.path.basename(p)]
-      def summary(tag, d):
-        keys=["mode","dm_blocks","dm_edges","simplices","dm_peakMB","rss_peakMB","softcap_overshoot_sum","softcap_overshoot_max","parallel_threshold","build_secs","build_peakMB"]
-        kv=", ".join(f"{k}={fmt(d.get(k))}" for k in keys if k in d)
-        print(f"[summary] {tag}: {kv}")
-      pd = last_json(parents[0]) if parents else {}
-      bd = last_json(baselines[0]) if baselines else {}
-      if pd: summary("parent", pd)
-      if bd: summary("baseline", bd)
-      if pd and bd:
-        for f in ["dm_edges","simplices","dm_blocks","dm_peakMB","rss_peakMB"]:
-          try:
-            av=pd.get(f); bv=bd.get(f)
-            if av is not None and bv is not None:
-              print(f"[summary] delta {f} = {av - bv}")
-          except Exception:
-            pass
-      print("[summary] files:", ", ".join(os.path.basename(x) for x in files))
-      PY
+          print("[summary] files:", ", ".join(os.path.basename(x) for x in files))
+          PY
 
       - name: Upload perf probe artifacts
         if: always()
@@ -291,35 +291,35 @@ jobs:
             --artifacts "$TDA_ARTIFACT_DIR" \
             --gate
 
-    - name: Compact analyzer summary
-    if: always()
-    run: |
-      python3 - <<'PY'
-      import glob,json,os,sys
-      arts = os.environ.get("TDA_ARTIFACT_DIR","/tmp/tda-artifacts")
-      files = sorted(glob.glob(os.path.join(arts, "*.jsonl")))
-      if not files:
-        print("[summary] No JSONL artifacts found.")
-        sys.exit(0)
-      def last_json(path):
-        data=None
-        with open(path,'r') as f:
-          for line in f:
-            line=line.strip()
-            if line:
-              try:
-                data=json.loads(line)
-              except Exception:
-                pass
-        return data or {}
-      def fmt(v):
-        return "-" if v is None else str(v)
-      for p in files:
-        d=last_json(p)
-        keys=["mode","dm_blocks","dm_edges","dm_peakMB","rss_peakMB","softcap_overshoot_sum","softcap_overshoot_max","parallel_threshold"]
-        kv=", ".join(f"{k}={fmt(d.get(k))}" for k in keys if k in d)
-        print(f"[summary] {os.path.basename(p)}: {kv}")
-      PY
+      - name: Compact analyzer summary
+        if: always()
+        run: |
+          python3 - <<'PY'
+          import glob,json,os,sys
+          arts = os.environ.get("TDA_ARTIFACT_DIR","/tmp/tda-artifacts")
+          files = sorted(glob.glob(os.path.join(arts, "*.jsonl")))
+          if not files:
+            print("[summary] No JSONL artifacts found.")
+            sys.exit(0)
+          def last_json(path):
+            data=None
+            with open(path,'r') as f:
+              for line in f:
+                line=line.strip()
+                if line:
+                  try:
+                    data=json.loads(line)
+                  except Exception:
+                    pass
+            return data or {}
+          def fmt(v):
+            return "-" if v is None else str(v)
+          for p in files:
+            d=last_json(p)
+            keys=["mode","dm_blocks","dm_edges","dm_peakMB","rss_peakMB","softcap_overshoot_sum","softcap_overshoot_max","parallel_threshold","pool_total_blocks","pool_free_blocks","pool_fragmentation"]
+            kv=", ".join(f"{k}={fmt(d.get(k))}" for k in keys if k in d)
+            print(f"[summary] {os.path.basename(p)}: {kv}")
+          PY
 
       - name: Upload DM-only probe artifacts
         if: always()
@@ -486,53 +486,221 @@ jobs:
             --artifacts "$TDA_ARTIFACT_DIR" \
             --gate --require-csv
 
-    - name: Compact analyzer summary
-    if: always()
-    run: |
-      python3 - <<'PY'
-      import glob,json,os,sys
-      arts = os.environ.get("TDA_ARTIFACT_DIR","/tmp/tda-artifacts")
-      files = sorted(glob.glob(os.path.join(arts, "*.jsonl")))
-      if not files:
-        print("[summary] No JSONL artifacts found.")
-        sys.exit(0)
-      def last_json(path):
-        data=None
-        with open(path,'r') as f:
-          for line in f:
-            line=line.strip()
-            if line:
+      - name: Compact analyzer summary
+        if: always()
+        run: |
+          python3 - <<'PY'
+          import glob,json,os,sys
+          arts = os.environ.get("TDA_ARTIFACT_DIR","/tmp/tda-artifacts")
+          files = sorted(glob.glob(os.path.join(arts, "*.jsonl")))
+          if not files:
+            print("[summary] No JSONL artifacts found.")
+            sys.exit(0)
+          def last_json(path):
+            data=None
+            with open(path,'r') as f:
+              for line in f:
+                line=line.strip()
+                if line:
+                  try:
+                    data=json.loads(line)
+                  except Exception:
+                    pass
+            return data or {}
+          def fmt(v):
+            return "-" if v is None else str(v)
+          parents=[p for p in files if "baseline" not in os.path.basename(p)]
+          baselines=[p for p in files if "baseline" in os.path.basename(p)]
+          def summary(tag, d):
+            keys=["mode","dm_blocks","dm_edges","simplices","dm_peakMB","rss_peakMB","softcap_overshoot_sum","softcap_overshoot_max","parallel_threshold","build_secs","build_peakMB","pool_total_blocks","pool_free_blocks","pool_fragmentation"]
+            kv=", ".join(f"{k}={fmt(d.get(k))}" for k in keys if k in d)
+            print(f"[summary] {tag}: {kv}")
+          pd = last_json(parents[0]) if parents else {}
+          bd = last_json(baselines[0]) if baselines else {}
+          if pd: summary("parent", pd)
+          if bd: summary("baseline", bd)
+          if pd and bd:
+            for f in ["dm_edges","simplices","dm_blocks","dm_peakMB","rss_peakMB"]:
               try:
-                data=json.loads(line)
+                av=pd.get(f); bv=bd.get(f)
+                if av is not None and bv is not None:
+                  print(f"[summary] delta {f} = {av - bv}")
               except Exception:
                 pass
-        return data or {}
-      def fmt(v):
-        return "-" if v is None else str(v)
-      parents=[p for p in files if "baseline" not in os.path.basename(p)]
-      baselines=[p for p in files if "baseline" in os.path.basename(p)]
-      def summary(tag, d):
-        keys=["mode","dm_blocks","dm_edges","simplices","dm_peakMB","rss_peakMB","softcap_overshoot_sum","softcap_overshoot_max","parallel_threshold","build_secs","build_peakMB"]
-        kv=", ".join(f"{k}={fmt(d.get(k))}" for k in keys if k in d)
-        print(f"[summary] {tag}: {kv}")
-      pd = last_json(parents[0]) if parents else {}
-      bd = last_json(baselines[0]) if baselines else {}
-      if pd: summary("parent", pd)
-      if bd: summary("baseline", bd)
-      if pd and bd:
-        for f in ["dm_edges","simplices","dm_blocks","dm_peakMB","rss_peakMB"]:
-          try:
-            av=pd.get(f); bv=bd.get(f)
-            if av is not None and bv is not None:
-              print(f"[summary] delta {f} = {av - bv}")
-          except Exception:
-            pass
-      print("[summary] files:", ", ".join(os.path.basename(x) for x in files))
-      PY
+          print("[summary] files:", ", ".join(os.path.basename(x) for x in files))
+          PY
 
       - name: Upload staircase artifacts
         if: always()
         uses: actions/upload-artifact@ff15f0306b3f739f7b6fd43fb5d26cd321bd4de5 # v3.2.1
         with:
           name: cpp-staircase-nightly-${{ matrix.nsize }}-artifacts
+          path: ${{ env.TDA_ARTIFACT_DIR }}
+
+  cpp-vr-perf-probe:
+    name: C++ VR Perf Probe (adjacency hist + telemetry)
+    runs-on: ubuntu-latest
+    needs: cpp-tests
+    steps:
+      - name: Checkout
+        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4.3.0
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential cmake ninja-build \
+            libeigen3-dev libgmp-dev libmpfr-dev libtbb-dev python3
+
+      - name: Prepare artifact directory
+        run: mkdir -p "$TDA_ARTIFACT_DIR"
+
+      - name: Configure (Release)
+        run: |
+          cmake -S . -B build/release \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DBUILD_TESTS=ON \
+            -DBUILD_BENCHMARKS=ON \
+            -DBUILD_PYTHON=OFF
+
+      - name: Build harness
+        run: cmake --build build/release --config Release --target test_streaming_cech_perf -- -j"$(nproc)"
+
+      - name: Run VR perf probe (parent+baseline histograms)
+        run: |
+          chmod +x scripts/run_performance_validation.sh
+          # Use epsilon analogous to radius; maxDim=1 to keep CI time bounded
+          scripts/run_performance_validation.sh \
+            --harness build/release/tests/cpp/test_streaming_cech_perf \
+            --artifacts "$TDA_ARTIFACT_DIR" \
+            --n 8000 --d 8 --maxDim 1 --K 16 --radius 0.5
+          # Re-run with VR mode for comparison at smaller n to keep CI quick
+          build/release/tests/cpp/test_streaming_cech_perf \
+            --mode vr --n 6000 --d 6 --epsilon 0.5 --maxDim 1 \
+            --soft-knn-cap 16 --parallel-threshold 0 \
+            --adj-hist-csv "$TDA_ARTIFACT_DIR/adj_vr_parent.csv" \
+            --json "$TDA_ARTIFACT_DIR/run_vr.jsonl"
+
+      - name: Analyze VR probe artifacts (gate + require CSV when present)
+        run: |
+          python3 scripts/analyze_performance_logs.py \
+            --artifacts "$TDA_ARTIFACT_DIR" \
+            --gate
+
+      - name: Compact analyzer summary
+        if: always()
+        run: |
+          python3 - <<'PY'
+          import glob,json,os,sys
+          arts = os.environ.get("TDA_ARTIFACT_DIR","/tmp/tda-artifacts")
+          files = sorted(glob.glob(os.path.join(arts, "*.jsonl")))
+          if not files:
+            print("[summary] No JSONL artifacts found.")
+            sys.exit(0)
+          def last_json(path):
+            data=None
+            with open(path,'r') as f:
+              for line in f:
+                line=line.strip()
+                if line:
+                  try:
+                    data=json.loads(line)
+                  except Exception:
+                    pass
+            return data or {}
+          def fmt(v):
+            return "-" if v is None else str(v)
+          for p in files:
+            d=last_json(p)
+            keys=["mode","dm_blocks","dm_edges","simplices","dm_peakMB","rss_peakMB","softcap_overshoot_sum","softcap_overshoot_max","parallel_threshold","build_secs","build_peakMB","pool_total_blocks","pool_free_blocks","pool_fragmentation"]
+            kv=", ".join(f"{k}={fmt(d.get(k))}" for k in keys if k in d)
+            print(f"[summary] {os.path.basename(p)}: {kv}")
+          PY
+
+      - name: Upload VR probe artifacts
+        if: always()
+        uses: actions/upload-artifact@ff15f0306b3f739f7b6fd43fb5d26cd321bd4de5 # v3.2.1
+        with:
+          name: cpp-vr-probe-artifacts
+          path: ${{ env.TDA_ARTIFACT_DIR }}
+
+  cpp-vr-nightly:
+    name: C++ VR Probe (nightly, small-n)
+    if: ${{ github.event_name == 'schedule' }}
+    runs-on: ubuntu-latest
+    needs: cpp-tests
+    steps:
+      - name: Checkout
+        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4.3.0
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential cmake ninja-build \
+            libeigen3-dev libgmp-dev libmpfr-dev libtbb-dev python3
+
+      - name: Prepare artifact directory
+        run: mkdir -p "$TDA_ARTIFACT_DIR"
+
+      - name: Configure (Release)
+        run: |
+          cmake -S . -B build/release \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DBUILD_TESTS=ON \
+            -DBUILD_BENCHMARKS=ON \
+            -DBUILD_PYTHON=OFF
+
+      - name: Build harness
+        run: cmake --build build/release --config Release --target test_streaming_cech_perf -- -j"$(nproc)"
+
+      - name: Run small VR probe (serial threshold)
+        run: |
+          build/release/tests/cpp/test_streaming_cech_perf \
+            --mode vr --n 10000 --d 8 --epsilon 0.5 --maxDim 1 \
+            --soft-knn-cap 16 --parallel-threshold 0 \
+            --adj-hist-csv "$TDA_ARTIFACT_DIR/adj_vr_nightly.csv" \
+            --json "$TDA_ARTIFACT_DIR/run_vr_nightly.jsonl"
+
+      - name: Analyze VR nightly artifacts (gate + require CSV)
+        run: |
+          python3 scripts/analyze_performance_logs.py \
+            --artifacts "$TDA_ARTIFACT_DIR" \
+            --gate --require-csv
+
+      - name: Compact analyzer summary
+        if: always()
+        run: |
+          python3 - <<'PY'
+          import glob,json,os,sys
+          arts = os.environ.get("TDA_ARTIFACT_DIR","/tmp/tda-artifacts")
+          files = sorted(glob.glob(os.path.join(arts, "*.jsonl")))
+          if not files:
+            print("[summary] No JSONL artifacts found.")
+            sys.exit(0)
+          def last_json(path):
+            data=None
+            with open(path,'r') as f:
+              for line in f:
+                line=line.strip()
+                if line:
+                  try:
+                    data=json.loads(line)
+                  except Exception:
+                    pass
+            return data or {}
+          def fmt(v):
+            return "-" if v is None else str(v)
+          for p in files:
+            d=last_json(p)
+            keys=["mode","dm_blocks","dm_edges","simplices","dm_peakMB","rss_peakMB","softcap_overshoot_sum","softcap_overshoot_max","parallel_threshold","build_secs","build_peakMB"]
+            kv=", ".join(f"{k}={fmt(d.get(k))}" for k in keys if k in d)
+            print(f"[summary] {os.path.basename(p)}: {kv}")
+          PY
+
+      - name: Upload VR nightly artifacts
+        if: always()
+        uses: actions/upload-artifact@ff15f0306b3f739f7b6fd43fb5d26cd321bd4de5 # v3.2.1
+        with:
+          name: cpp-vr-nightly-artifacts
           path: ${{ env.TDA_ARTIFACT_DIR }}

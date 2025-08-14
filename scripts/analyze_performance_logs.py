@@ -29,6 +29,12 @@ FIELDS = [
     "dm_peakMB",
     "rss_peakMB",
     "parallel_threshold",
+    # Pool telemetry (aggregate)
+    "pool_total_blocks",
+    "pool_free_blocks",
+    "pool_fragmentation",
+    # Optional compact per-bucket serialization
+    "pool_bucket_stats_compact",
 ]
 
 
@@ -149,6 +155,21 @@ def main() -> int:
     for p in parents:
         s = summarize_jsonl(p)
         print(f"[analyzer] parent summary {os.path.basename(p)} -> {s}")
+        if all(k in s for k in ("pool_total_blocks","pool_free_blocks","pool_fragmentation")):
+            preview = ""
+            compact = s.get("pool_bucket_stats_compact")
+            if isinstance(compact, str) and compact:
+                preview = compact[:60]
+                if len(compact) > 60:
+                    preview += "…"
+                preview = f", buckets={preview}"
+            print(f"[analyzer] pool: total={s['pool_total_blocks']} free={s['pool_free_blocks']} frag={s['pool_fragmentation']}{preview}")
+            # Warn-only heuristic for extreme fragmentation on sizable pools
+            try:
+                if float(s.get("pool_total_blocks", 0) or 0) >= 100 and float(s.get("pool_fragmentation", 0.0) or 0.0) >= 0.95:
+                    print("[analyzer] WARNING: High SimplexPool fragmentation detected (frag>=0.95 with total_blocks>=100). Investigate reuse patterns.")
+            except Exception:
+                pass
         # Gate: overshoot must be zero in serial threshold mode
         if args.gate:
             pt = s.get("parallel_threshold")

@@ -362,3 +362,37 @@ add_custom_target(run_all_tests
 )
 
 message(STATUS "C++ tests directory configured - tests will be added later")
+
+# -----------------------------------------------------------------------------
+# VR Parity Test: Streaming VR vs classic VR on small-n
+add_executable(test_streaming_vr_parity
+    test_streaming_vr_parity.cpp
+)
+target_link_libraries(test_streaming_vr_parity
+    tda_algorithms
+    tda_core
+    Eigen3::Eigen
+    Threads::Threads
+)
+if(TDA_ENABLE_OPENMP AND OpenMP_CXX_FOUND)
+    target_link_libraries(test_streaming_vr_parity OpenMP::OpenMP_CXX)
+endif()
+if(TBB_FOUND)
+    target_link_libraries(test_streaming_vr_parity TBB::tbb)
+endif()
+add_test(NAME StreamingVRParity COMMAND test_streaming_vr_parity)
+set_tests_properties(StreamingVRParity PROPERTIES TIMEOUT 120)
+
+# VR Telemetry presence test (reuses perf harness path)
+add_executable(test_vr_telemetry_presence
+    test_vr_telemetry_presence.cpp
+)
+target_link_libraries(test_vr_telemetry_presence
+    Threads::Threads
+)
+if(TDA_ENABLE_OPENMP AND OpenMP_CXX_FOUND)
+    target_link_libraries(test_vr_telemetry_presence OpenMP::OpenMP_CXX)
+endif()
+target_compile_definitions(test_vr_telemetry_presence PRIVATE STREAMING_CECH_PERF_PATH="$<TARGET_FILE:test_streaming_cech_perf>")
+add_test(NAME VRTelemetryPresence COMMAND test_vr_telemetry_presence)
+set_tests_properties(VRTelemetryPresence PROPERTIES TIMEOUT 120)

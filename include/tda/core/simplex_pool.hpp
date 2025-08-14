@@ -5,6 +5,7 @@
 #include <mutex>
 #include <utility>
 #include <cstddef>
+#include <vector>
 
 #include "tda/core/simplex.hpp"
 #include "tda/utils/memory_pool.hpp"
@@ -30,6 +31,17 @@ public:
 
     // Stats for a vertex_count bucket: returns {total_blocks, free_blocks}
     std::pair<size_t, size_t> getBucketStats(size_t vertex_count) const;
+
+    // Stats across all buckets (sum of totals and frees)
+    std::pair<size_t, size_t> getAggregateStats() const;
+
+    struct BucketStats {
+        size_t vertex_count;
+        size_t total_blocks;
+        size_t free_blocks;
+    };
+    // Enumerate all buckets' stats
+    std::vector<BucketStats> getAllBucketStats() const;
 
 private:
     using PoolT = tda::utils::MemoryPool<Simplex>;
