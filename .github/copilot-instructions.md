@@ -3,11 +3,6 @@ description: AI rules derived by SpecStory from the project AI interaction histo
 globs: *
 ---
 
----
-description: AI rules for GitHub Copilot aligned with our comprehensive TDA platform development
-globs: *
----
-
 # TDA Platform Development Rules for GitHub Copilot
 
 ## 📋 **PROJECT OVERVIEW**
@@ -258,6 +253,10 @@ research/                   # Extracted research content
 - **ALWAYS** add a CI workflow step that runs the analyzer on artifacts placed in `docs/performance/artifacts/2025-08-14_1m_cech` and prints a compact summary in PR checks (gate must be ON with require-csv).
 - **ALWAYS** upload artifacts to PR.
 - **ALWAYS** add a template job to run a 200k DM-only probe on PRs (tight timeout) to catch regressions early, uploading artifacts for inspection.
+- The CI workflow should use `analyze_performance_logs.py` with `--gate` and `--require-csv` against `docs/performance/artifacts/2025-08-14_1m_cech`.
+- The CI workflow must gate perf-probe artifacts with require-CSV.
+- The CI workflow must run the analyzer gate only if JSONL exists; no CSV requirement for unit tests.
+- The CI workflow should now include a brief “compact summary” echo step that extracts key fields from analyzer output to the PR logs for extra clarity.
 
 ## 🛠️ **DEBUGGING**
 
@@ -306,6 +305,12 @@ research/                   # Extracted research content
 - `docs/troubleshooting/RCA_Progress_Check`:
   - (Add a short note with the 1M metrics and deltas after the final run)
   - Added 1M checkpoint summary
+- **Reference Artifacts**:
+  - (1M Čech, 2025-08-14): docs/performance/artifacts/2025-08-14_1m_cech/
+    - run_cech_1m_t600.jsonl, baseline_cech_1m_t600.jsonl
+    - adj_parent_1m_t600.csv, adj_baseline_1m_t600.csv
+    - analyzer_1m_final.log
+  - **Key Parent Metrics**: dm_blocks=371,011; dm_edges=3,115,973; simplices=1,602,678; dm_peakMB=755.746; rss_peakMB=789.586; overshoot_sum/max=0/0; parallel_threshold=0 (Gate: PASS)
 
 ## 🧠 **MEMORY MANAGEMENT STRATEGIES**
 
@@ -460,7 +465,7 @@ docker run -d \
       - serial threshold → overshoot_sum == 0 and overshoot_max == 0.
       - dm_peakMB and rss_peakMB presence with numeric values.
       - adj histogram CSVs exist and non-empty; compute mean/median degree.
-    - Persist a baseline artifact and compare new run against last-accepted baseline within tolerance (e.g., ±10% dm_edges/simplices for identical params).
+    - Persist a baseline artifact and compare new run against last-accepted baseline within tolerance (e.g., ±10% dm_edges/simplices for identical params for identical runs).
   - DoD:
     - CI fails if overshoot > 0 in serial mode or artifacts are missing/corrupt; logs show parsed metrics and tolerances.
 

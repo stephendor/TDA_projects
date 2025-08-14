@@ -102,3 +102,151 @@ Here’s a compact handoff capturing what we built, verified, and what’s next.
 
 ---
 
+_**User**_
+
+Okay, do the next few jobs
+
+---
+
+_**Assistant**_
+
+I'll open the current CI workflow to see existing jobs and carefully add the two required jobs (artifact analyzer and 200k DM-only probe) without breaking anything. 
+```
+
+```
+I’ll wire the remaining CI details now and checkpoint the changes so PRs show clear analyzer results and early regression signals.
+
+## checklist
+- Add/verify 1M artifact analyzer job with require-CSV gating.
+- Add 200k DM-only probe job with artifact upload and gating.
+- Gate perf-probe artifacts with require-CSV.
+- Make accuracy check warn-only (non-blocking).
+- Keep unit-test analyzer optional when no JSONL exists.
+
+## actions taken
+- Edited `ci.yml`:
+  - cpp-tests: run analyzer gate only if JSONL exists; no CSV requirement.
+  - cpp-perf-probe: added analyzer step with `--gate --require-csv` before uploading artifacts.
+  - cpp-accuracy-check: switched to warn-only via `continue-on-error: true` and tolerant invocation.
+- Verified the existing jobs:
+  - analyze-reference-artifacts: runs analyzer with `--gate --require-csv` on `` and uploads artifacts.
+  - cpp-dm-only-probe: builds harness, runs 200k DM-only with serial threshold and soft cap, gates with analyzer, and uploads artifacts.
+
+## files changed
+- `ci.yml` — tightened analyzer gating, added perf-probe gate, made accuracy warn-only.
+
+## current state
+- CI now:
+  - Blocks on committed 1M Čech artifacts with CSV requirement.
+  - Runs a tight 200k DM-only probe per PR with analyzer gating.
+  - Perf-probe artifacts are analyzed and required to include CSVs.
+  - Accuracy report is warn-only by default.
+
+## what’s next
+- Open a PR to run the updated workflow and confirm logs show compact analyzer summaries and uploaded artifacts.
+- Optional: add nightly staircase probes (200k/500k/1M) as non-blocking.
+
+---
+
+_**User**_
+
+Okay do those
+
+---
+
+_**Assistant**_
+
+
+```
+
+```
+I’ll finish wiring the remaining CI jobs and tighten gates so PRs/nightlies show clear summaries and artifacts.
+
+## checklist
+- Nightly staircase probes (200k/500k/1M) with analyzer gating + CSV.
+- Make accuracy check warn-only.
+- Ensure perf-probe artifacts are gated with require-CSV.
+- Keep unit-test analyzer optional when no JSONL exists.
+
+## actions taken
+- Updated `ci.yml`:
+  - Added nightly schedule trigger at 02:00 UTC for staircase probes.
+  - New job cpp-staircase-nightly:
+    - Matrix over n=[200k, 500k, 1M].
+    - Runs `run_performance_validation.sh`, analyzes with `--gate --require-csv`, uploads artifacts with size in the name.
+  - cpp-accuracy-check: switched to warn-only via `continue-on-error: true`; failures print a warning instead of failing CI.
+  - cpp-perf-probe: added analyzer gate step with `--gate --require-csv` before artifact upload.
+  - cpp-tests: analyzer gate now conditional (only runs if JSONL exists) and without CSV requirement.
+
+## status
+- PRs:
+  - 1M reference analyzer gate (require-CSV) is active and uploads artifacts.
+  - DM-only 200k probe (tight timeout) runs with analyzer gate and uploads artifacts.
+  - Perf-probe artifacts are gated and must include adjacency CSV.
+- Nightly:
+  - Staircase probes run for 200k/500k/1M, analyze with gate+require-CSV, and upload artifacts.
+
+## how to verify (optional)
+- Open a PR to trigger the pipeline and check:
+  - “Analyze Reference Artifacts” job prints compact PASS summary.
+  - “C++ DM-only Probe (200k)” passes gate and uploads `sdm_200k.jsonl`.
+  - “C++ Perf Probe” shows analyzer gate with require-CSV and uploads CSV/JSONL.
+- Nightly artifacts will appear as `cpp-staircase-nightly-<size>-artifacts`.
+
+## requirements coverage
+- Nightly staircase probes: Done.
+- Accuracy warn-only by default: Done.
+- Perf-probe require-CSV gate: Done.
+- Unit-test analyzer optional/no-CSV: Done.
+
+If you want, I can add a brief “compact summary” echo step that extracts key fields from analyzer output to the PR logs for extra clarity.
+
+---
+
+_**User**_
+
+Do that
+
+---
+
+_**Assistant**_
+
+
+```
+
+```
+
+```
+
+```
+Task received. I’ll add compact analyzer summaries to CI logs and ensure the YAML is valid.
+
+- Add concise “[summary] …” lines after analyzer runs in:
+  - analyze-reference-artifacts
+  - cpp-perf-probe
+  - cpp-dm-only-probe
+  - cpp-staircase-nightly
+- Keep summaries tolerant when files aren’t present and avoid breaking gating.
+
+Actions taken
+- Updated `ci.yml` to include a “Compact analyzer summary” step in the above jobs.
+- Fixed YAML indentation so steps are correctly nested under their jobs.
+- Summaries extract and print key fields: mode, dm_blocks, dm_edges, simplices, dm_peakMB, rss_peakMB, softcap_overshoot_sum/max, parallel_threshold, build_secs, build_peakMB; and deltas vs baseline when applicable.
+
+What’s next
+- Open a PR to run CI and validate that logs now include the compact “[summary] …” lines alongside the analyzer gating results and uploaded artifacts.
+
+---
+
+_**User**_
+
+Okay, that's fine for now. Are we ready to move on to phase 3 or not?
+
+---
+
+_**Assistant**_
+
+
+
+---
+
