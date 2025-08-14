@@ -80,6 +80,7 @@ For QA and accuracy checks, compare a soft-cap run against a race-free baseline 
 - --baseline-compare 1: enable baseline compare in Čech mode
 - --baseline-separate-process 1: run the baseline in a fresh process to avoid allocator page retention
 - --baseline-maxDim N: optionally override maxDim for the baseline run
+- --baseline-json-out \<path\>: direct the child baseline process to write its JSONL telemetry to a deterministic file you control (useful for CI parsing)
 
 Example:
 
@@ -88,6 +89,7 @@ build/release/tests/cpp/test_streaming_cech_perf \
     --n 8000 --d 3 --radius 0.9 --maxDim 2 --maxNeighbors 32 --block 128 \
     --soft-knn-cap 16 --parallel-threshold 0 \
     --baseline-compare 1 --baseline-separate-process 1 \
+    --baseline-json-out /tmp/cech_baseline.jsonl \
     --adj-hist-csv /tmp/adj_cur.csv --adj-hist-csv-baseline /tmp/adj_base.csv
 ```
 
@@ -95,6 +97,7 @@ Notes:
 
 - Keep --parallel-threshold 0 when using a soft cap for correctness/telemetry runs.
 - Inspect overshoot telemetry (overshoot_sum/overshoot_max) in CSV/JSON outputs.
+- The separate baseline process will print its own summary line before the parent prints the delta summary and the parent’s final line; this is expected ordering.
 
 ### 2. **Memory Optimization** ✅
 

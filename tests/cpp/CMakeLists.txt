@@ -292,6 +292,21 @@ if(ENABLE_PERF_CTESTS)
     set_tests_properties(PerfCechSmall PROPERTIES TIMEOUT 180)
 endif()
 
+# Baseline JSONL parse test (validates separate-process baseline mode wiring)
+add_executable(test_perf_baseline_jsonl
+    test_perf_baseline_jsonl.cpp
+)
+target_link_libraries(test_perf_baseline_jsonl
+    Threads::Threads
+)
+if(TDA_ENABLE_OPENMP AND OpenMP_CXX_FOUND)
+    target_link_libraries(test_perf_baseline_jsonl OpenMP::OpenMP_CXX)
+endif()
+# Provide path to the perf harness binary at compile time
+target_compile_definitions(test_perf_baseline_jsonl PRIVATE STREAMING_CECH_PERF_PATH="$<TARGET_FILE:test_streaming_cech_perf>")
+add_test(NAME PerfBaselineJSONL COMMAND test_perf_baseline_jsonl)
+set_tests_properties(PerfBaselineJSONL PROPERTIES TIMEOUT 120)
+
 # =============================================================================
 # TEST CONFIGURATION
 # =============================================================================

@@ -38,6 +38,7 @@ int main(int argc, char** argv) {
     const char* jsonPath = nullptr; // JSONL
     const char* adjHistCsv = nullptr;           // export adjacency histogram (current run)
     const char* adjHistCsvBaseline = nullptr;   // export baseline adjacency histogram (baseline run)
+    const char* baselineJsonOut = nullptr;      // optional: where the separate-process baseline writes its JSONL
     bool dmOnly = false;
     int baseline_compare = 0; // if 1 and not dmOnly, run a baseline (no soft cap, serial threshold)
     int baseline_separate_process = 0; // if 1, run baseline in a separate process to avoid cumulative memory
@@ -64,6 +65,7 @@ int main(int argc, char** argv) {
     else if (!strcmp(argv[i], "--json") && i+1 < argc) { jsonPath = argv[++i]; }
     else if (!strcmp(argv[i], "--adj-hist-csv") && i+1 < argc) { adjHistCsv = argv[++i]; }
     else if (!strcmp(argv[i], "--adj-hist-csv-baseline") && i+1 < argc) { adjHistCsvBaseline = argv[++i]; }
+    else if (!strcmp(argv[i], "--baseline-json-out") && i+1 < argc) { baselineJsonOut = argv[++i]; }
     else if (!strcmp(argv[i], "--dm-only")) { dmOnly = true; }
     else if (!strcmp(argv[i], "--max-blocks") && i+1 < argc) { max_blocks = static_cast<size_t>(std::strtoull(argv[++i], nullptr, 10)); }
     else if (!strcmp(argv[i], "--max-pairs") && i+1 < argc) { max_pairs = static_cast<size_t>(std::strtoull(argv[++i], nullptr, 10)); }
@@ -190,7 +192,11 @@ int main(int argc, char** argv) {
                 // Run separate process to avoid cumulative memory
                 // Prepare temp JSONL file path
                 char tmpPath[256];
-                std::snprintf(tmpPath, sizeof(tmpPath), "/tmp/tda_baseline_%ld_%d.jsonl", static_cast<long>(std::time(nullptr)), static_cast<int>(::getpid()));
+                if (baselineJsonOut && std::strlen(baselineJsonOut) > 0) {
+                    std::snprintf(tmpPath, sizeof(tmpPath), "%s", baselineJsonOut);
+                } else {
+                    std::snprintf(tmpPath, sizeof(tmpPath), "/tmp/tda_baseline_%ld_%d.jsonl", static_cast<long>(std::time(nullptr)), static_cast<int>(::getpid()));
+                }
                 std::ostringstream cmd;
                 // Use argv[0] as the same binary
                 cmd << argv[0]

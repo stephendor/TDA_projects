@@ -170,6 +170,7 @@ When comparing soft-cap runs to a serial, no-soft-cap baseline during RCA:
 
 - Use perf harness flags `--baseline-compare 1 --baseline-separate-process 1` to run the baseline in a new process and avoid allocator page retention between runs.
 - Optionally pass `--baseline-maxDim N` to constrain the baseline's dimension.
+- Pass `--baseline-json-out <path>` to instruct the child baseline process to write JSONL telemetry to a known file for CI parsing; escape angle brackets in docs.
 - This yields clearer peak memory telemetry per path and reduces false positives in memory blowup investigations.
     RecordPhase("Distance Matrix");
     
