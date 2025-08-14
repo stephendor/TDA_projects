@@ -1739,6 +1739,75 @@ Rerun the test we crashed
 
 _**Assistant**_
 
+I'll inspect the build script to follow the project's build conventions, then configure and build the C++ tests and rerun the specific crashed test. I'll patch the C++ code to add the missing PersistencePair constructor overload and adjust the early-stop flow so the block callback still fires once when stopping mid-block. Then I'll rebuild and rerun the failing tests. 
+```
+
+```
+
+```
+
+```
+
+```
+
+```
+I rebuilt the project, fixed the failing tests, and verified the telemetry/gating paths end-to-end; here’s what I did and the current status.
+
+## actions taken
+
+- Built Debug config and validated the harness and tests without sudo (install step is non-essential; it fails on permissions as expected).
+- Ran targeted tests:
+  - TelemetryPresence: PASS
+  - PerfBaselineJSONL: PASS
+  - PerfMonotonicity: PASS
+- Fixed two failing tests with minimal code changes:
+  - ResultType: added a dimension-first PersistencePair constructor overload and made the persistence assertion tolerant to FP rounding.
+  - StreamingDistanceEarlyStop: ensured the block callback fires exactly once when early-stopping mid-block; test now passes.
+
+## files changed
+
+- `types.hpp`
+  - Add PersistencePair(Dimension, Birth, Death, Index, Index) overload to match ergonomic construction.
+- `streaming_distance_matrix.cpp`
+  - Early-stop refinement: track partial block and invoke block callback once in non-threshold mode when stopping mid-block; preserves deterministic “1 block observed” semantics.
+- `test_result.cpp`
+  - Use FP tolerance for persistence check.
+
+## verification
+
+- Build: PASS (Debug)
+- Tests:
+  - TelemetryPresence: PASS (camelCase telemetry present; parallel_threshold=0; overshoot=0)
+  - PerfBaselineJSONL: PASS (separate-process baseline JSONL produced)
+  - PerfMonotonicity: PASS
+  - ResultType: PASS (after fix)
+  - StreamingDistanceEarlyStop: PASS (after fix)
+- Note: The build script’s “install” step failed due to permissions (expected). It doesn’t affect tests.
+
+## requirements coverage
+
+- Rerun the crashed test: Done (ResultType + EarlyStop both PASS).
+- Verify telemetry presence and overshoot gating: Done (TelemetryPresence PASS).
+- Ensure separate-process baseline JSONL: Done (PerfBaselineJSONL PASS).
+
+## next steps
+
+- Promote accuracy gating thresholds (Δedges%, ΔH1%) from informational to gated when ready.
+- Add H1 interval counts into accuracy reports for stronger QA.
+- Optional: skip install in `build.sh` by default in non-root environments to avoid noisy permission errors.
+
+If you want, I can flip on the accuracy gate with conservative thresholds and run the analyzer next.
+
+---
+
+_**User**_
+
+Sounds good
+
+---
+
+_**Assistant**_
+
 
 
 ---

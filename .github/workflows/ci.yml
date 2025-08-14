@@ -165,13 +165,14 @@ jobs:
           name: cpp-accuracy-artifacts
           path: ${{ env.TDA_ARTIFACT_DIR }}
 
-      - name: Analyze accuracy report (non-blocking)
+      - name: Analyze accuracy report (gated)
         if: always()
         run: |
           python3 scripts/analyze_performance_logs.py \
             --artifacts "$TDA_ARTIFACT_DIR" \
             --accuracy-edges-pct-threshold 5.0 \
-            --accuracy-h1-pct-threshold 5.0
+            --accuracy-h1-pct-threshold 5.0 \
+            --accuracy-gate --gate
 
   cpp-staircase:
     name: C++ Staircase Probe (200K on-demand)

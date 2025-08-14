@@ -106,10 +106,29 @@ def main() -> int:
     ap.add_argument("--gate", action="store_true", help="Exit non-zero on violations (perf + optional accuracy)")
     ap.add_argument("--require-csv", action="store_true", help="Require adjacency histogram CSVs")
     # Accuracy thresholds (non-blocking unless --accuracy-gate is provided)
-    ap.add_argument("--accuracy-edges-pct-threshold", type=float, default=None, help="Max allowed |Δedges%| across variants")
-    ap.add_argument("--accuracy-h1-pct-threshold", type=float, default=None, help="Max allowed |Δh1%| across variants")
+    ap.add_argument("--accuracy-edges-pct-threshold", type=float, default=None, help="Max allowed |Δedges%%| across variants")
+    ap.add_argument("--accuracy-h1-pct-threshold", type=float, default=None, help="Max allowed |Δh1%%| across variants")
     ap.add_argument("--accuracy-gate", action="store_true", help="Apply gating to accuracy thresholds (otherwise just print)")
+    # Allow env overrides for CI without editing workflows
     args = ap.parse_args()
+    # Environment toggles (optional): ACCURACY_GATE=1, REQUIRE_CSV=1
+    if not args.require_csv and os.environ.get("REQUIRE_CSV", "0") in ("1", "true", "TRUE"):  # pragma: no cover
+        args.require_csv = True
+    if not args.accuracy_gate and os.environ.get("ACCURACY_GATE", "0") in ("1", "true", "TRUE"):  # pragma: no cover
+        args.accuracy_gate = True
+    # Thresholds from env if not specified
+    def _env_float(name: str) -> float | None:
+        v = os.environ.get(name)
+        if v is None or v == "":
+            return None
+        try:
+            return float(v)
+        except Exception:
+            return None
+    if args.accuracy_edges_pct_threshold is None:  # pragma: no cover
+        args.accuracy_edges_pct_threshold = _env_float("ACCURACY_EDGES_PCT_THRESHOLD")
+    if args.accuracy_h1_pct_threshold is None:  # pragma: no cover
+        args.accuracy_h1_pct_threshold = _env_float("ACCURACY_H1_PCT_THRESHOLD")
 
     art = os.path.abspath(args.artifacts)
     jsonls = sorted(glob.glob(os.path.join(art, "*.jsonl")))

@@ -151,6 +151,23 @@ python3 scripts/analyze_performance_logs.py \
 
 To gate on these thresholds (CI-fail), add `--accuracy-gate --gate`.
 
+#### Analyzer gating via environment variables
+
+You can also control gating via environment variables without changing CLI flags:
+
+- Set `ACCURACY_GATE=1` to enable accuracy gating.
+- Set `REQUIRE_CSV=1` to require adjacency histogram CSVs.
+- Set `ACCURACY_EDGES_PCT_THRESHOLD` and `ACCURACY_H1_PCT_THRESHOLD` to numeric values (e.g., `5.0`).
+
+Example:
+
+```bash
+export TDA_ARTIFACT_DIR=/tmp/tda-artifacts
+export ACCURACY_GATE=1 REQUIRE_CSV=1
+export ACCURACY_EDGES_PCT_THRESHOLD=5.0 ACCURACY_H1_PCT_THRESHOLD=5.0
+python3 scripts/analyze_performance_logs.py --artifacts "$TDA_ARTIFACT_DIR" --gate
+```
+
 ### 2. **Memory Optimization** ✅
 
 ```cpp
