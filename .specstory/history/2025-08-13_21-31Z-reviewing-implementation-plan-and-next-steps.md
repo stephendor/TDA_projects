@@ -1694,6 +1694,51 @@ Do it in that order
 
 _**Assistant**_
 
+I'll inspect the CI workflow and scripts to enable accuracy gating and confirm staircase hooks, then update configs and run a quick validation to ensure gates pass. I’ll open relevant test files to see current coverage and add a small unit check for telemetry key presence and H1 metric wiring. I'll quickly scan the tests and CMake to see if the new monotonicity test is wired up and if the harness path macro is defined; then I’ll either wire it in or suggest the next actionable steps. I'll quickly inspect the tests configuration and harness to add a small unit test ensuring telemetry fields exist, then wire it into the build and run it. 
+
+---
+
+_**User**_
+
+@agent Try Again
+
+---
+
+_**Assistant**_
+
+I'll add a focused C++ test that runs the harness in DM-only serial-threshold soft-cap mode, verifies JSONL contains required telemetry fields (dm_peakMB, rss_peakMB, softcap_overshoot_*), and asserts overshoot==0; then wire it into CMake and run just this test to validate. 
+````
+
+````
+I'll scan the workspace to verify the new telemetry test and harness wiring exist, then (if present) run a quick build and targeted tests to validate end-to-end. I reviewed the workspace and verified the streaming Čech perf harness and the new telemetry presence test are in place and wired into `CMakeLists.txt`.
+
+- Found and inspected: `test_streaming_cech_perf.cpp` (emits dm_peakMB, rss_peakMB, softcap_overshoot_* and parallel_threshold in JSONL) and `test_telemetry_presence.cpp` (asserts those keys and overshoot==0 under serial threshold with soft cap).
+- Confirmed the CMake wiring for `test_telemetry_presence` defines `STREAMING_CECH_PERF_PATH` and registers the test with a timeout.
+
+Want me to build and run the targeted tests now and then enable accuracy gating in CI, or adjust anything first?
+
+---
+
+_**User**_
+
+Yes
+
+---
+
+_**Assistant**_
+
+Running the test suite to verify the build and ensure the new telemetry test and harness pass. 
+
+---
+
+_**User**_
+
+Rerun the test we crashed
+
+---
+
+_**Assistant**_
+
 
 
 ---

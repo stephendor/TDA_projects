@@ -601,7 +601,7 @@ docker run -d \
     - Extend `SimplexPool` to track:
       - allocated pages, free-list size, fragmentation ratio.
     - Add optional defragmentation routine (manual/periodic).
-    - Telemetry integration into JSONL (pool_* fields).
+    - Telemetry integration into JSONL (pool_*) fields.
   - DoD:
     - Unit tests assert stable metrics under churn scenarios; JSONL shows pool telemetry; docs updated with “when to defragment”.
 
@@ -666,4 +666,3 @@ docker run -d \
     - **Workflow for Executing Plans**: Locate relevant plans (e.g., RCA-related docs and strategy plans), extract actionable steps, and execute them. Begin with builds/tests and documentation updates. Open troubleshooting plans to
 
 ## 🚨 CI WORKFLOW NOTES
--
