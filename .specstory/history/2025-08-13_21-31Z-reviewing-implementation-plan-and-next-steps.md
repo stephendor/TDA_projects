@@ -1178,3 +1178,84 @@ If you want, I can start with Phase 1 by adding the profiler script and CI gatin
 
 ---
 
+_**User**_
+
+Let's begin phase 1
+
+---
+
+_**Assistant**_
+
+I'll scan the repo for the CI workflow and Phase 1 scripts to see what's missing, then add the analyzer to CI and update the performance README accordingly. 
+```
+
+```
+
+```
+
+```
+
+```
+
+```
+
+```
+
+```
+
+```
+
+```
+
+```
+
+```
+I’ll finish Phase 1 by wiring the analyzer gating into CI and documenting the validation scripts, then checkpoint.
+
+## actions taken
+- Updated CI to enforce telemetry gates and use a deterministic artifact path:
+  - `ci.yml`
+    - Set job-level env TDA_ARTIFACT_DIR=/tmp/tda-artifacts (fixed YAML indentation).
+    - cpp-tests: after uploading artifacts, added a gating step to run the analyzer with --gate.
+    - cpp-perf-probe: added a gating step with --gate --require-csv.
+- Documented Phase 1 validation scripts:
+  - `README.md`
+    - Added “Phase 1 Validation Scripts” section with usage, gates enforced, and notes.
+    - Fixed markdown lint issues (list indentation, fenced code block, language tag).
+
+## files changed
+- `ci.yml` — adds analyzer gating and fixes env indentation.
+- `README.md` — adds Phase 1 script usage with clean lint.
+
+## checkpoint
+- CI YAML syntax: PASS (no errors reported).
+- Markdown lint: PASS (adjusted lists and fenced code block with language).
+- Analyzer gating: Active in both cpp-tests and cpp-perf-probe; will fail if overshoot != 0 (serial threshold) or memory fields missing; CSVs required in probe job.
+
+## what’s next
+- Optional security hardening: pin GitHub Actions to commit SHAs.
+- Optionally add a CI step to run `run_performance_validation.sh` end-to-end (uses the same harness), or keep current direct harness run.
+- If runners lack python3, add a lightweight setup-python step in cpp jobs before analyzer invocation.
+
+## requirements coverage
+- Add analyzer gating to CI: Done (both cpp-tests and cpp-perf-probe).
+- Use deterministic artifact paths (/tmp): Done.
+- Update performance README with Phase 1 scripts usage: Done.
+- Keep soft-cap accuracy path serial (parallel-threshold=0) in probes: Confirmed in CI harness call.
+
+If you want, I can pin the actions to SHAs and add the optional end-to-end script step in CI.
+
+---
+
+_**User**_
+
+Do the what's next steps including the optionals
+
+---
+
+_**Assistant**_
+
+
+
+---
+

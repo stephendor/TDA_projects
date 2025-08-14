@@ -289,7 +289,7 @@ research/                   # Extracted research content
 - UNIFIED_AGENT_INSTRUCTIONS.md contains high-level instructions for the AI coding assistant.
 - `RCA_Plan.md` contains plans for addressing memory blowup issues.
 - `memory_blowup_RCA_steps.md` contains steps for addressing memory blowup issues.
-- `docs/performance/README.md`: Contains information on baseline comparisons without memory overlap.
+- `docs/performance/README.md`: Contains information on baseline comparisons without memory overlap, including the use of flags such as `--baseline-separate-process` and `--baseline-json-out`.
 
 ## 🧠 **MEMORY MANAGEMENT STRATEGIES**
 
@@ -537,3 +537,129 @@ docker run -d \
 ## ✅ **ACCURACY VALIDATION**
 
 - Perform accuracy checks against small-n exact baselines and adjacency histogram exports for QA.
+
+## 🗺️ **DETAILED IMPLEMENTATION PLAN**
+
+### Phase 1 — CI gating and profiler wiring (fast wins)
+
+- Add profiler harness and scripts (referenced in RCA_Plan.md)
+  - Tasks:
+    - Add `scripts/run_performance_validation.sh` to orchestrate small/medium probes with flags (serial threshold, soft-cap).
+    - Add `scripts/analyze_performance_logs.py` to parse JSONL/CSV (dm_edges, simplices, overshoot, peakMB, adjacency histograms).
+    - Document usage in `README.md`.
+  - DoD:
+    - Running the script produces a summary of overshoot=0 (serial), adjacency degree stats, peakMB, plus a pass/fail footer.
+
+- CI parsing and gating of uploaded artifacts (RCA_Plan.md; memory_blowup_RCA_steps.md)
+  - Tasks:
+    - Add a CI step to parse JSONL/CSV artifacts from `/tmp/tda-artifacts`.
+    - Gate on:
+      - serial threshold → overshoot_sum == 0 and overshoot_max == 0.
+      - dm_peakMB and rss_peakMB presence with numeric values.
+      - adj histogram CSVs exist and non-empty; compute mean/median degree.
+    - Persist a baseline artifact and compare new run against last-accepted baseline within tolerance (e.g., ±10% dm_edges/simplices for identical params).
+  - DoD:
+    - CI fails if overshoot > 0 in serial mode or artifacts are missing/corrupt; logs show parsed metrics and tolerances.
+
+### Phase 2 — Scale-up staircase runs and reporting
+
+- Staircase probes: 200K → 500K → 1M (memory_blowup_RCA_steps.md)
+  - Tasks:
+    - Add jobs or parametrized script invocations for 200K/500K/1M DM-only and Čech (maxDim=1 for time bounds).
+    - Capture time/memory stats; export JSONL + adj hist CSV per run.
+    - Write results to `daily_logs/YYYYMMDD_*` (as per project logging practice).
+  - DoD:
+    - Each size produces artifacts and a summarized log including dm_blocks, dm_edges, simplices, overshoot, peakMB, wall-clock.
+    - CI stores them as artifacts; logs include a short comparison table vs. previous acceptable baseline.
+
+- Accuracy footprint with soft-cap vs exact small-n (RCA_Plan.md)
+  - Tasks:
+    - Define small-n exact runs (e.g., n=2K–4K) using dense baseline and serial threshold.
+    - Run soft-cap variants (K=8/16/32) and measure deltas in:
+      - edge counts, adjacency degree distributions,
+      - H1 interval counts (requires computing persistence diagrams).
+    - Emit a compact “accuracy report” JSON (delta_% per metric).
+  - DoD:
+    - Report JSON attached to CI artifacts; CI warns (but does not fail) if deltas exceed configurable thresholds; documentation updated with guidance.
+
+### Phase 3 — Streaming VR variant with memory backpressure
+
+- Implement block-based VR generation (RCA_Plan.md Phase 2)
+  - Tasks:
+    - Add a streaming VR builder mirroring Čech’s block/tiling approach with bounded-degree adjacency and memory backpressure.
+    - Telemetry parity with Čech: simplex counts by dim, adj histogram, peak memory.
+    - CLI flags in the harness to select VR mode; export same JSONL/CSV.
+  - DoD:
+    - Unit tests on small-n exact parity; perf probe runs produce VR artifacts; CI job exercises VR path and uploads outputs.
+
+### Phase 4 — SimplexPool fragmentation telemetry and maintenance
+
+- Fragmentation metrics and defragmentation hooks (RCA_Plan.md)
+  - Tasks:
+    - Extend `SimplexPool` to track:
+      - allocated pages, free-list size, fragmentation ratio.
+    - Add optional defragmentation routine (manual/periodic).
+    - Telemetry integration into JSONL (pool_* fields).
+  - DoD:
+    - Unit tests assert stable metrics under churn scenarios; JSONL shows pool telemetry; docs updated with “when to defragment”.
+
+### Phase 5 — Stalling diagnostics and reliability guards
+
+- Stalling/timeouts with parameter echo (memory_blowup_RCA_steps.md)
+  - Tasks:
+    - Add harness timeout guard for probes; on timeout, print current params, block indices, and partial telemetry.
+    - Add DM-only quick probe in CI with tight timeout; fail-fast with actionable log.
+  - DoD:
+    - CI shows clear “timeout diagnostics” section when exceeded; partial artifacts still uploaded.
+
+- Manifest hashing and recompute safeguards (memory_blowup_RCA_steps.md)
+  - Tasks:
+    - Ensure manifest hash includes filtration mode and all params (e.g., radius, K, caps, parallel-threshold, maxDim).
+    - Warn/fail if recompute inactive (attempted_count == 0) given a new hash.
+    - Add unit tests for hashing determinism and param coverage.
+  - DoD:
+    - Tests green; CI logs include manifest hash; missing recompute triggers warning/failure per configuration.
+
+### Phase 6 — Optional accelerators and distribution (roadmap alignment)
+
+- GPU acceleration for distance blocks (RCA_Plan.md Phase 3/5)
+  - Tasks:
+    - Optional CUDA path for blockwise distance; env/flag to enable.
+    - Validate correctness on small-n and measure throughput gains.
+  - DoD:
+    - Feature flag documented; small benchmark shows meaningful speedup; CPU fallback remains default.
+
+- Distributed hooks (Flink/Spark) for batched adjacency (RCA_Plan.md Phase 5)
+  - Tasks:
+    - Define an export format for block tasks and edge emissions.
+    - Provide a minimal adapter or doc example to map blocks into stream processing.
+  - DoD:
+    - Reference pipeline documented; not gated in CI.
+
+### Cross-cutting acceptance criteria
+
+- Telemetry
+  - All runs export JSONL with dm_blocks, dm_edges, simplices, dm_peakMB/rss_peakMB, overshoot_sum/max; adjacency CSVs present when requested.
+
+- Determinism and policy
+  - When soft-cap active and accuracy mode selected: `parallel-threshold=0`; overshoot must be 0.
+
+- CI reliability
+  - Artifact uploads are stable; parser reports a succinct summary and enforces critical gates.
+
+## COMMIT MESSAGE GUIDELINES
+
+- Ensure commit messages are concise and clearly describe the changes made.
+- Include relevant references to plans (e.g., `docs/troubleshooting/RCA_Plan.md`, `memory_blowup_RCA_steps.md`).
+- Follow a consistent format (e.g., `feat(utils): add MemoryMonitor telemetry to StreamingDistanceMatrix`).
+
+## WORKFLOW & RELEASE RULES
+- General Workflow
+    - **ALWAYS** activate the virtual environment (`source .venv/bin/activate`) before running any Python scripts or commands.
+    - **YOU** (the AI) must run all commands, monitor terminal outputs, and handle errors immediately.
+    - **I** (the user) do not need to be copying or pasting anything at any point, unless explicitly requested.
+    - **YOU** are forbidden from presenting code in any way other than executable code blocks with Run/Cancel buttons.
+    - **ALWAYS** perform static analysis (Codacy) after modifying any code.
+    - When addressing memory blowup issues (reference `docs/troubleshooting/memory_blowup_RCA_steps.md`), prioritize steady but significant improvements, maintaining control for easy reversion and repair. Ensure alignment with Taskmaster planning and Agent Instruction files. Employ a rigorous, scalable approach with extensive testing.
+    - **Workflow for Executing Plans**: Locate relevant plans (e.g., RCA-related docs and strategy plans), extract actionable steps, and execute them. Begin with builds/tests and documentation updates. Open troubleshooting plans to extract checklists and execute concrete steps (build/validate, monitoring hooks, etc.).
+    - **Execution Steps for RCA and Strategy Plans**: Read `CMakeLists

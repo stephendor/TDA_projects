@@ -342,6 +342,30 @@ public:
 - **Prometheus Metrics** - Time-series performance data (planned)
 - **Custom Visualizations** - Algorithm-specific performance charts (planned)
 
+## 🧪 Phase 1 Validation Scripts
+
+For CI gating and quick local probes without memory overlap, use the provided scripts:
+
+- scripts/run_performance_validation.sh: orchestrates a small probe with the streaming Čech harness, exporting JSONL telemetry and adjacency histogram CSVs. It runs the baseline in a separate process and writes artifacts to TDA_ARTIFACT_DIR (defaults to /tmp/tda-artifacts).
+- scripts/analyze_performance_logs.py: parses artifacts and enforces gates:
+    - If parallel_threshold==0, then softcap_overshoot_sum/max must be 0
+    - Memory fields dm_peakMB and rss_peakMB must be present
+    - Optionally require adjacency histogram CSVs
+
+Example:
+
+```bash
+./scripts/run_performance_validation.sh \
+    --harness build/release/bin/test_streaming_cech_perf \
+    --artifacts /tmp/tda-artifacts
+```
+
+Notes:
+
+- Keep --parallel-threshold 0 when --soft-knn-cap > 0 for accuracy/telemetry runs.
+- The baseline JSONL path is set deterministically via --baseline-json-out; both parent and baseline JSONLs are analyzed.
+- CI uses these scripts to gate overshoot==0 and presence of memory fields, and uploads artifacts for inspection.
+
 ## 🎯 Best Practices
 
 ### 1. **Profile First, Optimize Second** ✅
