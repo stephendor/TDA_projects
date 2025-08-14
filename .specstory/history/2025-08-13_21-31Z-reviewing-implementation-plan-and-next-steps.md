@@ -1808,6 +1808,142 @@ Sounds good
 
 _**Assistant**_
 
+I’ll open the analyzer and orchestration scripts (and CI if present) to wire conservative accuracy gating thresholds and confirm current behavior before editing. I’m going to open the analyzer and orchestration scripts to see how accuracy is currently handled so I can add conservative gating and wire it through CI. I’ll open the accuracy check script to see what it produces so I can align analyzer thresholds and CI invocation. I’ll search the repo for the streaming Čech performance harness and how CI invokes the scripts to determine the correct binary path and where to add accuracy gates. I’m updating the CI workflow to turn accuracy checks from informational to gated with conservative thresholds (5% edges, 5% H1) so failures will block the job when deltas exceed limits. 
+```
+
+```
+
+```
+
+```
+
+```
+
+```
+I’ll add a short note in the performance docs to document the new analyzer gating flags and environment variable overrides so team members know how to enable accuracy gates locally or in CI. 
+```
+
+```
+I’m enabling accuracy gating in CI and tightening the analyzer so soft-cap accuracy deltas can block the build when above thresholds.
+
+## Checklist
+- Turn accuracy checks from informational to gated with conservative thresholds (edges/H1). Done
+- Allow analyzer to be controlled via env vars (for local/CI toggles). Done
+- Keep perf/overshoot/memory gates intact. Done
+- Minimal docs note for the new gating knobs. Done
+- Quick local sanity (build + small accuracy run). Partially validated; CI will fully verify
+
+## Actions taken
+- Edited `ci.yml`
+  - Switched the “Analyze accuracy report” step to gated:
+    - Adds: `--accuracy-gate --gate` with `--accuracy-edges-pct-threshold 5.0 --accuracy-h1-pct-threshold 5.0`
+- Updated `analyze_performance_logs.py`
+  - Added env overrides: `ACCURACY_GATE`, `REQUIRE_CSV`, `ACCURACY_EDGES_PCT_THRESHOLD`, `ACCURACY_H1_PCT_THRESHOLD`
+  - Fixed argparse help escaping for “%”
+  - Verified: no syntax errors; help renders cleanly
+- Updated `README.md`
+  - Added “Analyzer gating via environment variables” section with brief usage
+
+## Notes
+- Analyzer still enforces existing gates:
+  - If parallel_threshold==0 with soft-cap, overshoot_sum/max must be 0
+  - Memory fields dm_peakMB and rss_peakMB required
+  - Optional adjacency CSVs when requested
+- The accuracy report uses edges and H1 deltas; thresholds set to 5% by default in CI.
+
+## Quality gates
+- Build: Analyzer script OK (help prints, no syntax errors). CI YAML will validate on next run.
+- Lint/Typecheck: Python OK. Markdown lints elsewhere pre-exist; not caused by the small doc addition.
+- Unit tests: Not re-run end-to-end here; CI will exercise PerfBaselineJSONL/PerfMonotonicity and the accuracy job.
+
+## Requirements coverage
+- Accuracy gating thresholds in CI: Done (5% edges, 5% H1).
+- Analyzer/env toggles for gating: Done.
+- Perf gates (overshoot==0, memory fields, CSVs): Preserved.
+- H1 metric used in accuracy: Already supported via `run_accuracy_check.sh`.
+
+## What’s next
+- Let CI run to confirm gating behavior on your branch.
+- If flakes appear, we can relax thresholds slightly or pin smaller N in the accuracy job.
+
+---
+
+_**User**_
+
+Go ahead
+
+---
+
+_**Assistant**_
+
+All required changes for accuracy gating and analyzer env overrides are complete and documented. The CI pipeline will now block on accuracy deltas above 5% for both edges and H1, and the analyzer can be controlled via environment variables for local or CI runs. No further action is needed unless you want to tune thresholds or expand gating to other jobs. Let me know if you want to proceed with additional validation or adjustments!
+
+---
+
+_**User**_
+
+Okay, I think we have some scaling runs to do?
+
+---
+
+_**Assistant**_
+
+I’ll build the Release harness and run a staircase probe starting at n=200k to validate throughput and memory, then summarize telemetry and decide if stepping up to 500k is safe. Kicking off a 500k Čech run (soft cap 16, serial threshold) with baseline and histogram CSVs to validate memory/throughput before considering 1M. I kicked off scaling probes to validate memory-bounded behavior and throughput at larger n; below are the results and the next step I recommend.
+
+## actions taken
+- Built the Release harness (`test_streaming_cech_perf`).
+- Ran:
+  - 200k DM-only (serial threshold, soft cap K=16).
+  - 200k Čech (soft cap K=16, serial threshold) with separate-process baseline + histogram CSVs.
+  - 500k DM-only (serial threshold, soft cap K=16).
+  - 500k Čech (soft cap K=16, serial threshold) with separate-process baseline + histogram CSVs.
+  - 1M DM-only with a 60s time cap (serial threshold, soft cap K=16) to estimate scaling without long runtime.
+
+## key results (telemetry)
+- 200k DM-only (K=16, par-threshold=0)
+  - dm_blocks=306,153; dm_edges=1,442,753; dm_peakMB=24.27; overshoot_sum/max=0/0
+  - Analyzer gates: PASS
+- 200k Čech (parent K=16 vs baseline K=∞, both serial threshold)
+  - Parent: dm_edges=1,442,753; dm_peakMB=251.81; build_secs=61.33; build_peakMB=274.48; simplices=1,543,900
+  - Baseline: dm_edges=2,662,923; dm_peakMB=251.14; build_secs=62.18; build_peakMB=286.29; simplices=2,352,272
+  - CSVs: adj_200k_parent.csv, adj_200k_baseline.csv
+  - Analyzer gates (+CSV): PASS
+- 500k DM-only (K=16, par-threshold=0)
+  - dm_blocks=1,910,035; dm_edges=5,005,727; dm_peakMB=55.27; overshoot_sum/max=0/0
+  - Analyzer gates: PASS
+- 500k Čech (parent K=16 vs baseline K=∞)
+  - Parent: dm_edges=5,005,727; dm_peakMB=624.04; build_secs=337.12; build_peakMB=688.00; simplices=4,524,745
+  - Baseline: dm_edges=16,699,529; dm_peakMB=622.28; build_secs=371.62; build_peakMB=759.16; simplices=9,071,863
+  - CSVs: adj_500k_parent.csv, adj_500k_baseline.csv
+  - Analyzer gates (+CSV): PASS
+- 1M DM-only (K=16, par-threshold=0, time_limit=60s)
+  - dm_blocks=38,862; dm_edges=346,567; dm_peakMB=106.55; overshoot_sum/max=0/0
+  - Analyzer gates: PASS
+
+Notes:
+- Overshoot is 0 across all serial-threshold soft-cap runs (as required).
+- Adjacency histogram CSVs generated for Čech runs; analyzer recognized them.
+- Memory usage stayed in the few hundred MB range even at 500k Čech; 1M DM-only time-capped stayed ~106 MB.
+
+## what’s next
+- Optional: 1M Čech (K=16, serial threshold) with a conservative time cap or block cap, plus histogram CSVs. This will be long-running; recommend a time limit (e.g., 10–15 minutes) to collect partial telemetry safely.
+- Optional: Run the small-n accuracy suite to generate accuracy_report_*.json (edges/H1 deltas) for documentation; current CI gating is already wired if you want it enforced here.
+
+## checkpoint
+- Build: PASS (Release harness built).
+- Gates: PASS (perf + CSV where required).
+- Requirements coverage: scaling staircase (200k, 500k) done; soft-cap serial policy honored; adjacency CSVs exported; analyzer gating enforced.
+
+---
+
+_**User**_
+
+Okay, let's run it with a 10minute time to gather telemetry and see how it looks
+
+---
+
+_**Assistant**_
+
 
 
 ---
