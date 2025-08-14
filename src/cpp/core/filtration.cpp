@@ -3,6 +3,7 @@
 #include <execution>
 #include <stdexcept>
 #include <unordered_map>
+#include <numeric>
 
 namespace tda::core {
 

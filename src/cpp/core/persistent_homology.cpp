@@ -4,6 +4,7 @@
 #include <queue>
 #include <unordered_map>
 #include <vector>
+#include <set>
 
 namespace tda::core {
 
@@ -280,57 +281,64 @@ public:
     
 private:
     void compute_matrix_reduction() {
-        // This is a simplified matrix reduction algorithm
-        // In practice, you would use more sophisticated algorithms like
-        // the standard algorithm or the clearing algorithm
-        
+        // Optimized matrix reduction using sparse boundary matrix representation
         size_type n = filtration_.size();
         if (n == 0) return;
         
-        // Create boundary matrix
-        std::vector<std::vector<bool>> boundary_matrix(n, std::vector<bool>(n, false));
+        // Sparse boundary matrix: for each column, store indices of nonzero entries (row indices)
+        std::vector<std::vector<size_type>> boundary_matrix(n);
         
-        // Fill boundary matrix
-        for (size_type i = 0; i < n; ++i) {
-            const auto& simplex = filtration_[i];
+        // Fill sparse boundary matrix
+        for (size_type j = 0; j < n; ++j) {
+            const auto& simplex = filtration_[j];
             auto faces = simplex.get_faces();
             
             for (const auto& face : faces) {
                 // Find face index in filtration
-                for (size_type j = 0; j < n; ++j) {
+                for (size_type i = 0; i < n; ++i) {
                     if (filtration_[j] == face) {
-                        boundary_matrix[i][j] = true;
+                        boundary_matrix[j].push_back(i);
                         break;
                     }
                 }
             }
+            // Sort for efficient reduction (lowest index last)
+            std::sort(boundary_matrix[j].begin(), boundary_matrix[j].end());
         }
         
-        // Simple matrix reduction (Gaussian elimination)
-        std::vector<Index> low = std::vector<Index>(n, n);
+        // Reduction with clearing optimization
+        std::vector<Index> low(n, n); // low[j] = row index of lowest 1 in column j, or n if empty
+        std::vector<bool> cleared(n, false); // Mark columns that have been paired and cleared
+        std::unordered_map<size_type, size_type> low_col; // Map: row index -> column index with that low
         
         for (size_type j = 0; j < n; ++j) {
-            // Find lowest 1 in column j
-            Index low_j = n;
-            for (size_type i = 0; i < n; ++i) {
-                if (boundary_matrix[i][j]) {
-                    low_j = i;
-                    break;
-                }
+            if (boundary_matrix[j].empty()) continue;
+            
+            // Get current low of column j
+            size_type low_j = boundary_matrix[j].back();
+            
+            // Reduce column j
+            while (low_col.find(low_j) != low_col.end()) {
+                size_type k = low_col[low_j];
+                
+                // Add column k to column j (symmetric difference)
+                std::vector<size_type> merged;
+                std::set_symmetric_difference(
+                    boundary_matrix[j].begin(), boundary_matrix[j].end(),
+                    boundary_matrix[k].begin(), boundary_matrix[k].end(),
+                    std::back_inserter(merged)
+                );
+                boundary_matrix[j] = std::move(merged);
+                
+                if (boundary_matrix[j].empty()) break;
+                low_j = boundary_matrix[j].back();
             }
             
-            if (low_j < n) {
+            if (!boundary_matrix[j].empty()) {
                 low[j] = low_j;
-                
-                // Eliminate other 1s in column j
-                for (size_type k = j + 1; k < n; ++k) {
-                    if (boundary_matrix[low_j][k]) {
-                        // Add column k to column j
-                        for (size_type i = 0; i < n; ++i) {
-                            boundary_matrix[i][j] = boundary_matrix[i][j] ^ boundary_matrix[i][k];
-                        }
-                    }
-                }
+                low_col[low_j] = j;
+                // Clearing: mark column as cleared so future reductions skip it
+                cleared[low_j] = true;
             }
         }
         

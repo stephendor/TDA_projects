@@ -134,7 +134,13 @@ public:
     
     template<typename Container>
     void add_points(const Container& container) {
-        static_assert(ContainerType<Container>, "Container must satisfy ContainerType concept");
+        // Concept to check if Container is iterable and contains elements convertible to point_type
+        static_assert(requires(const Container& c) {
+            { c.begin() } -> std::input_iterator;
+            { c.end() } -> std::input_iterator;
+            requires std::convertible_to<decltype(*c.begin()), point_type>;
+        }, "Container must be iterable and contain convertible elements");
+        
         for (const auto& point : container) {
             add_point(point);
         }

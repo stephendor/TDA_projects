@@ -1,53 +1,39 @@
 #include "../../../include/tda/core/types.hpp"
 #include <algorithm>
-#include <execution>
-#include <queue>
-#include <unordered_map>
-#include <unordered_set>
 #include <map>
+#include <vector>
+#include <unordered_map>
 
 namespace tda::algorithms {
 
-class VietorisRipsComplex {
+class SimpleVietorisRipsComplex {
 private:
-    std::vector<core::Simplex> simplices_;
+    std::vector<std::vector<core::Index>> simplices_;
     std::vector<double> birth_times_;
     std::unordered_map<core::Index, std::vector<core::Index>> adjacency_list_;
     double max_radius_;
     core::Dimension max_dimension_;
     
 public:
-    // Type aliases
     using size_type = std::size_t;
-    using iterator = std::vector<core::Simplex>::iterator;
-    using const_iterator = std::vector<core::Simplex>::const_iterator;
     
-    // Constructors
-    VietorisRipsComplex() = default;
-    
-    VietorisRipsComplex(double max_radius, core::Dimension max_dimension = 3)
+    SimpleVietorisRipsComplex(double max_radius, core::Dimension max_dimension = 3)
         : max_radius_(max_radius), max_dimension_(max_dimension) {}
     
     // Copy constructor
-    VietorisRipsComplex(const VietorisRipsComplex& other)
+    SimpleVietorisRipsComplex(const SimpleVietorisRipsComplex& other)
         : simplices_(other.simplices_), birth_times_(other.birth_times_),
           adjacency_list_(other.adjacency_list_), max_radius_(other.max_radius_),
           max_dimension_(other.max_dimension_) {}
     
     // Move constructor
-    VietorisRipsComplex(VietorisRipsComplex&& other) noexcept
+    SimpleVietorisRipsComplex(SimpleVietorisRipsComplex&& other) noexcept
         : simplices_(std::move(other.simplices_)), birth_times_(std::move(other.birth_times_)),
           adjacency_list_(std::move(other.adjacency_list_)), max_radius_(other.max_radius_),
-          max_dimension_(other.max_dimension_) {
-        other.max_radius_ = 0.0;
-        other.max_dimension_ = 0;
-    }
-    
-    // Destructor
-    ~VietorisRipsComplex() = default;
+          max_dimension_(other.max_dimension_) {}
     
     // Assignment operators
-    VietorisRipsComplex& operator=(const VietorisRipsComplex& other) {
+    SimpleVietorisRipsComplex& operator=(const SimpleVietorisRipsComplex& other) {
         if (this != &other) {
             simplices_ = other.simplices_;
             birth_times_ = other.birth_times_;
@@ -58,51 +44,40 @@ public:
         return *this;
     }
     
-    VietorisRipsComplex& operator=(VietorisRipsComplex&& other) noexcept {
+    SimpleVietorisRipsComplex& operator=(SimpleVietorisRipsComplex&& other) noexcept {
         if (this != &other) {
             simplices_ = std::move(other.simplices_);
             birth_times_ = std::move(other.birth_times_);
             adjacency_list_ = std::move(other.adjacency_list_);
             max_radius_ = other.max_radius_;
             max_dimension_ = other.max_dimension_;
-            other.max_radius_ = 0.0;
-            other.max_dimension_ = 0;
         }
         return *this;
     }
     
     // Configuration
-    void set_max_radius(double radius) noexcept { max_radius_ = radius; }
-    void set_max_dimension(core::Dimension dim) noexcept { max_dimension_ = dim; }
+    void set_max_radius(double radius) { max_radius_ = radius; }
+    void set_max_dimension(core::Dimension dim) { max_dimension_ = dim; }
     
-    double max_radius() const noexcept { return max_radius_; }
-    core::Dimension max_dimension() const noexcept { return max_dimension_; }
+    double max_radius() const { return max_radius_; }
+    core::Dimension max_dimension() const { return max_dimension_; }
     
     // Data access
-    const std::vector<core::Simplex>& simplices() const noexcept { return simplices_; }
-    std::vector<core::Simplex>& simplices() noexcept { return simplices_; }
-    
-    const std::vector<double>& birth_times() const noexcept { return birth_times_; }
-    std::vector<double>& birth_times() noexcept { return birth_times_; }
-    
-    // Iterators
-    iterator begin() noexcept { return simplices_.begin(); }
-    const_iterator begin() const noexcept { return simplices_.begin(); }
-    const_iterator cbegin() const noexcept { return simplices_.cbegin(); }
-    
-    iterator end() noexcept { return simplices_.end(); }
-    const_iterator end() const noexcept { return simplices_.end(); }
-    const_iterator cend() const noexcept { return simplices_.cend(); }
+    const std::vector<std::vector<core::Index>>& simplices() const { return simplices_; }
+    const std::vector<double>& birth_times() const { return birth_times_; }
+    const std::unordered_map<core::Index, std::vector<core::Index>>& adjacency_list() const { return adjacency_list_; }
     
     // Capacity
-    size_type size() const noexcept { return simplices_.size(); }
-    bool empty() const noexcept { return simplices_.empty(); }
+    size_type size() const { return simplices_.size(); }
+    bool empty() const { return simplices_.empty(); }
     
-    // Complex construction
-    void build_from_point_cloud(const core::PointCloud& point_cloud) {
-        clear();
+    // Complex construction from point cloud
+    void build_from_point_cloud(const std::vector<std::vector<double>>& points) {
+        simplices_.clear();
+        birth_times_.clear();
+        adjacency_list_.clear();
         
-        size_t n = point_cloud.size();
+        size_t n = points.size();
         if (n == 0) return;
         
         // Add vertices (0-simplices)
@@ -111,184 +86,125 @@ public:
             birth_times_.push_back(0.0);
         }
         
-        // Compute pairwise distances and build adjacency list
-        std::vector<std::pair<double, std::pair<size_t, size_t>>> edges;
-        edges.reserve(n * (n - 1) / 2);
-        
+        // Build edges (1-simplices) and adjacency list
         for (size_t i = 0; i < n; ++i) {
             for (size_t j = i + 1; j < n; ++j) {
-                double distance = point_cloud.compute_distance(i, j);
+                double distance = compute_distance(points[i], points[j]);
                 if (distance <= max_radius_) {
-                    edges.emplace_back(distance, std::make_pair(i, j));
-                    adjacency_list_[i].push_back(j);
-                    adjacency_list_[j].push_back(i);
+                    simplices_.emplace_back(std::vector<core::Index>{
+                        static_cast<core::Index>(i), static_cast<core::Index>(j)
+                    });
+                    birth_times_.push_back(distance);
+                    
+                    // Update adjacency list
+                    adjacency_list_[static_cast<core::Index>(i)].push_back(static_cast<core::Index>(j));
+                    adjacency_list_[static_cast<core::Index>(j)].push_back(static_cast<core::Index>(i));
                 }
             }
         }
         
-        // Sort edges by distance
-        std::sort(std::execution::par_unseq, edges.begin(), edges.end());
-        
-        // Add edges (1-simplices)
-        for (const auto& edge : edges) {
-            size_t i = edge.second.first;
-            size_t j = edge.second.second;
-            simplices_.emplace_back(std::vector<core::Index>{
-                static_cast<core::Index>(i), static_cast<core::Index>(j)
-            });
-            birth_times_.push_back(edge.first);
-        }
-        
-        // Build higher-dimensional simplices
+        // Build higher-dimensional simplices if requested
         if (max_dimension_ >= 2) {
             build_triangles();
         }
-        
         if (max_dimension_ >= 3) {
             build_tetrahedra();
         }
-        
-        // Sort simplices by birth time
-        sort_by_birth_time();
     }
     
-    void build_from_distance_matrix(const std::vector<std::vector<double>>& distance_matrix) {
-        clear();
+    // Complex construction from distance matrix
+    void build_from_distance_matrix(const std::vector<std::vector<double>>& distances) {
+        simplices_.clear();
+        birth_times_.clear();
+        adjacency_list_.clear();
         
-        size_t n = distance_matrix.size();
+        size_t n = distances.size();
         if (n == 0) return;
         
-        // Add vertices (0-simplices)
+        // Add vertices
         for (size_t i = 0; i < n; ++i) {
             simplices_.emplace_back(std::vector<core::Index>{static_cast<core::Index>(i)});
             birth_times_.push_back(0.0);
         }
         
-        // Build edges and adjacency list
-        std::vector<std::pair<double, std::pair<size_t, size_t>>> edges;
-        edges.reserve(n * (n - 1) / 2);
-        
+        // Build edges
         for (size_t i = 0; i < n; ++i) {
             for (size_t j = i + 1; j < n; ++j) {
-                double distance = distance_matrix[i][j];
+                double distance = distances[i][j];
                 if (distance <= max_radius_) {
-                    edges.emplace_back(distance, std::make_pair(i, j));
-                    adjacency_list_[i].push_back(j);
-                    adjacency_list_[j].push_back(i);
+                    simplices_.emplace_back(std::vector<core::Index>{
+                        static_cast<core::Index>(i), static_cast<core::Index>(j)
+                    });
+                    birth_times_.push_back(distance);
+                    
+                    adjacency_list_[static_cast<core::Index>(i)].push_back(static_cast<core::Index>(j));
+                    adjacency_list_[static_cast<core::Index>(j)].push_back(static_cast<core::Index>(i));
                 }
             }
-        }
-        
-        // Sort edges by distance
-        std::sort(std::execution::par_unseq, edges.begin(), edges.end());
-        
-        // Add edges (1-simplices)
-        for (const auto& edge : edges) {
-            size_t i = edge.second.first;
-            size_t j = edge.second.second;
-            simplices_.emplace_back(std::vector<core::Index>{
-                static_cast<core::Index>(i), static_cast<core::Index>(j)
-            });
-            birth_times_.push_back(edge.first);
         }
         
         // Build higher-dimensional simplices
         if (max_dimension_ >= 2) {
             build_triangles();
         }
-        
         if (max_dimension_ >= 3) {
             build_tetrahedra();
         }
-        
-        // Sort simplices by birth time
-        sort_by_birth_time();
     }
     
     // Filtration operations
     void sort_by_birth_time() {
-        if (simplices_.size() != birth_times_.size()) {
-            throw std::runtime_error("Simplex and birth time arrays have different sizes");
-        }
-        
-        // Create index vector for sorting
         std::vector<size_type> indices(simplices_.size());
         std::iota(indices.begin(), indices.end(), 0);
         
-        // Sort indices by birth time
-        std::sort(std::execution::par_unseq, indices.begin(), indices.end(),
-                  [this](size_type i, size_type j) {
-                      return birth_times_[i] < birth_times_[j];
-                  });
+        std::sort(indices.begin(), indices.end(), [this](size_type a, size_type b) {
+            return birth_times_[a] < birth_times_[b];
+        });
         
-        // Reorder data according to sorted indices
         reorder_by_indices(indices);
     }
     
     void sort_by_dimension() {
-        if (simplices_.size() != birth_times_.size()) {
-            throw std::runtime_error("Simplex and birth time arrays have different sizes");
-        }
-        
-        // Create index vector for sorting
         std::vector<size_type> indices(simplices_.size());
         std::iota(indices.begin(), indices.end(), 0);
         
-        // Sort indices by dimension, then by birth time
-        std::sort(std::execution::par_unseq, indices.begin(), indices.end(),
-                  [this](size_type i, size_type j) {
-                      if (simplices_[i].dimension() != simplices_[j].dimension()) {
-                          return simplices_[i].dimension() < simplices_[j].dimension();
-                      }
-                      return birth_times_[i] < birth_times_[j];
-                  });
+        std::sort(indices.begin(), indices.end(), [this](size_type a, size_type b) {
+            return simplices_[a].size() < simplices_[b].size();
+        });
         
-        // Reorder data according to sorted indices
         reorder_by_indices(indices);
     }
     
     // Query operations
     std::vector<size_type> find_simplices_by_dimension(core::Dimension dim) const {
-        std::vector<size_type> indices;
-        indices.reserve(simplices_.size());
-        
+        std::vector<size_type> result;
         for (size_type i = 0; i < simplices_.size(); ++i) {
-            if (simplices_[i].dimension() == dim) {
-                indices.push_back(i);
+            if (static_cast<core::Dimension>(simplices_[i].size() - 1) == dim) {
+                result.push_back(i);
             }
         }
-        
-        return indices;
+        return result;
     }
     
-    std::vector<size_type> find_simplices_in_radius_range(double min_radius, double max_radius) const {
-        std::vector<size_type> indices;
-        indices.reserve(simplices_.size());
-        
+    std::vector<size_type> find_simplices_in_time_range(double min_time, double max_time) const {
+        std::vector<size_type> result;
         for (size_type i = 0; i < simplices_.size(); ++i) {
-            if (birth_times_[i] >= min_radius && birth_times_[i] <= max_radius) {
-                indices.push_back(i);
+            if (birth_times_[i] >= min_time && birth_times_[i] <= max_time) {
+                result.push_back(i);
             }
         }
-        
-        return indices;
+        return result;
     }
     
     // Utility methods
-    void clear() noexcept {
-        simplices_.clear();
-        birth_times_.clear();
-        adjacency_list_.clear();
+    core::Dimension get_simplex_dimension(size_type index) const {
+        if (index >= simplices_.size()) return 0;
+        return static_cast<core::Dimension>(simplices_[index].size() - 1);
     }
     
-    void reserve(size_type capacity) {
-        simplices_.reserve(capacity);
-        birth_times_.reserve(capacity);
-    }
-    
-    void shrink_to_fit() {
-        simplices_.shrink_to_fit();
-        birth_times_.shrink_to_fit();
+    double get_simplex_birth_time(size_type index) const {
+        if (index >= birth_times_.size()) return 0.0;
+        return birth_times_[index];
     }
     
     // Serialization
@@ -298,22 +214,33 @@ public:
     }
     
 private:
+    // Helper method to compute distance between two points
+    double compute_distance(const std::vector<double>& p1, const std::vector<double>& p2) const {
+        if (p1.size() != p2.size()) return std::numeric_limits<double>::infinity();
+        
+        double sum = 0.0;
+        for (size_t i = 0; i < p1.size(); ++i) {
+            double diff = p1[i] - p2[i];
+            sum += diff * diff;
+        }
+        return std::sqrt(sum);
+    }
+    
     // Helper method to get edge birth time
     double get_edge_birth_time(core::Index v1, core::Index v2) const {
         // Find the edge in the simplices list
         for (size_type i = 0; i < simplices_.size(); ++i) {
             const auto& simplex = simplices_[i];
-            if (simplex.dimension() == 1 && simplex.size() == 2) {
-                auto vertices = simplex.get_vertices();
-                if ((vertices[0] == v1 && vertices[1] == v2) ||
-                    (vertices[0] == v2 && vertices[1] == v1)) {
+            if (simplex.size() == 2) {
+                if ((simplex[0] == v1 && simplex[1] == v2) ||
+                    (simplex[0] == v2 && simplex[1] == v1)) {
                     return birth_times_[i];
                 }
             }
         }
-        // If edge not found, return infinity (should not happen in valid complex)
         return std::numeric_limits<double>::infinity();
     }
+    
     void build_triangles() {
         std::vector<std::tuple<double, core::Index, core::Index, core::Index>> triangles;
         
@@ -326,9 +253,9 @@ private:
                     if (neighbor2 <= neighbor1) continue;
                     
                     // Check if neighbor1 and neighbor2 are connected
-                    auto it = std::find(adjacency_list_[neighbor1].begin(), 
-                                       adjacency_list_[neighbor1].end(), neighbor2);
-                    if (it != adjacency_list_[neighbor1].end()) {
+                    auto it = std::find(adjacency_list_.at(neighbor1).begin(), 
+                                       adjacency_list_.at(neighbor1).end(), neighbor2);
+                    if (it != adjacency_list_.at(neighbor1).end()) {
                         // Found a triangle - calculate birth time as max of its three edges
                         double edge1_time = get_edge_birth_time(vertex, neighbor1);
                         double edge2_time = get_edge_birth_time(vertex, neighbor2);
@@ -343,7 +270,7 @@ private:
         }
         
         // Sort triangles by birth time
-        std::sort(std::execution::par_unseq, triangles.begin(), triangles.end());
+        std::sort(triangles.begin(), triangles.end());
         
         // Add triangles
         for (const auto& [birth_time, v1, v2, v3] : triangles) {
@@ -387,7 +314,7 @@ private:
         }
         
         // Sort tetrahedra by birth time
-        std::sort(std::execution::par_unseq, tetrahedra.begin(), tetrahedra.end());
+        std::sort(tetrahedra.begin(), tetrahedra.end());
         
         // Add tetrahedra
         for (const auto& [birth_time, v1, v2, v3, v4] : tetrahedra) {
@@ -409,7 +336,7 @@ private:
     
     void reorder_by_indices(const std::vector<size_type>& indices) {
         // Create temporary storage
-        std::vector<core::Simplex> temp_simplices(simplices_.size());
+        std::vector<std::vector<core::Index>> temp_simplices(simplices_.size());
         std::vector<double> temp_birth_times(birth_times_.size());
         
         // Reorder data

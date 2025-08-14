@@ -235,12 +235,12 @@ std::vector<T> VectorStack<T>::compute_norms() const {
     return norms;
 }
 
-// Memory optimization
-template<typename T>
-void VectorStack<T>::optimize_memory() {
-    // Align data to SIMD boundaries
-    size_t aligned_size = ((data_.size() * sizeof(T) + core::SIMD_ALIGNMENT - 1) / 
-                           core::SIMD_ALIGNMENT) * core::SIMD_ALIGNMENT;
+    // Memory optimization
+    template<typename T>
+    void VectorStack<T>::optimize_memory() {
+        // Align data to SIMD boundaries
+        size_t aligned_size = ((data_.size() * sizeof(T) + core::SIMD_ALIGNMENT - 1) / 
+                               core::SIMD_ALIGNMENT) * core::SIMD_ALIGNMENT;
     
     if (data_.capacity() * sizeof(T) < aligned_size) {
         data_.reserve(aligned_size / sizeof(T));

@@ -26,7 +26,7 @@ public:
     Simplex() = default;
     
     explicit Simplex(const std::vector<Index>& vertices)
-        : vertices_(vertices), dimension_(static_cast<Dimension>(vertices.size() - 1)) {
+        : vertices_(vertices), dimension_(vertices.empty() ? 0 : static_cast<Dimension>(vertices.size() - 1)) {
         std::sort(vertices_.begin(), vertices_.end());
         birth_time_ = 0.0;
         death_time_ = std::numeric_limits<double>::infinity();
@@ -35,7 +35,7 @@ public:
     }
     
     Simplex(std::vector<Index>&& vertices)
-        : vertices_(std::move(vertices)), dimension_(static_cast<Dimension>(vertices_.size() - 1)) {
+        : vertices_(std::move(vertices)), dimension_(vertices_.empty() ? 0 : static_cast<Dimension>(vertices_.size() - 1)) {
         std::sort(vertices_.begin(), vertices_.end());
         birth_time_ = 0.0;
         death_time_ = std::numeric_limits<double>::infinity();
@@ -44,7 +44,7 @@ public:
     }
     
     Simplex(std::initializer_list<Index> vertices)
-        : vertices_(vertices), dimension_(static_cast<Dimension>(vertices.size() - 1)) {
+        : vertices_(vertices), dimension_(vertices.size() == 0 ? 0 : static_cast<Dimension>(vertices.size() - 1)) {
         std::sort(vertices_.begin(), vertices_.end());
         birth_time_ = 0.0;
         death_time_ = std::numeric_limits<double>::infinity();
