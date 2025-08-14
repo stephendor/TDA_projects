@@ -2281,6 +2281,48 @@ do that
 
 _**Assistant**_
 
+I'll verify the repo status, validate the analyzer script and artifacts, then commit and push the changes with a concise message. I’ve finalized the 1M Čech deliverable: validated artifacts, updated docs/analyzer, and pushed everything to your branch.
+
+## actions taken
+- Verified artifacts and gates:
+  - Ran analyzer on ``: gate=PASS with require-csv; memory fields present; overshoot=0 under serial threshold.
+- Committed and pushed:
+  - Branch: feat-memory-algos
+  - Commit: 306864b (pushed to origin)
+- Static checks:
+  - Python analyzer syntax check: PASS
+
+## files changed
+- `analyze_performance_logs.py` — accept adj_parent_*/adj_baseline_* CSV names
+- `README.md` — added “Reference artifacts (2025-08-14, 1M Čech…)”
+- docs/performance/artifacts/2025-08-14_1m_cech/ — archived:
+  - run_cech_1m_t600.jsonl, `baseline_cech_1m_t600.jsonl`
+  - adj_parent_1m_t600.csv, `adj_baseline_1m_t600.csv`
+  - analyzer_1m_final.log
+
+## quality gates
+- Build/Lint/Typecheck: Python analyzer compiled cleanly; no C++ changes this round.
+- Tests: N/A for this change.
+- Analyzer gate: PASS (require-csv, memory fields, overshoot=0).
+
+## requirements coverage
+- Archive artifacts + update docs: Done
+- Analyzer CSV detection hardened: Done
+- Commit/push: Done
+
+## next steps (optional)
+- Wire a CI step to upload these artifacts and surface analyzer PASS in the PR. If you want, I’ll add that workflow next.
+
+---
+
+_**User**_
+
+Okay, go on. Then summarise this chat and checkpoint as a prompt for a new chat
+
+---
+
+_**Assistant**_
+
 
 
 ---

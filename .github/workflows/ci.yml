@@ -20,6 +20,32 @@ env:
   TDA_ARTIFACT_DIR: /tmp/tda-artifacts
 
 jobs:
+  analyze-reference-artifacts:
+    name: Analyze Reference Artifacts (1M Čech, gate ON)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4.3.0
+
+      - name: Show artifact directory contents
+        run: |
+          ls -la docs/performance/artifacts/2025-08-14_1m_cech || true
+
+      - name: Run analyzer with gating (require CSV)
+        env:
+          REQUIRE_CSV: "1"
+        run: |
+          python3 scripts/analyze_performance_logs.py \
+            --artifacts docs/performance/artifacts/2025-08-14_1m_cech \
+            --gate --require-csv
+
+      - name: Upload reference artifacts (for PR visibility)
+        if: always()
+        uses: actions/upload-artifact@ff15f0306b3f739f7b6fd43fb5d26cd321bd4de5 # v3.2.1
+        with:
+          name: reference-artifacts-1m-cech
+          path: docs/performance/artifacts/2025-08-14_1m_cech
+
   cpp-tests:
     name: C++ Build & Streaming Tests
     runs-on: ubuntu-latest
@@ -119,6 +145,56 @@ jobs:
         uses: actions/upload-artifact@ff15f0306b3f739f7b6fd43fb5d26cd321bd4de5 # v3.2.1
         with:
           name: cpp-perf-probe-artifacts
+          path: ${{ env.TDA_ARTIFACT_DIR }}
+
+  cpp-dm-only-probe:
+    name: C++ DM-only Probe (200k, tight timeout)
+    runs-on: ubuntu-latest
+    needs: cpp-tests
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4.3.0
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential cmake ninja-build \
+            libeigen3-dev libgmp-dev libmpfr-dev libtbb-dev python3
+
+      - name: Prepare artifact directory
+        run: mkdir -p "$TDA_ARTIFACT_DIR"
+
+      - name: Configure (Release)
+        run: |
+          cmake -S . -B build/release \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DBUILD_TESTS=ON \
+            -DBUILD_BENCHMARKS=ON \
+            -DBUILD_PYTHON=OFF
+
+      - name: Build harness
+        run: cmake --build build/release --config Release --target test_streaming_cech_perf -- -j"$(nproc)"
+
+      - name: Run 200k DM-only probe (serial threshold, soft cap)
+        run: |
+          build/release/tests/cpp/test_streaming_cech_perf \
+            --dm-only --n 200000 --d 3 --radius 0.5 --block 256 \
+            --soft-knn-cap 16 --parallel-threshold 0 --time-limit 60 \
+            --json "$TDA_ARTIFACT_DIR/sdm_200k.jsonl"
+
+      - name: Analyze DM-only artifacts (gate overshoot==0 + memory fields)
+        run: |
+          python3 scripts/analyze_performance_logs.py \
+            --artifacts "$TDA_ARTIFACT_DIR" \
+            --gate
+
+      - name: Upload DM-only probe artifacts
+        if: always()
+        uses: actions/upload-artifact@ff15f0306b3f739f7b6fd43fb5d26cd321bd4de5 # v3.2.1
+        with:
+          name: cpp-dm-only-200k-artifacts
           path: ${{ env.TDA_ARTIFACT_DIR }}
 
   cpp-accuracy-check:

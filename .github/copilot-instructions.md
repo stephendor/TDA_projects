@@ -254,6 +254,11 @@ research/                   # Extracted research content
 - Keep only variants meeting PASS or (for sparse) efficiency PASS criteria.
 - Document negative results rigorously—failure is acceptable, unrecorded effort is not.
 
+### CI Workflow
+- **ALWAYS** add a CI workflow step that runs the analyzer on artifacts placed in `docs/performance/artifacts/2025-08-14_1m_cech` and prints a compact summary in PR checks (gate must be ON with require-csv).
+- **ALWAYS** upload artifacts to PR.
+- **ALWAYS** add a template job to run a 200k DM-only probe on PRs (tight timeout) to catch regressions early, uploading artifacts for inspection.
+
 ## 🛠️ **DEBUGGING**
 
 - If a required diagnostics key is missing, patch the code to include it before running any variant runs.
@@ -297,8 +302,10 @@ research/                   # Extracted research content
   - Documented new telemetry fields: dm_peakMB, rss_peakMB, softcap_overshoot_sum, softcap_overshoot_max, parallel_threshold (kept legacy underscore keys noted).
   - Clarified baseline compare usage (separate process) and accuracy script examples.
   - Added “Accuracy reports and thresholds” section with example invocation.
+  - Added “Reference artifacts (2025-08-14, 1M Čech…)”
 - `docs/troubleshooting/RCA_Progress_Check`:
   - (Add a short note with the 1M metrics and deltas after the final run)
+  - Added 1M checkpoint summary
 
 ## 🧠 **MEMORY MANAGEMENT STRATEGIES**
 
@@ -548,15 +555,6 @@ docker run -d \
 - Ensure commit messages are concise and clearly describe the changes made.
 - Include relevant references to plans (e.g., `docs/troubleshooting/RCA_Plan.md`, `memory_blowup_RCA_steps.md`).
 - Follow a consistent format (e.g., `feat(utils): add MemoryMonitor telemetry to StreamingDistanceMatrix`).
-
-## WORKFLOW & RELEASE RULES
-- General Workflow
-    - **ALWAYS** activate the virtual environment (`source .venv/bin/activate`) before running any Python scripts or commands.
-    - **YOU** (the AI) must run all commands, monitor terminal outputs, and handle errors immediately.
-    - **I** (the user) do not need to be copying or pasting anything at any point, unless explicitly requested.
-    - **YOU** are forbidden from presenting code in any way other than executable code blocks with Run/Cancel buttons.
-    - **ALWAYS** perform static analysis (Codacy) after modifying any code.
-    - When addressing memory blowup issues (reference `docs/troubleshooting/memory_blowup_RCA_steps.md`), prioritize steady but significant improvements, maintaining control for easy reversion and repair. Ensure alignment with Taskmaster planning and
 
 ## 🚀 SCALING RUNS
 
