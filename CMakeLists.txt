@@ -244,6 +244,10 @@ add_library(tda_algorithms STATIC
     src/cpp/algorithms/streaming_vr.cpp
 )
 
+# Algorithms depend on utilities (e.g., StreamingDistanceMatrix). Link publicly so
+# dependents of tda_algorithms get tda_utils transitively when needed.
+target_link_libraries(tda_algorithms PUBLIC tda_utils)
+
 add_library(tda_spatial STATIC
     src/cpp/spatial/kdtree.cpp
     src/cpp/spatial/balltree.cpp

@@ -6,36 +6,14 @@
 #include <utility>
 #include <limits>
 #include <atomic>
+#include <chrono>
 #ifdef _OPENMP
 #include <omp.h>
 #endif
-    {
-        auto agg = simplex_pool_.getAggregateStats();
-        build_stats_.pool_total_blocks = agg.first;
-        build_stats_.pool_free_blocks = agg.second;
-        build_stats_.pool_fragmentation = (agg.first > 0) ? (1.0 - (static_cast<double>(agg.second) / static_cast<double>(agg.first))) : 0.0;
-        auto buckets = simplex_pool_.getAllBucketStats();
-        build_stats_.pool_bucket_stats.clear();
-        build_stats_.pool_bucket_stats.reserve(buckets.size());
-        for (const auto& b : buckets) {
-            build_stats_.pool_bucket_stats.emplace_back(b.vertex_count, std::make_pair(b.total_blocks, b.free_blocks));
-        }
-    }
-    double m = 0.0;
-    for (size_t i = 0; i < simplex.size(); ++i) {
-        for (size_t j = i + 1; j < simplex.size(); ++j) {
-            const auto& a = pts[simplex[i]];
-            const auto& b = pts[simplex[j]];
-            double s = 0.0;
-            for (size_t k = 0; k < a.size(); ++k) {
-                double d = a[k] - b[k];
-                s += d * d;
-            }
-            m = std::max(m, std::sqrt(s));
-        }
-    }
-    return m;
-}
+namespace tda::algorithms {
+
+// Forward declaration for helper used in computeComplex
+static double max_pairwise_distance(const StreamingCechComplex::PointContainer& pts, const std::vector<size_t>& simplex);
 
 // Lifecycle
 
@@ -224,6 +202,23 @@ void StreamingCechComplex::clear() {
 
 double StreamingCechComplex::euclidean(const Point& a, const Point& b) {
     double s = 0.0; for (size_t i = 0; i < a.size(); ++i) { double d = a[i] - b[i]; s += d * d; } return std::sqrt(s);
+}
+
+static double max_pairwise_distance(const StreamingCechComplex::PointContainer& pts, const std::vector<size_t>& simplex) {
+    double m = 0.0;
+    for (size_t i = 0; i < simplex.size(); ++i) {
+        for (size_t j = i + 1; j < simplex.size(); ++j) {
+            const auto& a = pts[simplex[i]];
+            const auto& b = pts[simplex[j]];
+            double s = 0.0;
+            for (size_t k = 0; k < a.size(); ++k) {
+                double d = a[k] - b[k];
+                s += d * d;
+            }
+            m = std::max(m, std::sqrt(s));
+        }
+    }
+    return m;
 }
 
 double StreamingCechComplex::estimateAdaptiveRadius(size_t idx) const {

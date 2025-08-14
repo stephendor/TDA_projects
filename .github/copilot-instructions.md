@@ -585,7 +585,7 @@ docker run -d \
 - 1M DM-only (K=16, par-threshold=0, time_limit=60s)
   - dm_blocks=38,862; dm_edges=346,567; dm_peakMB=106.55; overshoot_sum/max=0/0
   - Analyzer gates: PASS
-- 1M Čech Final Run (soft-knn-cap=16, parallel-threshold=0, time-limit=600)
+- 1M Čech Final Run (soft-knn-cap=16, parallel-threshold=0, time_limit=600)
   - dm_blocks=371,011, dm_edges=3,115,973, simplices=1,602,678
   - dm_peakMB=755.746, rss_peakMB=789.586
   - overshoot_sum=0, overshoot_max=0

@@ -6,36 +6,11 @@
 #include <utility>
 #include <limits>
 #include <atomic>
+#include <chrono>
 #ifdef _OPENMP
 #include <omp.h>
 #endif
-    {
-        auto agg = simplex_pool_.getAggregateStats();
-        build_stats_.pool_total_blocks = agg.first;
-        build_stats_.pool_free_blocks = agg.second;
-        build_stats_.pool_fragmentation = (agg.first > 0) ? (1.0 - (static_cast<double>(agg.second) / static_cast<double>(agg.first))) : 0.0;
-        auto buckets = simplex_pool_.getAllBucketStats();
-        build_stats_.pool_bucket_stats.clear();
-        build_stats_.pool_bucket_stats.reserve(buckets.size());
-        for (const auto& b : buckets) {
-            build_stats_.pool_bucket_stats.emplace_back(b.vertex_count, std::make_pair(b.total_blocks, b.free_blocks));
-        }
-    }
-    double m = 0.0;
-    for (size_t i = 0; i < simplex.size(); ++i) {
-        for (size_t j = i + 1; j < simplex.size(); ++j) {
-            const auto& a = pts[simplex[i]];
-            const auto& b = pts[simplex[j]];
-            double s = 0.0;
-            for (size_t k = 0; k < a.size(); ++k) {
-                double d = a[k] - b[k];
-                s += d * d;
-            }
-            m = std::max(m, std::sqrt(s));
-        }
-    }
-    return m;
-}
+namespace tda::algorithms {
 
 // Lifecycle
 
@@ -96,7 +71,7 @@ tda::core::Result<void> StreamingVRComplex::computeComplex() {
             size_t j = nbrs[jidx];
             if (j <= i) continue; // avoid duplicates
             std::vector<size_t> e = {i, j};
-            double filt = max_pairwise_distance_pts(points_, e);
+            double filt = max_pairwise_distance(points_, e);
             addSimplexToTree(e, filt);
             if (build_stats_.simplex_count_by_dim.size() < 2) build_stats_.simplex_count_by_dim.resize(2, 0);
             build_stats_.simplex_count_by_dim[1]++;
@@ -113,7 +88,7 @@ tda::core::Result<void> StreamingVRComplex::computeComplex() {
                     // Check that (j,k) is also an edge
                     if (std::find(neighbors_[j].begin(), neighbors_[j].end(), k) == neighbors_[j].end()) continue;
                     std::vector<size_t> tri = {i, j, k};
-                    double filt = max_pairwise_distance_pts(points_, tri);
+                    double filt = max_pairwise_distance(points_, tri);
                     addSimplexToTree(tri, filt);
                     if (build_stats_.simplex_count_by_dim.size() < 3) build_stats_.simplex_count_by_dim.resize(3, 0);
                     build_stats_.simplex_count_by_dim[2]++;
@@ -134,7 +109,7 @@ tda::core::Result<void> StreamingVRComplex::computeComplex() {
                         if (std::find(neighbors_[j].begin(), neighbors_[j].end(), l) == neighbors_[j].end()) continue;
                         if (std::find(neighbors_[k].begin(), neighbors_[k].end(), l) == neighbors_[k].end()) continue;
                         std::vector<size_t> tet = {i, j, k, l};
-                        double filt = max_pairwise_distance_pts(points_, tet);
+                        double filt = max_pairwise_distance(points_, tet);
                         addSimplexToTree(tet, filt);
                         if (build_stats_.simplex_count_by_dim.size() < 4) build_stats_.simplex_count_by_dim.resize(4, 0);
                         build_stats_.simplex_count_by_dim[3]++;
@@ -225,14 +200,27 @@ double StreamingVRComplex::euclidean(const Point& a, const Point& b) {
 }
 
 double StreamingVRComplex::max_pairwise_distance(const PointContainer& pts, const std::vector<size_t>& simplex) {
-    return max_pairwise_distance_pts(pts, simplex);
+    double m = 0.0;
+    for (size_t i = 0; i < simplex.size(); ++i) {
+        for (size_t j = i + 1; j < simplex.size(); ++j) {
+            const auto& a = pts[simplex[i]];
+            const auto& b = pts[simplex[j]];
+            double s = 0.0;
+            for (size_t k = 0; k < a.size(); ++k) {
+                double d = a[k] - b[k];
+                s += d * d;
+            }
+            m = std::max(m, std::sqrt(s));
+        }
+    }
+    return m;
 }
 
 void StreamingVRComplex::buildNeighborsStreaming() {
     // Configure streaming distance matrix
     tda::utils::StreamingDistanceMatrix dm;
     auto dmcfg = config_.dm;
-    // Set threshold as epsilon
+    // Set threshold as epsilon (override any placeholder)
     dmcfg.max_distance = config_.epsilon;
     // Respect parallel controls; we'll make callback thread-safe
     dmcfg.edge_callback_threadsafe = dmcfg.edge_callback_threadsafe || dmcfg.enable_parallel_threshold;
