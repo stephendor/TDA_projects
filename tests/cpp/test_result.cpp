@@ -31,7 +31,8 @@ void test_persistence_pair() {
     assert(pair.birth == 2.5);
     assert(pair.death == 3.8);
     assert(pair.dimension == 1);
-    assert(pair.get_persistence() == 1.3);
+    // Allow for floating-point rounding differences
+    assert(std::abs(pair.get_persistence() - 1.3) < 1e-12);
     
     std::cout << "✅ PersistencePair test passed" << std::endl;
 }
