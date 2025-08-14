@@ -1944,6 +1944,202 @@ Okay, let's run it with a 10minute time to gather telemetry and see how it looks
 
 _**Assistant**_
 
+Starting a 1M DM-only run with a 10-minute time limit in the background to collect telemetry; I’ll save logs and JSONL to /tmp/tda-artifacts and follow up with analyzer results when it completes. I’m starting a 1M DM-only run with a 10-minute cap and will auto-run the analyzer afterward; here’s the plan and status.
+
+Checklist
+- Launch 1M DM-only, serial threshold, soft cap K=16, 10-minute time limit.
+- Save JSONL and log to /tmp/tda-artifacts; record PID.
+- Schedule analyzer after ~10m to gate perf and summarize.
+- Report back telemetry once the run finishes.
+
+Actions taken
+- Launched background process:
+  - Binary: build/release/tests/cpp/test_streaming_cech_perf
+  - Args: --n 1000000 --d 8 --radius 0.5 --maxDim 1 --soft-knn-cap 16 --parallel-threshold 0 --dm-only --block 256 --time-limit 600 --json /tmp/tda-artifacts/run_dm_1m_t600.jsonl
+  - Logs: `run_dm_1m_t600.log`
+  - PID file: `run_dm_1m_t600.pid`
+- Scheduled analyzer 10m10s later:
+  - Output: /tmp/tda-artifacts/analyze_dm_1m_t600.txt
+
+What’s next
+- I’ll wait for the run to complete and then fetch:
+  - The final JSONL tail and a brief summary from the analyzer.
+  - Peak DM memory, blocks, edges, and overshoot (should be 0 with serial threshold).
+- If you want a mid-run glance, say “status” and I’ll print PID, elapsed time, and the last log lines.
+
+---
+
+_**User**_
+
+Okay
+
+---
+
+_**Assistant**_
+
+Kicking off the 10‑minute 1M DM-only probe is in motion; I’ll monitor it and pull the telemetry as soon as it finishes.
+
+Checklist
+- 1M DM-only, serial threshold, soft cap K=16, time_limit=600: started in background.
+- Artifacts directory prepared: /tmp/tda-artifacts
+- Logs + JSONL will be written to:
+  - Log: `run_dm_1m_t600.log`
+  - JSONL: /tmp/tda-artifacts/run_dm_1m_t600.jsonl
+- Analyzer scheduled post-run:
+  - Output: /tmp/tda-artifacts/analyze_dm_1m_t600.txt
+
+Status (live)
+- Process is running (pgrep shows the harness with the expected args).
+- Log and JSONL exist; both are still empty as the run just started (normal in early minutes).
+- Overshoot will be 0 by policy (serial threshold with soft-cap).
+
+What’s next
+- When the 10 minutes elapse, I’ll grab the analyzer summary and report dm_blocks, dm_edges, dm_peakMB, overshoot, and any notable rates. 
+- If you want a mid-run check-in, say “status” and I’ll print PID, elapsed time, and the latest log/JSON tails.
+
+---
+
+_**User**_
+
+status
+
+---
+
+_**Assistant**_
+
+I pulled the latest status and artifacts from the 1M DM-only 10-minute run and parsed the analyzer summary.
+
+## status
+
+- Background run: finished (not running)
+- Artifacts present: /tmp/tda-artifacts
+- Analyzer: PASS (gates satisfied)
+
+## results
+
+- Mode: DMOnly, n=1,000,000, d=8, radius=0.5, maxDim=1, block=256
+- Soft cap/threshold: softKnnCap=16 with parallel_threshold=0 (serial threshold enforced)
+- Early stop: timeLimit=600s
+- Telemetry:
+  - dm_blocks: 389,193
+  - dm_edges: 3,242,973
+  - dm_peakMB: 106.891
+  - rss_peakMB: 0 (expected for this DM-only path without separate-process RSS capture)
+  - overshoot_sum/max: 0 / 0
+  - simplices: 0 (DM-only)
+
+Files:
+- JSONL: `run_dm_1m_t600.jsonl`
+- Log: `run_dm_1m_t600.log`
+- Analyzer report: `analyze_dm_1m_t600.txt`
+
+## notes
+
+- Requirements coverage:
+  - Memory-bounded SDM run with time cap: Done
+  - Serial threshold enforced with soft-cap: Done
+  - Overshoot telemetry collected and 0: Done
+  - Analyzer gating: PASS
+- rss_peakMB was 0 in this mode; for RSS isolation we use separate-process baseline runs (not applicable here).
+
+## what’s next
+
+- Optional: run a time-capped 1M Čech variant with separate-process baseline and CSV exports for adjacency histograms to capture build_peakMB and RSS.
+- Or, archive these artifacts under a dated logs directory in the repo and add a brief summary to docs/performance if you’d like me to persist them.
+
+---
+
+_**User**_
+
+So what happened here? I'm a little confused with where we are with respect to our ST-101 requirements
+
+---
+
+_**Assistant**_
+
+Here’s a crisp status mapping your latest runs to the ST-101 requirements and what happened.
+
+## checklist vs ST-101
+
+- Streaming Distance Matrix (SDM) with soft-cap and serial threshold when soft-cap > 0: Done (overshoot_sum/max = 0 on all runs).
+- Memory-bounded behavior with telemetry: Done for dm_peakMB; Partial for rss_peakMB on the 1M/10m DM-only run (needs separate-process baseline for RSS).
+- Analyzer gates (perf + correctness) on artifacts: Done (PASS on all probes, including the 1M/10m run).
+- Accuracy checks (small-n exact vs soft-cap): Done in CI; Not applicable to the 1M/10m DM-only run (analyzer noted no accuracy_report for this probe).
+- Čech builder with bounded-degree + adjacency hist CSVs + baseline: Done at 200k and 500k; Not run at 1M in this probe.
+- Staircase probes 200k → 500k → 1M with gating and artifacts: Done.
+
+## what happened in the 1M/10m run
+
+- Mode: DM-only, n=1,000,000, d=8, softKnnCap=16, parallel_threshold=0 (serial threshold enforced), timeLimit=600s.
+- Result: Completed and analyzer PASS.
+- Telemetry: dm_blocks=389,193; dm_edges=3,242,973; dm_peakMB=106.891; rss_peakMB=0 (expected in this mode); overshoot_sum/max=0/0; simplices=0.
+- Files: run_dm_1m_t600.jsonl, run_dm_1m_t600.log, analyze_dm_1m_t600.txt in /tmp/tda-artifacts.
+
+## interpretation vs ST-101
+
+- Memory blowup guardrails held: peak DM memory stayed bounded (~107 MB) with zero soft-cap overshoot.
+- Correctness policy held: serial threshold used with soft-cap; analyzer confirms overshoot=0.
+- RSS isolation wasn’t measured for this probe (only dm_peakMB); earlier separate-process baselines covered RSS on smaller runs.
+
+## next steps to fully “close” ST-101 on large-n
+
+- Option A (fast): Re-run the 1M/10m probe in separate-process baseline mode to capture rss_peakMB and attach analyzer PASS.
+- Option B (broader): Run a time-capped 1M Čech with baseline + adjacency CSVs to capture build_peakMB/RSS and histogram telemetry.
+
+If you want, I can kick off Option A now and drop the artifacts into a dated logs folder and add a short note to docs/troubleshooting/RCA_Progress_Check.
+
+---
+
+_**User**_
+
+Option B
+
+---
+
+_**Assistant**_
+
+I’m going to search the repo for the exact flags our harness and analyzer expect for Čech runs, baseline separation, and adjacency histogram export, so I can launch the 1M time-capped run correctly and reproducibly. 
+
+---
+
+_**User**_
+
+I feel like you have been doing something for too long
+
+---
+
+_**Assistant**_
+
+
+
+---
+
+_**User**_
+
+We just di this run? You were looking at the output with this command and then stalled: bash -lc "set -e; echo 'Search for JSONL files'; find /home/stephen-dorman/dev/TDA_projects -maxdepth 1 -type f -name '*.jsonl' -printf '%TY-%Tm-%Td %TH:%TM:%TS %p\n' | sort -r || true; echo 'Artifacts JSONLs'; find /tmp/tda-artifacts -maxdepth 1 -type f -name '*.jsonl' -printf '%TY-%Tm-%Td %TH:%TM:%TS %p\n' | sort -r || true; echo 'Check for stray .jsonl'; [ -f .jsonl ] && ls -lh .jsonl || echo 'no stray .jsonl';
+
+
+
+
+---
+
+_**Assistant**_
+
+
+
+---
+
+_**User**_
+
+We just di this run? You were looking at the output with this command and then stalled: bash -lc "set -e; echo 'Search for JSONL files'; find /home/stephen-dorman/dev/TDA_projects -maxdepth 1 -type f -name '*.jsonl' -printf '%TY-%Tm-%Td %TH:%TM:%TS %p\n' | sort -r || true; echo 'Artifacts JSONLs'; find /tmp/tda-artifacts -maxdepth 1 -type f -name '*.jsonl' -printf '%TY-%Tm-%Td %TH:%TM:%TS %p\n' | sort -r || true; echo 'Check for stray .jsonl'; [ -f .jsonl ] && ls -lh .jsonl || echo 'no stray .jsonl';
+
+
+
+
+---
+
+_**Assistant**_
+
 
 
 ---

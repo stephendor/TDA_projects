@@ -116,12 +116,9 @@
 - Phase 5: 1–2 days (timeouts + manifest hashing + tests)
 - Phase 6: exploratory (timeboxed spikes; optional)
 
-If you want, I can start with Phase 1 by adding the profiler script and CI gating parser, then queue the 200K/500K probes with artifact retention.
 
 
 
-
-Here’s a concise status against the two planning docs; I’ll map what’s done vs. what remains before we schedule the next probes.
 
 ## RCA_Plan.md
 
@@ -158,5 +155,3 @@ Here’s a concise status against the two planning docs; I’ll map what’s don
   - DM soft-cap validation: Quantify effect of `knn_cap_per_vertex_soft` vs. dense baselines on small-n exact runs; report degree/edge deltas and H1 interval counts.
   - Manifest/hash hooks: Ensure manifest hashing includes filtration mode/params; warn/fail if recompute inactive as described.
   - Stalling diagnostics: Add small DM-only probes in CI with timeouts and dump of current mode/params if wall-clock exceeds thresholds.
-
-If you want, I can add the missing profiler scripts and CI parsing/gating next, then queue a 500K lean probe with artifact retention.
