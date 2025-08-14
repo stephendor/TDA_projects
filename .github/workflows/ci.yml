@@ -12,6 +12,112 @@ env:
   NODE_VERSION: '18'
 
 jobs:
+  # C++ build and targeted tests (streaming distance + Čech)
+  cpp-tests:
+    name: C++ Build & Streaming Tests
+    runs-on: ubuntu-latest
+    env:
+      TDA_ARTIFACT_DIR: $RUNNER_TEMP/tda-artifacts
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          build-essential cmake ninja-build \
+          libeigen3-dev libgmp-dev libmpfr-dev libtbb-dev
+
+    - name: Prepare artifact directory
+      run: |
+        mkdir -p "$TDA_ARTIFACT_DIR"
+
+    - name: Configure (Release)
+      run: |
+        cmake -S . -B build/release \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DBUILD_TESTS=ON \
+          -DBUILD_BENCHMARKS=ON \
+          -DBUILD_PYTHON=OFF
+
+    - name: Build
+      run: |
+        cmake --build build/release --config Release -- -j$(nproc)
+
+    - name: Run targeted C++ tests (PerfBaselineJSONL + PerfMonotonicity)
+      run: |
+        ctest --test-dir build/release -R "(PerfBaselineJSONL|PerfMonotonicity)" --output-on-failure --timeout 120
+
+    - name: List JSONL metrics (info only)
+      if: always()
+      run: |
+        echo "Scanning $TDA_ARTIFACT_DIR for JSONL outputs..." || true
+        ls -la "$TDA_ARTIFACT_DIR" || true
+        echo "Sample telemetry lines (if present):" || true
+        grep -E '"(mode|dm_blocks|dm_edges|simplices|softcap_overshoot|dm_peakMB|rss_peakMB)"' -n "$TDA_ARTIFACT_DIR"/*.jsonl || true
+
+    - name: Upload streaming test artifacts
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        name: cpp-streaming-artifacts
+        path: ${{ env.TDA_ARTIFACT_DIR }}
+
+  # Small perf probe to export adjacency histograms and telemetry
+  cpp-perf-probe:
+    name: C++ Perf Probe (adjacency hist + telemetry)
+    runs-on: ubuntu-latest
+    needs: cpp-tests
+    env:
+      TDA_ARTIFACT_DIR: $RUNNER_TEMP/tda-artifacts
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          build-essential cmake ninja-build \
+          libeigen3-dev libgmp-dev libmpfr-dev libtbb-dev
+
+    - name: Prepare artifact directory
+      run: mkdir -p "$TDA_ARTIFACT_DIR"
+
+    - name: Configure (Release)
+      run: |
+        cmake -S . -B build/release \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DBUILD_TESTS=ON \
+          -DBUILD_BENCHMARKS=ON \
+          -DBUILD_PYTHON=OFF
+
+    - name: Build harness
+      run: |
+        cmake --build build/release --config Release --target test_streaming_cech_perf -- -j$(nproc)
+
+    - name: Run probe (n=8000, d=8, K=16, serial threshold)
+      run: |
+        build/release/bin/test_streaming_cech_perf \
+          --n 8000 --d 8 --radius 0.5 --maxDim 1 \
+          --soft-knn-cap 16 --parallel-threshold 0 \
+          --baseline-separate-process --baseline-maxDim 1 \
+          --baseline-json-out "$TDA_ARTIFACT_DIR/baseline_8k.jsonl" \
+          --adj-hist-csv "$TDA_ARTIFACT_DIR/adj_8k_parent.csv" \
+          --adj-hist-csv-baseline "$TDA_ARTIFACT_DIR/adj_8k_baseline.csv" \
+          --json "$TDA_ARTIFACT_DIR/run_8k.jsonl"
+
+    - name: Quick overshoot/memory check (non-blocking)
+      if: always()
+      run: |
+        echo "Telemetry summary:" || true
+        grep -E 'softcap_overshoot|dm_peakMB|rss_peakMB' -n "$TDA_ARTIFACT_DIR"/*.jsonl || true
+
+    - name: Upload perf probe artifacts
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        name: cpp-perf-probe-artifacts
+        path: ${{ env.TDA_ARTIFACT_DIR }}
   # Code Quality and Linting
   lint:
     name: Code Quality

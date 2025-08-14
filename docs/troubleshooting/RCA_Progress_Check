@@ -1,0 +1,162 @@
+
+
+## Phase 1 — CI gating and profiler wiring (fast wins)
+
+- Add profiler harness and scripts (referenced in RCA_Plan.md)
+  - Tasks:
+    - Add `scripts/run_performance_validation.sh` to orchestrate small/medium probes with flags (serial threshold, soft-cap).
+    - Add `scripts/analyze_performance_logs.py` to parse JSONL/CSV (dm_edges, simplices, overshoot, peakMB, adjacency histograms).
+    - Document usage in README.md.
+  - DoD:
+    - Running the script produces a summary of overshoot=0 (serial), adjacency degree stats, peakMB, plus a pass/fail footer.
+
+- CI parsing and gating of uploaded artifacts (RCA_Plan.md; memory_blowup_RCA_steps.md)
+  - Tasks:
+    - Add a CI step to parse JSONL/CSV artifacts from `/tmp/tda-artifacts`.
+    - Gate on:
+      - serial threshold → overshoot_sum == 0 and overshoot_max == 0.
+      - dm_peakMB and rss_peakMB presence with numeric values.
+      - adj histogram CSVs exist and non-empty; compute mean/median degree.
+    - Persist a baseline artifact and compare new run against last-accepted baseline within tolerance (e.g., ±10% dm_edges/simplices for identical params).
+  - DoD:
+    - CI fails if overshoot > 0 in serial mode or artifacts are missing/corrupt; logs show parsed metrics and tolerances.
+
+## Phase 2 — Scale-up staircase runs and reporting
+
+- Staircase probes: 200K → 500K → 1M (memory_blowup_RCA_steps.md)
+  - Tasks:
+    - Add jobs or parametrized script invocations for 200K/500K/1M DM-only and Čech (maxDim=1 for time bounds).
+    - Capture time/memory stats; export JSONL + adj hist CSV per run.
+    - Write results to `daily_logs/YYYYMMDD_*` (as per project logging practice).
+  - DoD:
+    - Each size produces artifacts and a summarized log including dm_blocks, dm_edges, simplices, overshoot, peakMB, wall-clock.
+    - CI stores them as artifacts; logs include a short comparison table vs. previous acceptable baseline.
+
+- Accuracy footprint with soft-cap vs exact small-n (RCA_Plan.md)
+  - Tasks:
+    - Define small-n exact runs (e.g., n=2K–4K) using dense baseline and serial threshold.
+    - Run soft-cap variants (K=8/16/32) and measure deltas in:
+      - edge counts, adjacency degree distributions,
+      - H1 interval counts (requires computing persistence diagrams).
+    - Emit a compact “accuracy report” JSON (delta_% per metric).
+  - DoD:
+    - Report JSON attached to CI artifacts; CI warns (but does not fail) if deltas exceed configurable thresholds; documentation updated with guidance.
+
+## Phase 3 — Streaming VR variant with memory backpressure
+
+- Implement block-based VR generation (RCA_Plan.md Phase 2)
+  - Tasks:
+    - Add a streaming VR builder mirroring Čech’s block/tiling approach with bounded-degree adjacency and memory backpressure.
+    - Telemetry parity with Čech: simplex counts by dim, adj histogram, peak memory.
+    - CLI flags in the harness to select VR mode; export same JSONL/CSV.
+  - DoD:
+    - Unit tests on small-n exact parity; perf probe runs produce VR artifacts; CI job exercises VR path and uploads outputs.
+
+## Phase 4 — SimplexPool fragmentation telemetry and maintenance
+
+- Fragmentation metrics and defragmentation hooks (RCA_Plan.md)
+  - Tasks:
+    - Extend `SimplexPool` to track:
+      - allocated pages, free-list size, fragmentation ratio.
+    - Add optional defragmentation routine (manual/periodic).
+    - Telemetry integration into JSONL (pool_* fields).
+  - DoD:
+    - Unit tests assert stable metrics under churn scenarios; JSONL shows pool telemetry; docs updated with “when to defragment”.
+
+## Phase 5 — Stalling diagnostics and reliability guards
+
+- Stalling/timeouts with parameter echo (memory_blowup_RCA_steps.md)
+  - Tasks:
+    - Add harness timeout guard for probes; on timeout, print current params, block indices, and partial telemetry.
+    - Add DM-only quick probe in CI with tight timeout; fail-fast with actionable log.
+  - DoD:
+    - CI shows clear “timeout diagnostics” section when exceeded; partial artifacts still uploaded.
+
+- Manifest hashing and recompute safeguards (memory_blowup_RCA_steps.md)
+  - Tasks:
+    - Ensure manifest hash includes filtration mode and all params (e.g., radius, K, caps, parallel-threshold, maxDim).
+    - Warn/fail if recompute inactive (attempted_count == 0) given a new hash.
+    - Add unit tests for hashing determinism and param coverage.
+  - DoD:
+    - Tests green; CI logs include manifest hash; missing recompute triggers warning/failure per configuration.
+
+## Phase 6 — Optional accelerators and distribution (roadmap alignment)
+
+- GPU acceleration for distance blocks (RCA_Plan.md Phase 3/5)
+  - Tasks:
+    - Optional CUDA path for blockwise distance; env/flag to enable.
+    - Validate correctness on small-n and measure throughput gains.
+  - DoD:
+    - Feature flag documented; small benchmark shows meaningful speedup; CPU fallback remains default.
+
+- Distributed hooks (Flink/Spark) for batched adjacency (RCA_Plan.md Phase 5)
+  - Tasks:
+    - Define an export format for block tasks and edge emissions.
+    - Provide a minimal adapter or doc example to map blocks into stream processing.
+  - DoD:
+    - Reference pipeline documented; not gated in CI.
+
+## Cross-cutting acceptance criteria
+
+- Telemetry
+  - All runs export JSONL with dm_blocks, dm_edges, simplices, dm_peakMB/rss_peakMB, overshoot_sum/max; adjacency CSVs present when requested.
+
+- Determinism and policy
+  - When soft-cap active and accuracy mode selected: `parallel-threshold=0`; overshoot must be 0.
+
+- CI reliability
+  - Artifact uploads are stable; parser reports a succinct summary and enforces critical gates.
+
+## Suggested ordering and estimates
+
+- Phase 1: 1–2 days (scripts + CI gating)
+- Phase 2: 2–4 days (staircase runs + accuracy report plumbing)
+- Phase 3: 3–5 days (streaming VR + tests + harness wiring)
+- Phase 4: 1–2 days (pool telemetry + tests)
+- Phase 5: 1–2 days (timeouts + manifest hashing + tests)
+- Phase 6: exploratory (timeboxed spikes; optional)
+
+If you want, I can start with Phase 1 by adding the profiler script and CI gating parser, then queue the 200K/500K probes with artifact retention.
+
+
+
+
+Here’s a concise status against the two planning docs; I’ll map what’s done vs. what remains before we schedule the next probes.
+
+## RCA_Plan.md
+
+- Completed
+  - Build/CMake hygiene: Release build green; new tests registered in CMakeLists.txt.
+  - Streaming Distance Matrix: Block-tiling with diagonal/symmetric handling, early-stops (blocks/pairs/time), threshold callbacks, soft kNN cap.
+  - Telemetry: MemoryMonitor snapshots; SDM stats (blocks, pairs, edges); softcap overshoot (sum/max); peak RSS/DM MB; Čech adjacency histogram and simplex counts.
+  - Separate-process baseline: Added `--baseline-separate-process` and deterministic `--baseline-json-out` to avoid RSS overlap; deltas reported in harness.
+  - Allocator: Implemented `SimplexPool` and unit tests.
+  - Race mitigation: When `--soft-knn-cap > 0`, default to `--parallel-threshold 0`; experimental local-merge path documented OFF by default; overshoot telemetry exported.
+  - Harness & docs: Perf harness exports JSON/CSV/JSONL and adjacency hist CSV; flags documented; RCA appendix updated.
+  - QA tests: Added `PerfBaselineJSONL` (w/ `TDA_ARTIFACT_DIR`) and stronger K-monotonicity test; both pass; CI jobs added to build/run and upload artifacts.
+
+- Remaining
+  - Profiling suite: Add optional profiler integration and small harness scripts (`run_performance_validation.sh`, `analyze_performance_logs.py`) referenced in the plan.
+  - CI gating: Parse uploaded JSONL/CSV and add thresholds/SLOs (e.g., overshoot=0 with serial threshold, expected adjacency degree bands) to fail on regressions.
+  - Larger scale validation: Run lean 500K and 1M probes; record adjacency histograms, H1 interval counts, peak RSS; compare against baselines per plan.
+  - Streaming VR variant: Implement block-based VR generation with backpressure; assert memory caps (Čech is covered, VR path still pending).
+  - Fragmentation metrics: Extend `SimplexPool` with fragmentation telemetry and (optional) defragmentation hooks as outlined.
+  - Distributed/acceleration (Phase 2/5 tie-ins): GPU optional path and distributed processing hooks are still future work per roadmap.
+
+## memory_blowup_RCA_steps.md
+
+- Completed
+  - Lean probes: Executed DM-only 200K and mid-size Čech runs with serial threshold; overshoot=0; peak memory captured.
+  - Baseline isolation: Switched to separate-process baseline with deterministic JSONL path; resolves allocator overlap.
+  - Telemetry coverage: Ensured diagnostics keys exist (dm_blocks, dm_edges, simplices, overshoot, peak MB); adjacency histograms exported.
+  - Monotonicity/accuracy: Added CI-friendly tests verifying K-monotonicity and “≤ baseline” bounds; pass on current configs.
+  - Race policy: Enforced serial threshold when soft-cap active; documented local-merge as experimental and default-OFF.
+
+- Remaining
+  - CI artifact parsing: Add a parser step to compute and assert expected ranges (adjacency hist deltas, overshoot budget=0 with serial, stable rss_peakMB bounds).
+  - Scale-up staircase: Run 200K→500K→1M progression with time/memory stats; compare adjacency histograms and peak RSS at each step; record in `daily_logs`.
+  - DM soft-cap validation: Quantify effect of `knn_cap_per_vertex_soft` vs. dense baselines on small-n exact runs; report degree/edge deltas and H1 interval counts.
+  - Manifest/hash hooks: Ensure manifest hashing includes filtration mode/params; warn/fail if recompute inactive as described.
+  - Stalling diagnostics: Add small DM-only probes in CI with timeouts and dump of current mode/params if wall-clock exceeds thresholds.
+
+If you want, I can add the missing profiler scripts and CI parsing/gating next, then queue a 500K lean probe with artifact retention.

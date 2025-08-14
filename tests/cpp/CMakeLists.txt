@@ -307,6 +307,20 @@ target_compile_definitions(test_perf_baseline_jsonl PRIVATE STREAMING_CECH_PERF_
 add_test(NAME PerfBaselineJSONL COMMAND test_perf_baseline_jsonl)
 set_tests_properties(PerfBaselineJSONL PROPERTIES TIMEOUT 120)
 
+# Monotonicity/accuracy assertion test (CI-safe sizes)
+add_executable(test_perf_monotonicity
+    test_perf_monotonicity.cpp
+)
+target_link_libraries(test_perf_monotonicity
+    Threads::Threads
+)
+if(TDA_ENABLE_OPENMP AND OpenMP_CXX_FOUND)
+    target_link_libraries(test_perf_monotonicity OpenMP::OpenMP_CXX)
+endif()
+target_compile_definitions(test_perf_monotonicity PRIVATE STREAMING_CECH_PERF_PATH="$<TARGET_FILE:test_streaming_cech_perf>")
+add_test(NAME PerfMonotonicity COMMAND test_perf_monotonicity)
+set_tests_properties(PerfMonotonicity PROPERTIES TIMEOUT 180)
+
 # =============================================================================
 # TEST CONFIGURATION
 # =============================================================================

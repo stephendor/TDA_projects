@@ -14,9 +14,15 @@
 // Very small smoke test: run perf harness with separate-process baseline enabled and JSON outputs,
 // then parse the JSONL files and assert that expected keys exist and numeric fields are sane.
 int main() {
-    // Compose temp file paths
-    const char* tmp1 = "/tmp/scp_parent.jsonl";
-    const char* tmp2 = "/tmp/scp_baseline.jsonl";
+    // Determine artifacts directory (CI-friendly). Use env var TDA_ARTIFACT_DIR if set, else /tmp.
+    const char* artifactsEnv = std::getenv("TDA_ARTIFACT_DIR");
+    std::string artifactsDir = artifactsEnv && std::strlen(artifactsEnv) > 0 ? artifactsEnv : std::string("/tmp");
+    if (!artifactsDir.empty() && artifactsDir.back() == '/') artifactsDir.pop_back();
+    std::string parentPath = artifactsDir + "/scp_parent.jsonl";
+    std::string baselinePath = artifactsDir + "/scp_baseline.jsonl";
+
+    const char* tmp1 = parentPath.c_str();
+    const char* tmp2 = baselinePath.c_str();
 
     // Clean up any previous leftovers
     std::remove(tmp1);
@@ -79,6 +85,7 @@ int main() {
         assert(ok && "baseline JSONL present but missing dm_edges");
     }
 
-    std::cout << "Perf baseline JSONL test passed. dm_edges=" << dm_edges << ", dm_blocks=" << dm_blocks << "\n";
+    std::cout << "Perf baseline JSONL test passed. dm_edges=" << dm_edges << ", dm_blocks=" << dm_blocks
+              << "; parent_jsonl='" << parentPath << "' baseline_jsonl='" << baselinePath << "'\n";
     return 0;
 }
