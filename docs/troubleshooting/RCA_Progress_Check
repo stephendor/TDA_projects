@@ -119,6 +119,29 @@
 
 
 
+## Checkpoint — 2025-08-14: 1M Čech final run (soft-cap vs separate-process baseline)
+
+- Parent (soft-knn-cap=16, parallel-threshold=0, time-limit=600)
+  - dm_blocks=371,011; dm_edges=3,115,973; simplices=1,602,678
+  - dm_peakMB=755.746; rss_peakMB=789.586
+  - softcap_overshoot_sum=0; softcap_overshoot_max=0
+
+- Baseline (no soft cap, serial, time-limit=600)
+  - dm_blocks=371,930; dm_edges=3,299,630; simplices=1,604,812
+  - dm_peakMB=752.184; rss_peakMB=791.402
+
+- Deltas (parent − baseline)
+  - Δedges = −183,657; Δsimplices = −2,134
+
+- Artifacts (archived)
+  - docs/performance/artifacts/2025-08-14_1m_cech/
+    - run_cech_1m_t600.jsonl (parent)
+    - baseline_cech_1m_t600.jsonl (baseline)
+    - adj_parent_1m_t600.csv, adj_baseline_1m_t600.csv (degree histograms)
+    - analyzer_1m_final.log (gate PASS)
+
+- Analyzer gate: PASS (require-csv, memory fields present, overshoot=0 under serial threshold)
+
 
 ## RCA_Plan.md
 
