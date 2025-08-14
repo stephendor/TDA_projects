@@ -321,6 +321,21 @@ target_compile_definitions(test_perf_monotonicity PRIVATE STREAMING_CECH_PERF_PA
 add_test(NAME PerfMonotonicity COMMAND test_perf_monotonicity)
 set_tests_properties(PerfMonotonicity PROPERTIES TIMEOUT 180)
 
+# Telemetry presence test (checks JSONL keys and overshoot gating)
+add_executable(test_telemetry_presence
+    test_telemetry_presence.cpp
+)
+target_link_libraries(test_telemetry_presence
+    Threads::Threads
+)
+if(TDA_ENABLE_OPENMP AND OpenMP_CXX_FOUND)
+    target_link_libraries(test_telemetry_presence OpenMP::OpenMP_CXX)
+endif()
+# Provide path to the perf harness binary at compile time
+target_compile_definitions(test_telemetry_presence PRIVATE STREAMING_CECH_PERF_PATH="$<TARGET_FILE:test_streaming_cech_perf>")
+add_test(NAME TelemetryPresence COMMAND test_telemetry_presence)
+set_tests_properties(TelemetryPresence PROPERTIES TIMEOUT 120)
+
 # =============================================================================
 # TEST CONFIGURATION
 # =============================================================================
