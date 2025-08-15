@@ -67,7 +67,7 @@ public:
     Simplex() = default;
     
     explicit Simplex(const std::vector<Index>& vertices) 
-        : vertices_(vertices), dimension_(static_cast<Dimension>(vertices.size() - 1)) {}
+        : vertices_(vertices), dimension_(vertices.empty() ? 0 : static_cast<Dimension>(vertices.size() - 1)) {}
     
     Dimension get_dimension() const { return dimension_; }
     const std::vector<Index>& get_vertices() const { return vertices_; }

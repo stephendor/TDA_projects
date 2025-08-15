@@ -41,12 +41,9 @@ endif()
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -DNDEBUG")
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g -O0 -Wall -Wextra")
 
-# Source files
+# Source files - using simplified versions for now
 set(CORE_SOURCES
-    core/point_cloud.cpp
-    core/simplex.cpp
-    core/filtration.cpp
-    core/persistent_homology.cpp
+    core/simple_core.cpp
 )
 
 set(VECTOR_STACK_SOURCES
@@ -54,7 +51,7 @@ set(VECTOR_STACK_SOURCES
 )
 
 set(ALGORITHM_SOURCES
-    algorithms/vietoris_rips.cpp
+    algorithms/simple_algorithms.cpp
 )
 
 set(UTILITY_SOURCES

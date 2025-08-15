@@ -7,10 +7,9 @@
 #include <concepts>
 #include <ranges>
 #include <span>
-#include <variant> // Added for Result type
-#include <numeric> // Added for std::accumulate
-#include <cmath> // Added for std::isfinite
-#include <algorithm> // Added for std::min, std::max
+#include <cmath>
+#include <numeric>
+#include <variant>
 
 namespace tda::core {
 

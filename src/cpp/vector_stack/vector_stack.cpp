@@ -1,10 +1,9 @@
 #include "../../../include/tda/vector_stack/vector_stack.hpp"
-#include "../../../include/tda/core/thread_safe_containers.hpp"
 #include <algorithm>
 #include <cmath>
+#include <execution>
 #include <numeric>
 #include <stdexcept>
-#include <omp.h>
 
 namespace tda::vector_stack {
 
@@ -16,10 +15,8 @@ VectorStack<T> VectorStack<T>::operator+(const VectorStack& other) const {
     }
     
     VectorStack result(rows_, cols_);
-    #pragma omp parallel for schedule(static)
-    for (size_t i = 0; i < data_.size(); ++i) {
-        result.data_[i] = data_[i] + other.data_[i];
-    }
+    std::transform(std::execution::par_unseq, data_.begin(), data_.end(), 
+                  other.data_.begin(), result.data_.begin(), std::plus<T>());
     return result;
 }
 
@@ -30,20 +27,16 @@ VectorStack<T> VectorStack<T>::operator-(const VectorStack& other) const {
     }
     
     VectorStack result(rows_, cols_);
-    #pragma omp parallel for schedule(static)
-    for (size_t i = 0; i < data_.size(); ++i) {
-        result.data_[i] = data_[i] - other.data_[i];
-    }
+    std::transform(std::execution::par_unseq, data_.begin(), data_.end(), 
+                  other.data_.begin(), result.data_.begin(), std::minus<T>());
     return result;
 }
 
 template<typename T>
 VectorStack<T> VectorStack<T>::operator*(const T& scalar) const {
     VectorStack result(rows_, cols_);
-    #pragma omp parallel for schedule(static)
-    for (size_t i = 0; i < data_.size(); ++i) {
-        result.data_[i] = data_[i] * scalar;
-    }
+    std::transform(std::execution::par_unseq, data_.begin(), data_.end(), 
+                  result.data_.begin(), [scalar](T val) { return val * scalar; });
     return result;
 }
 
@@ -54,10 +47,8 @@ VectorStack<T> VectorStack<T>::operator/(const T& scalar) const {
     }
     
     VectorStack result(rows_, cols_);
-    #pragma omp parallel for schedule(static)
-    for (size_t i = 0; i < data_.size(); ++i) {
-        result.data_[i] = data_[i] / scalar;
-    }
+    std::transform(std::execution::par_unseq, data_.begin(), data_.end(), 
+                  result.data_.begin(), [scalar](T val) { return val / scalar; });
     return result;
 }
 
@@ -67,10 +58,8 @@ VectorStack<T>& VectorStack<T>::operator+=(const VectorStack& other) {
         throw std::invalid_argument("VectorStack dimensions must match for addition");
     }
     
-    #pragma omp parallel for schedule(static)
-    for (size_t i = 0; i < data_.size(); ++i) {
-        data_[i] += other.data_[i];
-    }
+    std::transform(std::execution::par_unseq, data_.begin(), data_.end(), 
+                  other.data_.begin(), data_.begin(), std::plus<T>());
     return *this;
 }
 
@@ -80,19 +69,15 @@ VectorStack<T>& VectorStack<T>::operator-=(const VectorStack& other) {
         throw std::invalid_argument("VectorStack dimensions must match for subtraction");
     }
     
-    #pragma omp parallel for schedule(static)
-    for (size_t i = 0; i < data_.size(); ++i) {
-        data_[i] -= other.data_[i];
-    }
+    std::transform(std::execution::par_unseq, data_.begin(), data_.end(), 
+                  other.data_.begin(), data_.begin(), std::minus<T>());
     return *this;
 }
 
 template<typename T>
 VectorStack<T>& VectorStack<T>::operator*=(const T& scalar) {
-    #pragma omp parallel for schedule(static)
-    for (size_t i = 0; i < data_.size(); ++i) {
-        data_[i] *= scalar;
-    }
+    std::transform(std::execution::par_unseq, data_.begin(), data_.end(), 
+                  data_.begin(), [scalar](T val) { return val * scalar; });
     return *this;
 }
 
@@ -102,10 +87,8 @@ VectorStack<T>& VectorStack<T>::operator/=(const T& scalar) {
         throw std::invalid_argument("Division by zero");
     }
     
-    #pragma omp parallel for schedule(static)
-    for (size_t i = 0; i < data_.size(); ++i) {
-        data_[i] /= scalar;
-    }
+    std::transform(std::execution::par_unseq, data_.begin(), data_.end(), 
+                  data_.begin(), [scalar](T val) { return val / scalar; });
     return *this;
 }
 
@@ -126,12 +109,7 @@ bool VectorStack<T>::operator!=(const VectorStack& other) const {
 // Utility methods
 template<typename T>
 T VectorStack<T>::sum() const {
-    T sum = T{0};
-    #pragma omp parallel for reduction(+:sum) schedule(static)
-    for (size_t i = 0; i < data_.size(); ++i) {
-        sum += data_[i];
-    }
-    return sum;
+    return std::reduce(std::execution::par_unseq, data_.begin(), data_.end(), T{0});
 }
 
 template<typename T>
@@ -139,14 +117,7 @@ T VectorStack<T>::min() const {
     if (data_.empty()) {
         throw std::runtime_error("Cannot compute min of empty VectorStack");
     }
-    T min_val = data_[0];
-    #pragma omp parallel for reduction(min:min_val) schedule(static)
-    for (size_t i = 1; i < data_.size(); ++i) {
-        if (data_[i] < min_val) {
-            min_val = data_[i];
-        }
-    }
-    return min_val;
+    return *std::min_element(std::execution::par_unseq, data_.begin(), data_.end());
 }
 
 template<typename T>
@@ -154,14 +125,7 @@ T VectorStack<T>::max() const {
     if (data_.empty()) {
         throw std::runtime_error("Cannot compute max of empty VectorStack");
     }
-    T max_val = data_[0];
-    #pragma omp parallel for reduction(max:max_val) schedule(static)
-    for (size_t i = 1; i < data_.size(); ++i) {
-        if (data_[i] > max_val) {
-            max_val = data_[i];
-        }
-    }
-    return max_val;
+    return *std::max_element(std::execution::par_unseq, data_.begin(), data_.end());
 }
 
 template<typename T>
@@ -179,12 +143,11 @@ T VectorStack<T>::variance() const {
     }
     
     T mean_val = mean();
-    T sum_sq = T{0};
-    #pragma omp parallel for reduction(+:sum_sq) schedule(static)
-    for (size_t i = 0; i < data_.size(); ++i) {
-        T diff = data_[i] - mean_val;
-        sum_sq += diff * diff;
-    }
+    T sum_sq = std::reduce(std::execution::par_unseq, data_.begin(), data_.end(), T{0},
+                           [mean_val](T acc, T val) { 
+                               T diff = val - mean_val; 
+                               return acc + diff * diff; 
+                           });
     
     return sum_sq / static_cast<T>(data_.size() - 1);
 }
@@ -197,12 +160,11 @@ T VectorStack<T>::std_dev() const {
 // TDA-specific methods
 template<typename T>
 std::vector<T> VectorStack<T>::compute_distances() const {
-    tda::core::ThreadSafeVector<T> distances;
+    std::vector<T> distances;
     size_t n = rows_;
     size_t total_pairs = n * (n - 1) / 2;
     distances.reserve(total_pairs);
     
-    #pragma omp parallel for schedule(dynamic)
     for (size_t i = 0; i < n; ++i) {
         for (size_t j = i + 1; j < n; ++j) {
             T sum = T{0};
@@ -214,23 +176,16 @@ std::vector<T> VectorStack<T>::compute_distances() const {
         }
     }
     
-    // Convert to regular vector for return
-    std::vector<T> result;
-    result.reserve(total_pairs);
-    distances.for_each([&result](const T& val) {
-        result.push_back(val);
-    });
-    return result;
+    return distances;
 }
 
 template<typename T>
 std::vector<T> VectorStack<T>::compute_angles() const {
-    tda::core::ThreadSafeVector<T> angles;
+    std::vector<T> angles;
     size_t n = rows_;
     size_t total_triangles = n * (n - 1) * (n - 2) / 6;
     angles.reserve(total_triangles);
     
-    #pragma omp parallel for schedule(dynamic)
     for (size_t i = 0; i < n; ++i) {
         for (size_t j = i + 1; j < n; ++j) {
             for (size_t k = j + 1; k < n; ++k) {
@@ -260,21 +215,14 @@ std::vector<T> VectorStack<T>::compute_angles() const {
         }
     }
     
-    // Convert to regular vector for return
-    std::vector<T> result;
-    result.reserve(total_triangles);
-    angles.for_each([&result](const T& val) {
-        result.push_back(val);
-    });
-    return result;
+    return angles;
 }
 
 template<typename T>
 std::vector<T> VectorStack<T>::compute_norms() const {
-    tda::core::ThreadSafeVector<T> norms;
+    std::vector<T> norms;
     norms.reserve(rows_);
     
-    #pragma omp parallel for schedule(static)
     for (size_t i = 0; i < rows_; ++i) {
         T sum = T{0};
         for (size_t j = 0; j < cols_; ++j) {
@@ -284,21 +232,15 @@ std::vector<T> VectorStack<T>::compute_norms() const {
         norms.push_back(std::sqrt(sum));
     }
     
-    // Convert to regular vector for return
-    std::vector<T> result;
-    result.reserve(rows_);
-    norms.for_each([&result](const T& val) {
-        result.push_back(val);
-    });
-    return result;
+    return norms;
 }
 
-// Memory optimization
-template<typename T>
-void VectorStack<T>::optimize_memory() {
-    // Align data to SIMD boundaries
-    size_t aligned_size = ((data_.size() * sizeof(T) + core::SIMD_ALIGNMENT - 1) / 
-                           core::SIMD_ALIGNMENT) * core::SIMD_ALIGNMENT;
+    // Memory optimization
+    template<typename T>
+    void VectorStack<T>::optimize_memory() {
+        // Align data to SIMD boundaries
+        size_t aligned_size = ((data_.size() * sizeof(T) + core::SIMD_ALIGNMENT - 1) / 
+                               core::SIMD_ALIGNMENT) * core::SIMD_ALIGNMENT;
     
     if (data_.capacity() * sizeof(T) < aligned_size) {
         data_.reserve(aligned_size / sizeof(T));
@@ -317,10 +259,9 @@ void VectorStack<T>::serialize(Archive& ar) {
     ar(rows_, cols_, capacity_, data_);
 }
 
-// Explicit template instantiations to prevent linking issues
+// Explicit template instantiations
 template class VectorStack<float>;
 template class VectorStack<double>;
 template class VectorStack<int>;
-template class VectorStack<long>;
 
 } // namespace tda::vector_stack
