@@ -267,6 +267,8 @@ research/                   # Extracted research content
 - If the manifest hash does not change as expected for a variant, investigate the hashing logic and correct it.
 - If filtration recompute is not active (attempted_count is 0), ensure that point clouds are generated and accessible in the expected location.
 - If the process appears to stall, particularly with large datasets, inspect the performance harness source and target wiring to understand the exact parameters, modes, and potential blocking points. Run small DM-only probes and constrained runs with time/memory stats to diagnose the issue.
+- **If the test `StreamingVRParity` fails, analyze the terminal output for subprocess aborts and address the root cause of the failure before proceeding. YOU (the AI) must open the test source to see what `StreamingVRParity` does and then run the specific test binary to capture the full error output for diagnosis. YOU (the AI) must open the test source to see what `StreamingVRParity` does and then run the specific test binary to capture the full error output for diagnosis.**
+- **If the test `StreamingVRParity` fails, YOU (the AI) must open the streaming VR headers and implementation to see how epsilon/threshold is handled and why stats.threshold isn't set to eps.** The AI must search for the StreamingVRComplex implementation and its statistics structure to see how threshold is set and propagated.
 
 ## 🧪 **VALIDATION & TESTING**
 
@@ -598,3 +600,8 @@ docker run -d \
 ## 🧪 VALIDATION & TESTING
 
 ## 🛠️ DEBUGGING
+- If a required diagnostics key is missing, patch the code to include it before running any variant runs.
+- If any variant run crashes, analyze the terminal output, fix the issue, and rerun the variant.
+- If the manifest hash does not change as expected for a variant, investigate the hashing logic and correct it.
+- If filtration recompute is not active (attempted_count is 0), ensure that point clouds are generated and accessible in the expected location.
+- If the process appears to stall, particularly with large datasets, inspect the performance harness source and target wiring to understand the exact parameters, modes, and potential
