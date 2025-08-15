@@ -396,3 +396,17 @@ endif()
 target_compile_definitions(test_vr_telemetry_presence PRIVATE STREAMING_CECH_PERF_PATH="$<TARGET_FILE:test_streaming_cech_perf>")
 add_test(NAME VRTelemetryPresence COMMAND test_vr_telemetry_presence)
 set_tests_properties(VRTelemetryPresence PROPERTIES TIMEOUT 120)
+
+# VR adjacency histogram presence test (ensures CSV gets emitted in VR mode)
+add_executable(test_vr_adj_hist_presence
+    test_vr_adj_hist_presence.cpp
+)
+target_link_libraries(test_vr_adj_hist_presence
+    Threads::Threads
+)
+if(TDA_ENABLE_OPENMP AND OpenMP_CXX_FOUND)
+    target_link_libraries(test_vr_adj_hist_presence OpenMP::OpenMP_CXX)
+endif()
+target_compile_definitions(test_vr_adj_hist_presence PRIVATE STREAMING_CECH_PERF_PATH="$<TARGET_FILE:test_streaming_cech_perf>")
+add_test(NAME VRAdjHistPresence COMMAND test_vr_adj_hist_presence)
+set_tests_properties(VRAdjHistPresence PROPERTIES TIMEOUT 120)

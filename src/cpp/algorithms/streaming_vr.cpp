@@ -174,7 +174,8 @@ tda::core::Result<tda::core::ComplexStatistics> StreamingVRComplex::getStatistic
     stats.num_points = points_.size();
     stats.num_simplices = simplex_tree_->num_simplices();
     stats.max_dimension = simplex_tree_->dimension();
-    stats.threshold = std::max(0.0, config_.dm.max_distance);
+    // In VR, the geometric threshold is epsilon; echo that for clarity/parity
+    stats.threshold = config_.epsilon;
     stats.simplex_count_by_dim.clear();
     for (int d = 0; d <= simplex_tree_->dimension(); ++d) {
         int count = 0;

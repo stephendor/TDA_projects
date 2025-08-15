@@ -51,6 +51,16 @@
     - CLI flags in the harness to select VR mode; export same JSONL/CSV.
   - DoD:
     - Unit tests on small-n exact parity; perf probe runs produce VR artifacts; CI job exercises VR path and uploads outputs.
+    - Status: COMPLETE
+      - Streaming VR builder and harness mode (`--mode vr`, `--epsilon`) implemented.
+      - Unit tests added:
+        - `StreamingVRParity` (small‑n exact parity vs classic VR) — PASS
+        - `VRTelemetryPresence` (VR JSONL telemetry keys + overshoot==0 under serial threshold) — PASS
+        - `VRAdjHistPresence` (VR adjacency CSV presence) — PASS
+      - CI:
+        - `cpp-vr-perf-probe` runs with analyzer gate `--gate --require-csv` and uploads artifacts.
+        - `cpp-tests` runs targeted VR tests including CSV presence.
+      - Docs updated: VR usage and analyzer expectations in `docs/performance/README.md`.
 
 ## Phase 4 — SimplexPool fragmentation telemetry and maintenance
 

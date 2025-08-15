@@ -122,7 +122,7 @@ jobs:
 
       - name: Run targeted C++ tests (PerfBaselineJSONL + PerfMonotonicity + VR tests)
         run: |
-          ctest --test-dir build/release -R "(PerfBaselineJSONL|PerfMonotonicity|StreamingVRParity|VRTelemetryPresence)" --output-on-failure --timeout 180
+          ctest --test-dir build/release -R "(PerfBaselineJSONL|PerfMonotonicity|StreamingVRParity|VRTelemetryPresence|VRAdjHistPresence)" --output-on-failure --timeout 180
 
       - name: List JSONL metrics (info only)
         if: always()
@@ -585,7 +585,7 @@ jobs:
         run: |
           python3 scripts/analyze_performance_logs.py \
             --artifacts "$TDA_ARTIFACT_DIR" \
-            --gate
+            --gate --require-csv
 
       - name: Compact analyzer summary
         if: always()

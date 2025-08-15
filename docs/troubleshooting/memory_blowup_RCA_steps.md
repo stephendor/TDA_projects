@@ -56,6 +56,9 @@ Let me create a new performance test that uses streaming algorithms and memory p
 
 Now let me add this test to the CMakeLists.txt:
 
+- Added `StreamingVRParity`, `VRTelemetryPresence`, and `VRAdjHistPresence` to `tests/cpp/CMakeLists.txt`.
+- CI `cpp-tests` job now runs these VR tests; `cpp-vr-perf-probe` enforces `--require-csv`.
+
 Let me check the current CMakeLists.txt content:
 
 Read file: tests/cpp/CMakeLists.txt
