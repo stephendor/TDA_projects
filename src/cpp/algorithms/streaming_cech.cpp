@@ -248,8 +248,6 @@ void StreamingCechComplex::buildNeighborsStreaming() {
     // Note: dmcfg.enable_parallel_threshold and dmcfg.edge_callback_threadsafe are already set in config_.dm
     dmcfg.edge_callback_threadsafe = dmcfg.edge_callback_threadsafe || dmcfg.enable_parallel_threshold;
     dm.setConfig(dmcfg);
-    // Persist the effective threshold back into our config for introspection/stats
-    config_.dm.max_distance = dmcfg.max_distance;
 
     const size_t N = points_.size();
     neighbors_.assign(N, {});

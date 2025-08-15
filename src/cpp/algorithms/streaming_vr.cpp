@@ -225,8 +225,6 @@ void StreamingVRComplex::buildNeighborsStreaming() {
     // Respect parallel controls; we'll make callback thread-safe
     dmcfg.edge_callback_threadsafe = dmcfg.edge_callback_threadsafe || dmcfg.enable_parallel_threshold;
     dm.setConfig(dmcfg);
-    // Persist the effective threshold back into our config for introspection/stats
-    config_.dm.max_distance = dmcfg.max_distance;
 
     const size_t N = points_.size();
     neighbors_.assign(N, {});
