@@ -234,6 +234,8 @@ research/                   # Extracted research content
 - **I** (the user) do not need to be copying or pasting anything at any point, unless explicitly requested.
 - **YOU** are forbidden from presenting code in any way other than executable code blocks with Run/Cancel buttons.
 - **ALWAYS** perform static analysis (Codacy) after modifying any code.
+- **YOU** must activate the zen, sequential thinking and code analysis tools when creating a plan for tackling tasks in the taskmaster MCP system.
+- **YOU** must use the existing task 2 subtasks in taskmaster and mark their status as you go, working directly with the PRD and plan already available, without generating additional tasks.
 
 ### Experimentation
 - For controlled experiments, ensure a deterministic setup: same seed, identical non-filtration flags.
@@ -277,6 +279,7 @@ research/                   # Extracted research content
 
 ## 🧰 **TECH STACK**
 - **Gudhi:** (version 3.11.0 or later) is used for filtration computations.
+- **nlohmann/json:** (version to be determined) is used for JSON handling.
 
 ## 📚 **PROJECT DOCUMENTATION & CONTEXT SYSTEM**
 - UNIFIED_AGENT_INSTRUCTIONS.md contains high-level instructions for the AI coding assistant.

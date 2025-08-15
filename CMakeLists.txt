@@ -29,6 +29,7 @@ option(TDA_BUILD_EXAMPLES "Build example programs" ON)
 option(TDA_ENABLE_SIMD "Enable SIMD optimizations" ON)
 option(TDA_ENABLE_OPENMP "Enable OpenMP parallelization" ON)
 option(TDA_ENABLE_CUDA "Enable CUDA support" OFF)
+option(TDA_INSTALL "Install libraries and headers" OFF)
 
 # =============================================================================
 # COMPILER CONFIGURATION
@@ -197,6 +198,31 @@ if(PkgConfig_FOUND)
     pkg_check_modules(MPFR mpfr)
 endif()
 
+# nlohmann/json for configuration and serialization - header-only
+find_path(NLOHMANN_JSON_INCLUDE_DIR nlohmann/json.hpp
+    PATHS /usr/include /usr/local/include
+)
+if(NOT NLOHMANN_JSON_INCLUDE_DIR)
+    message(STATUS "nlohmann/json not found, downloading directly")
+    include(ExternalProject)
+    ExternalProject_Add(json_external
+        URL https://github.com/nlohmann/json/releases/download/v3.11.2/json.tar.xz
+        URL_HASH SHA256=8c4b26bf4b422252e13f332bc5e388ec0ab5c3443d24399acb675e68278d341f
+        CONFIGURE_COMMAND ""
+        BUILD_COMMAND ""
+        INSTALL_COMMAND ""
+        SOURCE_DIR ${CMAKE_BINARY_DIR}/json-src
+    )
+    set(NLOHMANN_JSON_INCLUDE_DIR ${CMAKE_BINARY_DIR}/json-src/include)
+    add_library(nlohmann_json INTERFACE)
+    add_dependencies(nlohmann_json json_external)
+    target_include_directories(nlohmann_json INTERFACE ${NLOHMANN_JSON_INCLUDE_DIR})
+else()
+    message(STATUS "Found nlohmann/json: ${NLOHMANN_JSON_INCLUDE_DIR}")
+    add_library(nlohmann_json INTERFACE)
+    target_include_directories(nlohmann_json INTERFACE ${NLOHMANN_JSON_INCLUDE_DIR})
+endif()
+
 if(GMP_FOUND AND MPFR_FOUND)
     message(STATUS "Found GMP and MPFR - enabling high-precision arithmetic")
     add_compile_definitions(TDA_USE_HIGH_PRECISION)
@@ -219,6 +245,19 @@ add_library(tda_core STATIC
     src/cpp/core/simple_core.cpp
     src/cpp/core/simplex.cpp
     src/cpp/core/types.cpp
+)
+
+add_library(tda_vectorization STATIC
+    src/cpp/vectorization/betti_curve.cpp
+    src/cpp/vectorization/persistence_landscape.cpp
+    src/cpp/vectorization/persistence_image.cpp
+    src/cpp/vectorization/vectorizer_registry.cpp
+)
+
+add_library(tda_storage STATIC
+    src/cpp/storage/storage_service.cpp
+    src/cpp/storage/postgresql_storage.cpp
+    src/cpp/storage/mongodb_storage.cpp
 )
 
 add_library(tda_vector_stack STATIC
@@ -272,7 +311,7 @@ endif()
 # =============================================================================
 
 # Set target properties for all libraries
-set(TDA_LIBRARIES tda_core tda_vector_stack tda_algorithms tda_spatial tda_utils)
+set(TDA_LIBRARIES tda_core tda_vector_stack tda_algorithms tda_spatial tda_utils tda_vectorization tda_storage)
 
 foreach(lib ${TDA_LIBRARIES})
     target_link_libraries(${lib} PUBLIC Eigen3::Eigen)
@@ -290,6 +329,9 @@ foreach(lib ${TDA_LIBRARIES})
         target_link_libraries(${lib} PUBLIC ${MPFR_LIBRARIES})
         target_include_directories(${lib} PUBLIC ${MPFR_INCLUDE_DIRS})
     endif()
+    
+    # Add nlohmann_json for all libraries
+    target_link_libraries(${lib} PUBLIC nlohmann_json)
 endforeach()
 
 # Platform executable linking
@@ -333,48 +375,53 @@ endif()
 if(TDA_BUILD_EXAMPLES)
     add_executable(vietoris_rips_demo examples/vietoris_rips_demo.cpp)
     target_link_libraries(vietoris_rips_demo ${TDA_LIBRARIES})
+    
+    add_executable(vectorization_storage_example examples/vectorization_storage_example.cpp)
+    target_link_libraries(vectorization_storage_example ${TDA_LIBRARIES})
 endif()
 
 # =============================================================================
 # INSTALLATION
 # =============================================================================
 
-# Install libraries
-install(TARGETS ${TDA_LIBRARIES} tda_platform
-    EXPORT TDATargets
-    LIBRARY DESTINATION lib
-    ARCHIVE DESTINATION lib
-    RUNTIME DESTINATION bin
-)
+if(TDA_INSTALL)
+  # Install libraries
+  install(TARGETS ${TDA_LIBRARIES} tda_platform
+      EXPORT TDATargets
+      LIBRARY DESTINATION lib
+      ARCHIVE DESTINATION lib
+      RUNTIME DESTINATION bin
+  )
 
-# Install Python module (if built)
-if(TDA_BUILD_PYTHON)
-    install(TARGETS tda_python
-        LIBRARY DESTINATION lib/python3/site-packages
-    )
+  # Install Python module (if built)
+  if(TDA_BUILD_PYTHON)
+      install(TARGETS tda_python
+          LIBRARY DESTINATION lib/python3/site-packages
+      )
+  endif()
+
+  # Install headers
+  install(DIRECTORY include/ DESTINATION include)
+
+  # Install CMake config files
+  install(EXPORT TDATargets
+      FILE TDATargets.cmake
+      NAMESPACE TDA::
+      DESTINATION lib/cmake/TDA
+  )
+
+  include(CMakePackageConfigHelpers)
+  write_basic_package_version_file(
+      TDAConfigVersion.cmake
+      VERSION ${PACKAGE_VERSION}
+      COMPATIBILITY AnyNewerVersion
+  )
+
+  install(FILES
+      "${CMAKE_CURRENT_BINARY_DIR}/TDAConfigVersion.cmake"
+      DESTINATION lib/cmake/TDA
+  )
 endif()
-
-# Install headers
-install(DIRECTORY include/ DESTINATION include)
-
-# Install CMake config files
-install(EXPORT TDATargets
-    FILE TDATargets.cmake
-    NAMESPACE TDA::
-    DESTINATION lib/cmake/TDA
-)
-
-include(CMakePackageConfigHelpers)
-write_basic_package_version_file(
-    TDAConfigVersion.cmake
-    VERSION ${PACKAGE_VERSION}
-    COMPATIBILITY AnyNewerVersion
-)
-
-install(FILES
-    "${CMAKE_CURRENT_BINARY_DIR}/TDAConfigVersion.cmake"
-    DESTINATION lib/cmake/TDA
-)
 
 # =============================================================================
 # DOCUMENTATION
@@ -420,3 +467,5 @@ message(STATUS "  Build Tests: ${TDA_BUILD_TESTS}")
 message(STATUS "  Build Benchmarks: ${TDA_BUILD_BENCHMARKS}")
 message(STATUS "  Build Python: ${TDA_BUILD_PYTHON}")
 message(STATUS "  Build Examples: ${TDA_BUILD_EXAMPLES}")
+message(STATUS "  JSON Library: nlohmann_json v3.11.2")
+message(STATUS "  Install Libraries: ${TDA_INSTALL}")

@@ -1,0 +1,125 @@
+#pragma once
+
+#include <tda/vectorization/vectorizer.hpp>
+#include <string>
+#include <nlohmann/json.hpp>
+
+namespace tda {
+namespace vectorization {
+
+/**
+ * @brief Implements Persistence Landscape vectorization
+ * 
+ * Persistence landscapes transform persistence diagrams into a sequence of 
+ * continuous, piecewise linear functions. These functions are then sampled
+ * at fixed intervals to produce a vector representation.
+ * 
+ * The implementation supports multiple landscape levels and dimension filtering.
+ */
+class PersistenceLandscape : public Vectorizer {
+public:
+    /**
+     * @brief Configuration for Persistence Landscape computation
+     */
+    struct Config {
+        // Number of sample points along the filtration range
+        size_t resolution = 100;
+        
+        // Number of landscape levels to compute
+        size_t num_landscapes = 5;
+        
+        // Maximum homology dimension to consider (0 = connected components, 1 = loops, etc.)
+        int max_dimension = 2;
+        
+        // Whether to normalize the landscape values to [0,1] range
+        bool normalize = true;
+        
+        // Whether to include dimension in the feature vector as a prefix
+        bool include_dimension_prefix = true;
+        
+        // Minimum filtration value (auto-computed if not specified)
+        double min_filtration = 0.0;
+        
+        // Maximum filtration value (auto-computed if not specified)
+        double max_filtration = -1.0;  // negative value means auto-compute
+    };
+    
+    /**
+     * @brief Construct with default configuration
+     */
+    PersistenceLandscape();
+    
+    /**
+     * @brief Construct with custom configuration
+     * 
+     * @param config The configuration to use
+     */
+    explicit PersistenceLandscape(const Config& config);
+    
+    /**
+     * @brief Vectorize a persistence diagram into a persistence landscape
+     * 
+     * @param diagram The persistence diagram to vectorize
+     * @return FeatureVector The resulting persistence landscape feature vector
+     */
+    FeatureVector vectorize(const PersistenceDiagram& diagram) const override;
+    
+    /**
+     * @brief Get the name of the vectorization method
+     * 
+     * @return std::string "PersistenceLandscape"
+     */
+    std::string getName() const override;
+    
+    /**
+     * @brief Get the dimension of the resulting feature vector
+     * 
+     * @return size_t resolution * num_landscapes * (max_dimension + 1)
+     */
+    size_t getDimension() const override;
+    
+    /**
+     * @brief Create a JSON representation of the vectorizer configuration
+     * 
+     * @return std::string JSON string with vectorizer parameters
+     */
+    std::string toJSON() const override;
+    
+    /**
+     * @brief Get the current configuration
+     * 
+     * @return const Config& The current configuration
+     */
+    const Config& getConfig() const;
+    
+    /**
+     * @brief Set a new configuration
+     * 
+     * @param config The new configuration to use
+     */
+    void setConfig(const Config& config);
+    
+private:
+    Config config_;
+    
+    /**
+     * @brief Compute a specific landscape level for a given dimension
+     * 
+     * @param diagram The persistence diagram
+     * @param level The landscape level to compute (1-indexed)
+     * @param dimension The homology dimension
+     * @param grid_points The grid points at which to sample the landscape
+     * @return std::vector<double> The landscape values at the grid points
+     */
+    std::vector<double> computeLandscapeLevel(
+        const PersistenceDiagram& diagram,
+        size_t level,
+        int dimension,
+        const std::vector<double>& grid_points) const;
+};
+
+// Factory function for PersistenceLandscape
+std::unique_ptr<Vectorizer> createPersistenceLandscape();
+
+} // namespace vectorization
+} // namespace tda

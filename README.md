@@ -26,11 +26,43 @@ src/
 include/
 └── tda/                # Public headers
 
+examples/               # Example implementations
+├── vectorization_storage_example.md         # Documentation example
+├── vectorization_storage_example_simplified.cpp  # Simplified standalone example
+└── README.md           # Example documentation
+
 research/               # Extracted high-value research
 ├── papers/             # Research papers
 ├── implementations/    # Key algorithm implementations
 └── benchmarks/         # Performance benchmarks
 ```
+
+## 📊 Examples
+
+The project includes examples demonstrating key TDA concepts:
+
+### Vectorization and Storage Example
+
+A comprehensive example showing:
+
+- Persistence diagram computation
+- Vectorization techniques (Betti curves, persistence landscapes, persistence images)
+- Storage in databases (PostgreSQL for metadata, MongoDB for raw data)
+
+To build and run the simplified standalone example:
+
+```bash
+./direct_build.sh
+./build/direct/vectorization_example
+```
+
+For a guided walkthrough with explanations:
+
+```bash
+./run_example_with_explanation.sh
+```
+
+See the `examples` directory for more information.
 
 ## 📋 Requirements
 

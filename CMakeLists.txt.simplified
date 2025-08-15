@@ -1,0 +1,27 @@
+cmake_minimum_required(VERSION 3.14)
+project(TDA_Simplified_Example VERSION 1.0)
+
+# Set C++ standard
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+# Create the simplified example executable
+add_executable(vectorization_storage_example_simplified 
+    examples/vectorization_storage_example_simplified.cpp
+)
+
+# Add include directories if needed
+target_include_directories(vectorization_storage_example_simplified PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}
+)
+
+# Add compiler options
+target_compile_options(vectorization_storage_example_simplified PRIVATE
+    $<$<CXX_COMPILER_ID:GNU>:-Wall -Wextra>
+    $<$<CXX_COMPILER_ID:Clang>:-Wall -Wextra>
+)
+
+# Install rules
+install(TARGETS vectorization_storage_example_simplified
+    RUNTIME DESTINATION bin
+)
