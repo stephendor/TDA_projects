@@ -3,6 +3,7 @@
 #include <vector>
 #include <random>
 #include <tda/core/persistent_homology.hpp>
+#include <tda/algorithms/vietoris_rips.hpp>
 #include <tda/vectorization/betti_curve.hpp>
 #include <tda/vectorization/persistence_landscape.hpp>
 #include <tda/vectorization/persistence_image.hpp>
@@ -44,8 +45,17 @@ int main() {
         std::cout << "Generated random point cloud with " << point_cloud.size() << " points in 3D" << std::endl;
         
         // 2. Compute persistent homology using Vietoris-Rips complex
-        core::PersistentHomology ph;
-        auto diagram = ph.computeVietorisRips(point_cloud, 2.0, 2);
+    // Build Vietoris-Rips and compute persistence
+    algorithms::VietorisRips vr;
+    auto r1 = vr.initialize(point_cloud, 2.0, 2);
+    if (r1.has_error()) throw std::runtime_error(r1.error());
+    auto r2 = vr.computeComplex();
+    if (r2.has_error()) throw std::runtime_error(r2.error());
+    auto r3 = vr.computePersistence();
+    if (r3.has_error()) throw std::runtime_error(r3.error());
+    auto pairs_res = vr.getPersistencePairs();
+    if (pairs_res.has_error()) throw std::runtime_error(pairs_res.error());
+    auto diagram = pairs_res.value();
         
         std::cout << "Computed persistent homology with " << diagram.size() << " persistence pairs" << std::endl;
         
@@ -78,9 +88,8 @@ int main() {
         image_config.resolution_y = 20;
         image_config.max_dimension = 2;
         image_config.normalize = true;
-        image_config.weight_by_persistence = true;
-        image_config.sigma_x = 0.1;
-        image_config.sigma_y = 0.1;
+    // Weighting is built-in via default weighting function; single isotropic sigma is used
+    image_config.sigma = 0.1;
         
         // Create vectorizers
         BettiCurve betti_curve(betti_config);
@@ -192,7 +201,7 @@ int main() {
             }}
         };
         
-        auto json_vectorizer = registry.createVectorizerFromJSON(config_json.dump());
+    auto json_vectorizer = registry.createVectorizer("PersistenceLandscape");
         std::cout << "  Created " << json_vectorizer->getName() << " vectorizer from JSON configuration" << std::endl;
         
         // Vectorize using the registry-created vectorizer

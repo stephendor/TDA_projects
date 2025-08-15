@@ -236,6 +236,8 @@ research/                   # Extracted research content
 - **ALWAYS** perform static analysis (Codacy) after modifying any code.
 - **YOU** must activate the zen, sequential thinking and code analysis tools when creating a plan for tackling tasks in the taskmaster MCP system.
 - **YOU** must use the existing task 2 subtasks in taskmaster and mark their status as you go, working directly with the PRD and plan already available, without generating additional tasks.
+- Before starting implementation, **ALWAYS** understand the code structure and look at existing implementations to ensure consistency.
+- Before integrating newly created examples, ensure they align with the project's actual vectorization API. Inspect key headers and the example source to compare interfaces and identify any mismatches before building.
 
 ### Experimentation
 - For controlled experiments, ensure a deterministic setup: same seed, identical non-filtration flags.
@@ -256,11 +258,19 @@ research/                   # Extracted research content
 - If any variant run crashes, analyze the terminal output, fix the issue, and rerun the variant.
 - If the manifest hash does not change as expected for a variant, investigate the hashing logic and correct it.
 - If filtration recompute is not active (attempted_count is 0), ensure that point clouds are generated and accessible in the expected location.
+- If there are build errors, focus on the failing targets and patch the files and rebuild.
+- When facing build issues, inspect the build script and last build log to identify current errors.
+- Before integrating newly created examples, ensure they align with the project's actual vectorization API. Inspect key headers and the example source to compare interfaces and identify any mismatches before building.
+- To align our example with the project's actual vectorization API and ensure integration, inspect the key headers and the example source to compare interfaces and identify any mismatches before building.
+- Scan the core and vectorization headers and source files to locate definitions of data structures and method signatures to apply targeted fixes.
+- Inspect the failing source files to identify missing includes and patch them to include the correct header.
+- Inspect relevant headers and source files to align method signatures and replace outdated API calls.
 
 ## 🧪 **VALIDATION & TESTING**
 
 - If leakage is detected (potential_leakage_flag is true), stop all further tuning and investigate manifest construction.
 - Before accepting a new configuration, always validate full vs pruned pipeline once.
+- Update unit tests to use a floating-point tolerance for comparing persistence where required.
 
 ## 🗑️ **METHODOLOGY GRAVEYARD**
 - Document all failed approaches and their rationale in `METHODOLOGY_GRAVEYARD.md`.

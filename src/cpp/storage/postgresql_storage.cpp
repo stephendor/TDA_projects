@@ -69,12 +69,12 @@ bool PostgreSQLStorage::storeDiagram(
         // Convert diagram to JSON representation
         nlohmann::json diagram_json = nlohmann::json::array();
         for (const auto& pair : diagram) {
-            diagram_json.push_back({
-                {"dimension", pair.dimension},
-                {"birth", pair.birth},
-                {"death", pair.death},
-                {"persistence", pair.death - pair.birth}
-            });
+            nlohmann::json obj;
+            obj["dimension"] = pair.dimension;
+            obj["birth"] = pair.birth;
+            obj["death"] = pair.death;
+            obj["persistence"] = pair.death - pair.birth;
+            diagram_json.push_back(obj);
         }
         
         // Convert metadata to JSON
@@ -164,7 +164,7 @@ bool PostgreSQLStorage::storeVectorization(
     }
 }
 
-std::optional<PersistenceDiagram> PostgreSQLStorage::getDiagram(const std::string& id) {
+std::optional<StorageService::PersistenceDiagram> PostgreSQLStorage::getDiagram(const std::string& id) {
     if (!connected_) {
         std::cerr << "Not connected to PostgreSQL database" << std::endl;
         return std::nullopt;
@@ -195,7 +195,7 @@ std::optional<PersistenceDiagram> PostgreSQLStorage::getDiagram(const std::strin
     }
 }
 
-std::optional<FeatureVector> PostgreSQLStorage::getVectorization(
+std::optional<StorageService::FeatureVector> PostgreSQLStorage::getVectorization(
     const std::string& diagram_id,
     const std::string& vectorizer_id) {
     

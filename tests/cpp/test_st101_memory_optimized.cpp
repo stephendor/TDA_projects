@@ -3,6 +3,7 @@
 #include <vector>
 #include <random>
 #include <chrono>
+#include <thread>
 #include <memory>
 #include <algorithm>
 #include "tda/algorithms/sparse_rips.hpp"
@@ -128,9 +129,10 @@ public:
         auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
         
         tda::utils::DistanceMatrixResult result;
-        result.matrix = std::move(matrix);
-        result.computation_time_seconds = duration.count() / 1000.0;
-        result.total_points = n;
+    result.matrix = std::move(matrix);
+    result.computation_time_seconds = duration.count() / 1000.0;
+    // Approximate total computations for a symmetric matrix (upper triangle)
+    result.total_computations = n > 1 ? (n * (n - 1)) / 2 : 0;
         
         return result;
     }

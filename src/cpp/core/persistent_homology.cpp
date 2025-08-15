@@ -1,4 +1,6 @@
 #include "../../../include/tda/core/types.hpp"
+#include "../../../include/tda/core/filtration.hpp"
+#include "../../../include/tda/core/simplex.hpp"
 #include <algorithm>
 #include <execution>
 #include <queue>
@@ -96,8 +98,8 @@ public:
             return;
         }
         
-        // Ensure filtration is sorted by birth time
-        filtration_.sort_by_birth_time();
+    // Ensure filtration is sorted by filtration value
+    filtration_.sortByFiltration();
         
         // Clear previous results
         persistence_pairs_.clear();
@@ -288,15 +290,35 @@ private:
         // Sparse boundary matrix: for each column, store indices of nonzero entries (row indices)
         std::vector<std::vector<size_type>> boundary_matrix(n);
         
+        // Helper to compute faces of a simplex by removing one vertex at a time
+        auto compute_faces = [](const Simplex& s) {
+            std::vector<Simplex> faces;
+            const auto& verts = s.vertices();
+            if (verts.size() <= 1) {
+                return faces; // 0-simplex has no faces
+            }
+            faces.reserve(verts.size());
+            for (std::size_t drop = 0; drop < verts.size(); ++drop) {
+                Simplex::VertexList face_vertices;
+                face_vertices.reserve(verts.size() - 1);
+                for (std::size_t k = 0; k < verts.size(); ++k) {
+                    if (k != drop) face_vertices.push_back(verts[k]);
+                }
+                // Face filtration value should not exceed simplex filtration value
+                faces.emplace_back(std::move(face_vertices), s.filtrationValue());
+            }
+            return faces;
+        };
+
         // Fill sparse boundary matrix
         for (size_type j = 0; j < n; ++j) {
             const auto& simplex = filtration_[j];
-            auto faces = simplex.get_faces();
+            auto faces = compute_faces(simplex);
             
             for (const auto& face : faces) {
                 // Find face index in filtration
                 for (size_type i = 0; i < n; ++i) {
-                    if (filtration_[j] == face) {
+                    if (filtration_[i] == face) {
                         boundary_matrix[j].push_back(i);
                         break;
                     }
@@ -346,14 +368,14 @@ private:
         for (size_type j = 0; j < n; ++j) {
             if (low[j] < n) {
                 // Finite pair
-                double birth_time = filtration_.get_birth_time(j);
-                double death_time = filtration_.get_birth_time(low[j]);
+                double birth_time = filtration_[j].filtrationValue();
+                double death_time = filtration_[low[j]].filtrationValue();
                 Dimension dim = filtration_[j].dimension();
                 
                 persistence_pairs_.emplace_back(birth_time, death_time, dim, j, low[j]);
             } else {
                 // Infinite pair (birth simplex)
-                double birth_time = filtration_.get_birth_time(j);
+                double birth_time = filtration_[j].filtrationValue();
                 Dimension dim = filtration_[j].dimension();
                 
                 persistence_pairs_.emplace_back(birth_time, std::numeric_limits<double>::infinity(), 

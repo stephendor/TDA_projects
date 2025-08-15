@@ -43,5 +43,10 @@ std::vector<std::string> VectorizerRegistry::getRegisteredNames() const {
     return names;
 }
 
+// Implement the registrar that vectorizers use for static registration
+VectorizerRegistrar::VectorizerRegistrar(const std::string& name, VectorizerFactory factory) {
+    VectorizerRegistry::getInstance().registerVectorizer(name, factory);
+}
+
 } // namespace vectorization
 } // namespace tda

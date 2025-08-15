@@ -2,6 +2,7 @@
 #include <cassert>
 #include <vector>
 #include <string>
+#include <cmath>
 #include "tda/core/types.hpp"
 
 namespace {
@@ -31,7 +32,8 @@ void test_persistence_pair() {
     assert(pair.birth == 2.5);
     assert(pair.death == 3.8);
     assert(pair.dimension == 1);
-    assert(pair.get_persistence() == 1.3);
+    // Use a tolerance for floating point comparison
+    assert(std::fabs(pair.get_persistence() - 1.3) < 1e-12);
     
     std::cout << "✅ PersistencePair test passed" << std::endl;
 }

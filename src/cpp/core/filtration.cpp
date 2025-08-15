@@ -58,27 +58,52 @@ void Filtration::sortByDimensionAndFiltration() {
 
 std::vector<Simplex> Filtration::getSimplicesAtFiltration(double value) const {
     std::vector<Simplex> out;
-    for (const auto& s : simplices_) if (s.filtrationValue() == value) out.push_back(s);
+    for (const auto& s : simplices_) {
+        if (s.filtrationValue() == value) {
+            out.push_back(s);
+        }
+    }
     return out;
 }
 std::vector<Simplex> Filtration::getSimplicesAtDimension(int dimension) const {
     std::vector<Simplex> out;
-    for (const auto& s : simplices_) if (static_cast<int>(s.dimension()) == dimension) out.push_back(s);
+    for (const auto& s : simplices_) {
+        if (static_cast<int>(s.dimension()) == dimension) {
+            out.push_back(s);
+        }
+    }
     return out;
 }
 double Filtration::maxFiltrationValue() const {
-    double m = 0.0; for (const auto& s: simplices_) m = std::max(m, s.filtrationValue()); return m;
+    double m = 0.0;
+    for (const auto& s: simplices_) {
+        m = std::max(m, s.filtrationValue());
+    }
+    return m;
 }
 double Filtration::minFiltrationValue() const {
-    if (simplices_.empty()) return 0.0; double m = simplices_.front().filtrationValue();
-    for (const auto& s: simplices_) m = std::min(m, s.filtrationValue()); return m;
+    if (simplices_.empty()) return 0.0;
+    double m = simplices_.front().filtrationValue();
+    for (const auto& s: simplices_) {
+        m = std::min(m, s.filtrationValue());
+    }
+    return m;
 }
 int Filtration::maxDimension() const {
-    int m = 0; for (const auto& s: simplices_) m = std::max(m, static_cast<int>(s.dimension())); return m;
+    int m = 0;
+    for (const auto& s: simplices_) {
+        m = std::max(m, static_cast<int>(s.dimension()));
+    }
+    return m;
 }
 
 bool Filtration::isValid() const {
-    for (const auto& s: simplices_) if (!s.isValid()) return false; return true;
+    for (const auto& s: simplices_) {
+        if (!s.isValid()) {
+            return false;
+        }
+    }
+    return true;
 }
 bool Filtration::isSorted() const { return sorted_; }
 

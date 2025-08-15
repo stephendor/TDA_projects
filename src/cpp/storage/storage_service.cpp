@@ -62,7 +62,7 @@ HybridStorageService::HybridStorageService(
 
 bool HybridStorageService::storeDiagram(
     const std::string& id,
-    const PersistenceDiagram& diagram,
+    const StorageService::PersistenceDiagram& diagram,
     const DiagramMetadata& metadata) {
     
     // Store metadata in the metadata storage (e.g., PostgreSQL)
@@ -88,7 +88,7 @@ bool HybridStorageService::storeDiagram(
 bool HybridStorageService::storeVectorization(
     const std::string& diagram_id,
     const std::string& vectorizer_id,
-    const FeatureVector& vector,
+    const StorageService::FeatureVector& vector,
     const VectorMetadata& metadata) {
     
     // Store metadata in the metadata storage
@@ -111,7 +111,7 @@ bool HybridStorageService::storeVectorization(
     return true;
 }
 
-std::optional<PersistenceDiagram> HybridStorageService::getDiagram(const std::string& id) {
+std::optional<StorageService::PersistenceDiagram> HybridStorageService::getDiagram(const std::string& id) {
     // Try to get diagram from data storage first, as it contains the full data
     auto diagram = data_storage_->getDiagram(id);
     
@@ -123,7 +123,7 @@ std::optional<PersistenceDiagram> HybridStorageService::getDiagram(const std::st
     return metadata_storage_->getDiagram(id);
 }
 
-std::optional<FeatureVector> HybridStorageService::getVectorization(
+std::optional<StorageService::FeatureVector> HybridStorageService::getVectorization(
     const std::string& diagram_id,
     const std::string& vectorizer_id) {
     

@@ -65,6 +65,10 @@ struct PersistencePair {
     constexpr PersistencePair(Birth b, Death d, Dimension dim, Index b_sim, Index d_sim)
         : birth(b), death(d), dimension(dim), birth_simplex(b_sim), death_simplex(d_sim) {}
     
+    // Overload matching (Dimension, Birth, Death, Index, Index) order used in tests
+    constexpr PersistencePair(Dimension dim, Birth b, Death d, Index b_sim, Index d_sim)
+        : birth(b), death(d), dimension(dim), birth_simplex(b_sim), death_simplex(d_sim) {}
+
     // Simple constructor for TDA algorithms
     constexpr PersistencePair(Dimension dim, Birth b, Death d)
         : birth(b), death(d), dimension(dim), birth_simplex(0), death_simplex(0) {}

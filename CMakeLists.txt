@@ -271,6 +271,7 @@ add_library(tda_vector_stack STATIC
 
 add_library(tda_algorithms STATIC
     src/cpp/algorithms/vietoris_rips.cpp
+    src/cpp/algorithms/vietoris_rips_impl.cpp
     src/cpp/algorithms/vietoris_rips_main.cpp
     src/cpp/algorithms/alpha_complex.cpp
     src/cpp/algorithms/sparse_rips.cpp

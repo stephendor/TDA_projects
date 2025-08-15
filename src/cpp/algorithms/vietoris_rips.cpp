@@ -1,6 +1,9 @@
 #include "../../../include/tda/core/types.hpp"
+#include "../../../include/tda/core/simplex.hpp"
+#include "../../../include/tda/core/point_cloud.hpp"
 #include <algorithm>
 #include <execution>
+#include <numeric>
 #include <queue>
 #include <unordered_map>
 #include <unordered_set>
@@ -304,7 +307,7 @@ private:
         for (size_type i = 0; i < simplices_.size(); ++i) {
             const auto& simplex = simplices_[i];
             if (simplex.dimension() == 1 && simplex.size() == 2) {
-                auto vertices = simplex.get_vertices();
+                const auto& vertices = simplex.vertices();
                 if ((vertices[0] == v1 && vertices[1] == v2) ||
                     (vertices[0] == v2 && vertices[1] == v1)) {
                     return birth_times_[i];
