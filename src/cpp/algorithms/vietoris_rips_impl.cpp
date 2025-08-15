@@ -59,8 +59,8 @@ ResultVoid VietorisRipsImpl::computePersistence() {
         // Create persistent cohomology object and compute
         persistent_cohomology_ = std::make_unique<Persistent_cohomology>(*simplex_tree_);
         persistent_cohomology_->init_coefficients(coefficient_field_);
-        // Use 0.0 as minimum persistence to keep all features; threshold_ governs complex construction
-        persistent_cohomology_->compute_persistent_cohomology(0.0);
+    // Compute with default min persistence to keep API compatibility across versions
+    persistent_cohomology_->compute_persistent_cohomology();
         return ResultVoid::success();
     } catch (const std::exception& e) {
         persistent_cohomology_.reset();
@@ -96,12 +96,15 @@ tda::core::Result<std::vector<PersistencePair>> VietorisRipsImpl::getPersistence
         return tda::core::Result<std::vector<PersistencePair>>::failure("Persistence not computed: call computePersistence() first.");
     }
     try {
-        std::vector<std::tuple<int, double, double>> diagram;
-        persistent_cohomology_->output_diagram(diagram);
         std::vector<PersistencePair> pairs;
-        pairs.reserve(diagram.size());
-        for (const auto& [dim, birth, death] : diagram) {
-            // Map to our PersistencePair type; simplex indices unknown here (set 0)
+        auto persistent_pairs = persistent_cohomology_->get_persistent_pairs();
+        pairs.reserve(persistent_pairs.size());
+        for (const auto& pr : persistent_pairs) {
+            auto birth_handle = std::get<0>(pr);
+            auto death_handle = std::get<1>(pr);
+            double birth = simplex_tree_->filtration(birth_handle);
+            double death = simplex_tree_->filtration(death_handle);
+            int dim = simplex_tree_->dimension(birth_handle);
             pairs.emplace_back(static_cast<tda::core::Dimension>(dim), static_cast<tda::core::Birth>(birth), static_cast<tda::core::Death>(death));
         }
         return tda::core::Result<std::vector<PersistencePair>>::success(std::move(pairs));
@@ -115,15 +118,10 @@ tda::core::Result<std::vector<int>> VietorisRipsImpl::getBettiNumbers() const {
         return tda::core::Result<std::vector<int>>::failure("Betti numbers not computed: call computePersistence() first.");
     }
     try {
-        std::vector<std::tuple<int, double, double>> diagram;
-        persistent_cohomology_->output_diagram(diagram);
         int max_dim = std::max(0, max_dimension_);
         std::vector<int> betti(static_cast<std::size_t>(max_dim + 1), 0);
-        for (const auto& [dim, birth, death] : diagram) {
-            if (!std::isfinite(death)) {
-                int d = std::clamp(dim, 0, max_dim);
-                betti[static_cast<std::size_t>(d)] += 1;
-            }
+        for (int d = 0; d <= max_dim; ++d) {
+            betti[static_cast<std::size_t>(d)] = persistent_cohomology_->betti_number(d);
         }
         return tda::core::Result<std::vector<int>>::success(std::move(betti));
     } catch (const std::exception& e) {

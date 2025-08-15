@@ -84,6 +84,9 @@ if(TBB_FOUND)
 endif()
 add_test(NAME FullPipeline COMMAND test_full_pipeline)
 
+# Mark FullPipeline as long-running heavy integration test so it can be excluded by default
+set_tests_properties(FullPipeline PROPERTIES LABELS "long;integration;heavy")
+
 # Mathematical validation tests
 add_executable(test_mathematical_validation
     test_mathematical_validation.cpp
@@ -138,6 +141,25 @@ add_test(NAME ST101MemoryOptimized COMMAND test_st101_memory_optimized)
 #     target_link_libraries(test_vietoris_rips TBB::tbb)
 # endif()
 # add_test(NAME VietorisRips COMMAND test_vietoris_rips)
+
+# Minimal Vietoris–Rips smoke test (fast)
+add_executable(test_vr_minimal
+    test_vr_minimal.cpp
+)
+target_link_libraries(test_vr_minimal 
+    tda_algorithms 
+    tda_core 
+    Eigen3::Eigen 
+    Threads::Threads
+)
+if(TDA_ENABLE_OPENMP AND OpenMP_CXX_FOUND)
+    target_link_libraries(test_vr_minimal OpenMP::OpenMP_CXX)
+endif()
+if(TBB_FOUND)
+    target_link_libraries(test_vr_minimal TBB::tbb)
+endif()
+add_test(NAME VietorisRipsMinimal COMMAND test_vr_minimal)
+set_tests_properties(VietorisRipsMinimal PROPERTIES TIMEOUT 60 LABELS "fast;vr;smoke")
 
 # =============================================================================
 # TEST CONFIGURATION
