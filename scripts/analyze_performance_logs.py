@@ -35,6 +35,21 @@ FIELDS = [
     "pool_fragmentation",
     # Optional compact per-bucket serialization
     "pool_bucket_stats_compact",
+    # Optional page info (if exported later)
+    "pool_pages",
+    "pool_blocks_per_page",
+    # Early-stop diagnostics
+    "dm_total_blocks",
+    "dm_total_pairs",
+    "dm_stopped_by_time",
+    "dm_stopped_by_pairs",
+    "dm_stopped_by_blocks",
+    "dm_last_block_i0",
+    "dm_last_block_j0",
+    # Manifest & recompute fields
+    "manifest_hash",
+    "attempted_count",
+    "attempted_kind",
 ]
 
 
@@ -111,6 +126,7 @@ def main() -> int:
     ap.add_argument("--artifacts", required=True, help="Directory with jsonl/csv outputs")
     ap.add_argument("--gate", action="store_true", help="Exit non-zero on violations (perf + optional accuracy)")
     ap.add_argument("--require-csv", action="store_true", help="Require adjacency histogram CSVs")
+    ap.add_argument("--recompute-gate", action="store_true", help="Fail if manifest hash changed but attempted_count==0 (no recompute)")
     # Accuracy thresholds (non-blocking unless --accuracy-gate is provided)
     ap.add_argument("--accuracy-edges-pct-threshold", type=float, default=None, help="Max allowed |Δedges%%| across variants")
     ap.add_argument("--accuracy-h1-pct-threshold", type=float, default=None, help="Max allowed |Δh1%%| across variants")
@@ -122,6 +138,8 @@ def main() -> int:
         args.require_csv = True
     if not args.accuracy_gate and os.environ.get("ACCURACY_GATE", "0") in ("1", "true", "TRUE"):  # pragma: no cover
         args.accuracy_gate = True
+    if not args.recompute_gate and os.environ.get("RECOMPUTE_GATE", "0") in ("1", "true", "TRUE"):  # pragma: no cover
+        args.recompute_gate = True
     # Thresholds from env if not specified
     def _env_float(name: str) -> float | None:
         v = os.environ.get(name)
@@ -152,9 +170,11 @@ def main() -> int:
         print("[analyzer] WARNING: no baseline_*.jsonl found (skipping baseline checks)")
 
     # Print summaries and enforce gates
+    last_parent_summary = None
     for p in parents:
         s = summarize_jsonl(p)
         print(f"[analyzer] parent summary {os.path.basename(p)} -> {s}")
+        last_parent_summary = s or last_parent_summary
         if all(k in s for k in ("pool_total_blocks","pool_free_blocks","pool_fragmentation")):
             preview = ""
             compact = s.get("pool_bucket_stats_compact")
@@ -163,7 +183,10 @@ def main() -> int:
                 if len(compact) > 60:
                     preview += "…"
                 preview = f", buckets={preview}"
-            print(f"[analyzer] pool: total={s['pool_total_blocks']} free={s['pool_free_blocks']} frag={s['pool_fragmentation']}{preview}")
+            extra = ""
+            if "pool_pages" in s and "pool_blocks_per_page" in s:
+                extra = f", pages={s.get('pool_pages')} x {s.get('pool_blocks_per_page')}"
+            print(f"[analyzer] pool: total={s['pool_total_blocks']} free={s['pool_free_blocks']} frag={s['pool_fragmentation']}{extra}{preview}")
             # Warn-only heuristic for extreme fragmentation on sizable pools
             try:
                 if float(s.get("pool_total_blocks", 0) or 0) >= 100 and float(s.get("pool_fragmentation", 0.0) or 0.0) >= 0.95:
@@ -187,6 +210,12 @@ def main() -> int:
                 if memk not in s or s[memk] is None:
                     print(f"[analyzer] ERROR: missing memory field {memk}")
                     ok = False
+        # Print early-stop diagnostics if present
+        if any(k in s for k in ("dm_stopped_by_time","dm_stopped_by_pairs","dm_stopped_by_blocks")):
+            print(f"[analyzer] dm-stop: blocks={s.get('dm_total_blocks','-')} pairs={s.get('dm_total_pairs','-')} time={s.get('dm_stopped_by_time','-')} pairsStop={s.get('dm_stopped_by_pairs','-')} blocksStop={s.get('dm_stopped_by_blocks','-')} last=({s.get('dm_last_block_i0','-')},{s.get('dm_last_block_j0','-')})")
+        # Print manifest if present
+        if 'manifest_hash' in s:
+            print(f"[analyzer] manifest: hash={s.get('manifest_hash','-')} attempted={s.get('attempted_count','-')} kind={s.get('attempted_kind','-')}")
 
     if args.require_csv:
         csvs = sorted(glob.glob(os.path.join(art, "*.csv")))
@@ -227,6 +256,30 @@ def main() -> int:
     )
     if acc_count > 0:
         print(f"[analyzer] accuracy gate={'ON' if args.accuracy_gate else 'OFF'} result={'PASS' if acc_ok else 'FAIL'}")
+    # Recompute safeguard: if manifest changed but attempted_count==0, warn/fail
+    if last_parent_summary and 'manifest_hash' in last_parent_summary:
+        store_path = os.path.join(art, ".manifest_hash")
+        prev_hash = None
+        try:
+            with open(store_path, 'r') as fh:
+                prev_hash = fh.read().strip() or None
+        except Exception:
+            prev_hash = None
+        curr_hash = last_parent_summary.get('manifest_hash')
+        attempted = int(last_parent_summary.get('attempted_count') or 0)
+        if prev_hash is not None and curr_hash and curr_hash != prev_hash:
+            if attempted == 0:
+                msg = "[analyzer] {}: manifest changed ({} -> {}), attempted_count==0".format(
+                    'ERROR' if args.recompute_gate and args.gate else 'WARNING', prev_hash, curr_hash)
+                print(msg)
+                if args.recompute_gate and args.gate:
+                    ok = False
+        # Always update manifest store to current
+        try:
+            with open(store_path, 'w') as fh:
+                fh.write(curr_hash or "")
+        except Exception:
+            pass
     # Final status considers perf gating and optional accuracy gating
     final_ok = ok and (acc_ok or not args.accuracy_gate)
     print(f"[analyzer] gate={'ON' if args.gate else 'OFF'} result={'PASS' if final_ok else 'FAIL'}")

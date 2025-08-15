@@ -1,6 +1,6 @@
 # Task ID: 2
 # Title: Develop Basic Topological Feature Vectorization and Storage
-# Status: todo
+# Status: done
 # Dependencies: 1
 # Priority: high
 # Description: Create deterministic vectorization methods and establish a database schema for storing and retrieving topological features.
@@ -11,33 +11,128 @@ Implement the deterministic vector-stack method including persistence landscapes
 Verify that vectorization outputs are correct and consistent for given inputs. Test database performance for write throughput and query latency on stored topological features. Ensure the schema correctly supports versioning and similarity searches.
 
 # Subtasks:
-## 1. Implement Core Vectorization Algorithms [pending]
+## 1. Implement Core Vectorization Algorithms [done]
 ### Dependencies: None
 ### Description: Implement the deterministic vectorization methods for persistence diagrams: persistence landscapes, persistence images, and Betti curves, as specified in FR-CORE-002.
 ### Details:
 Create a self-contained module or library in the project's primary language (e.g., Python with C++ bindings) that provides functions to convert persistence diagrams into their respective vector representations. Ensure the output is deterministic for a given input and set of parameters.
 
-## 2. Design Hybrid Database Schema for Topological Data and Metadata [pending]
+## 2. Design Hybrid Database Schema for Topological Data and Metadata [done]
 ### Dependencies: None
 ### Description: Design the database schemas for both PostgreSQL and MongoDB. The design must accommodate raw topological features, vectorized features, and support versioning as per ST-301.
 ### Details:
 Design PostgreSQL tables for structured metadata, analysis parameters, and versioning history. Design a corresponding MongoDB collection schema for storing less structured data like persistence diagrams (list of points/bars) and the resulting high-dimensional feature vectors. The design must define how records in PostgreSQL link to documents in MongoDB.
 
-## 3. Implement PostgreSQL Schema for Metadata and Versioning [pending]
+## 3. Implement PostgreSQL Schema for Metadata and Versioning [done]
 ### Dependencies: 2.2
 ### Description: Create the tables, indexes, and constraints in PostgreSQL based on the approved schema design to manage metadata and versioning.
 ### Details:
 Write and apply SQL DDL scripts to set up the PostgreSQL database. Implement efficient indexes on columns that will be frequently queried, such as dataset ID, analysis timestamp, and version tag. Create functions or procedures for creating and retrieving versioned records.
 
-## 4. Implement MongoDB Schema for Diagrams and Feature Vectors [pending]
+## 4. Implement MongoDB Schema for Diagrams and Feature Vectors [done]
 ### Dependencies: 2.2
 ### Description: Set up the MongoDB collections for storing raw persistence diagrams/barcodes and the various vectorized features generated from them.
 ### Details:
 Configure the MongoDB collections, including any schema validation rules. Implement appropriate indexes on fields like the foreign key from PostgreSQL to ensure fast lookups.
 
-## 5. Integrate Vectorization Pipeline with Database Storage Service [pending]
+## 5. Integrate Vectorization Pipeline with Database Storage Service [done]
 ### Dependencies: 2.1, 2.3, 2.4
 ### Description: Create a service or function that orchestrates the end-to-end process: vectorizing a persistence diagram and persisting the original diagram, its vectors, and metadata into the dual-database system.
 ### Details:
 Develop the application logic that takes a persistence diagram as input, calls the vectorization functions from subtask 1, and then writes the metadata and version info to PostgreSQL and the raw diagram/vectors to MongoDB in a consistent manner.
+
+## 6. Implement C++ PersistenceLandscapeBlock [pending]
+### Dependencies: 2.1
+### Description: C++23 implementation of persistence landscapes with deterministic configuration (k_max, resolution, range policy).
+### Details:
+- Implement `PersistenceLandscapeBlock` using SoA-friendly buffers and AVX2 where beneficial
+- Inputs: `PersistenceDiagram`, config {k_max, resolution, global_range_policy: [auto, fixed(min,max)]}
+- Determinism: stable sorting, consistent tie-breaking, no RNG; config manifest hash emitted
+- Memory: avoid reallocations; reuse buffers; bound peak memory; support streaming ranges
+- Output: fixed-size vector length k_max*resolution per homology dimension with metadata
+- Tests: numeric stability across repeated runs; monotonicity over k; small-n parity vs giotto-tda
+
+## 7. Implement C++ PersistenceImageBlock [pending]
+### Dependencies: 2.1
+### Description: C++23 implementation of persistence images with Gaussian kernel rasterization on a fixed grid.
+### Details:
+- Implement `PersistenceImageBlock` with config {grid=(H,W), sigma, weight_fn, range policy}
+- Kernel aggregation with vectorized loops; precompute Gaussian rows/cols; guard for Inf deaths
+- Determinism: fixed grid bounds; stable accumulation order; float-sum compensation (Kahan) as needed
+- Output: flattened image per dimension + metadata; support batch diagrams
+- Tests: shape correctness, reproducibility, small-n parity vs gudhi/gtda examples
+
+## 8. Expose vectorizers via pybind11 [pending]
+### Dependencies: 2.6, 2.7
+### Description: Add pybind11 bindings for landscape/image vectorizers with typed configs and arrays.
+### Details:
+- Bind `PersistenceLandscapeBlock` and `PersistenceImageBlock` APIs into `tda.vectorizers`
+- Accept NumPy arrays for diagrams; return NumPy arrays with explicit dtypes/shapes
+- Validate configs; raise rich errors; include config manifest hash in result
+- Wire build in `CMakeLists.txt`; ensure manylinux-compatible flags
+- Docs: Python usage examples; error handling
+
+## 9. Vectorizer unit tests: determinism, shape, and small-n parity [pending]
+### Dependencies: 2.6, 2.7, 2.8
+### Description: Add comprehensive tests for landscapes/images including determinism and parity vs references.
+### Details:
+- Determinism: repeated calls produce identical outputs bitwise (or within 1e-9 tolerance)
+- Shapes: validate output shapes from configs across dims
+- Parity: compare against giotto-tda/gudhi on toy diagrams (circles, spheres) within tolerance
+- CI: add to `cpp-tests` and Python pytest; run in CI matrix
+
+## 10. PostgreSQL models and migrations for vectorized features [pending]
+### Dependencies: 2.5
+### Description: Design SQLAlchemy models and Alembic migrations for metadata, diagrams, and vectorized features.
+### Details:
+- Models: Job, Diagram (per-dimension), VectorFeature (kind=landscape|image|betti), VersionedConfig (manifest hash, params), Artifact
+- Indexes: (job_id, kind), (manifest_hash), (created_at desc), GIN/JSONB for metadata
+- Migrations: create tables, FKs, constraints; seed version table
+- DAO/service: CRUD helpers; upsert on manifest hash
+- Health checks and DB pool config
+
+## 11. Mongo collections for diagrams and feature vectors [pending]
+### Dependencies: 2.5
+### Description: Define Motor/PyMongo collections and indexes for raw diagrams and vector outputs.
+### Details:
+- Collections: `tda.diagrams`, `tda.vector_features`
+- Schema: dimension, pairs, metadata; vector kind, array shape, dtype, manifest hash
+- Indexes: manifest_hash, job_id, created_at; consider GridFS for large images
+- CRUD helpers; retention policies; health checks
+
+## 12. Vectorization API endpoints and service orchestration [pending]
+### Dependencies: 2.8, 2.10, 2.11
+### Description: FastAPI endpoints to trigger vectorization and persist outputs into Postgres/Mongo with provenance.
+### Details:
+- Endpoints: POST /v1/vectorize (sync small), POST /v1/jobs/{id}/vectorize (async)
+- Service orchestrates: fetch diagrams -> call `tda.vectorizers` -> persist to Pg/Mongo -> emit Kafka result message
+- Validation: input shapes/types, config manifest hashing
+- Error handling, tracing, metrics
+
+## 13. Kafka schema update for vectorized features [pending]
+### Dependencies: 2.12
+### Description: Add schema subjects for vectorized features and integrate with registry + validator.
+### Details:
+- New subjects: tda-vectorized-features (JSON Schema)
+- Fields: job_id, diagram_id, kind, manifest_hash, vector_shape, dtype, stats, created_at
+- Update `kafka_schemas.py` registry and validator; add tests
+- Versioning/compatibility policy: BACKWARD
+
+## 14. Flink job wiring for vectorization [pending]
+### Dependencies: 2.13
+### Description: Integrate vectorization into streaming pipeline with backpressure and metrics.
+### Details:
+- Ingest diagrams from `tda_results` → call vectorizers → emit `tda_vectorized_features`
+- Preserve provenance and config manifest; add watermarks and windows as needed
+- Metrics: throughput, latency, error rate per vectorizer kind
+- Failure policy and retries; comprehensive logging
+
+## 15. End-to-end tests and CI gates for vectorization [pending]
+### Dependencies: 2.12, 2.14
+### Description: Add e2e tests (API + streaming) and extend analyzer gates to validate vectorized outputs.
+### Details:
+- API: upload small dataset → compute PH → vectorize → assert DB/Kafka artifacts, shapes, determinism
+- Streaming: mock topic inputs → verify outputs on `tda_vectorized_features`
+- Analyzer: extend to parse vector stats (shape, dtype, norms) and gate on presence + determinism across runs
+- CI: add jobs; artifacts stored under `docs/performance/artifacts/...`
 

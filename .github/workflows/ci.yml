@@ -122,7 +122,7 @@ jobs:
 
       - name: Run targeted C++ tests (PerfBaselineJSONL + PerfMonotonicity + VR tests)
         run: |
-          ctest --test-dir build/release -R "(PerfBaselineJSONL|PerfMonotonicity|StreamingVRParity|VRTelemetryPresence|VRAdjHistPresence)" --output-on-failure --timeout 180
+          ctest --test-dir build/release -R "(PerfBaselineJSONL|PerfMonotonicity|StreamingVRParity|VRTelemetryPresence|VRAdjHistPresence|ManifestPresence)" --output-on-failure --timeout 180
 
       - name: List JSONL metrics (info only)
         if: always()
@@ -191,11 +191,13 @@ jobs:
           echo "Telemetry summary:" || true
           grep -E 'softcap_overshoot|dm_peakMB|rss_peakMB' -n "$TDA_ARTIFACT_DIR"/*.jsonl || true
 
-      - name: Analyze perf probe artifacts (gate + require CSV)
+      - name: Analyze perf probe artifacts (gate + require CSV + recompute-gate)
+        env:
+          RECOMPUTE_GATE: "1"
         run: |
           python3 scripts/analyze_performance_logs.py \
             --artifacts "$TDA_ARTIFACT_DIR" \
-            --gate --require-csv
+            --gate --require-csv --recompute-gate
 
       - name: Compact analyzer summary
         if: always()
@@ -285,11 +287,13 @@ jobs:
             --soft-knn-cap 16 --parallel-threshold 0 --time-limit 60 \
             --json "$TDA_ARTIFACT_DIR/sdm_200k.jsonl"
 
-      - name: Analyze DM-only artifacts (gate overshoot==0 + memory fields)
+      - name: Analyze DM-only artifacts (gate overshoot==0 + memory fields + recompute-gate)
+        env:
+          RECOMPUTE_GATE: "1"
         run: |
           python3 scripts/analyze_performance_logs.py \
             --artifacts "$TDA_ARTIFACT_DIR" \
-            --gate
+            --gate --recompute-gate
 
       - name: Compact analyzer summary
         if: always()
@@ -581,11 +585,13 @@ jobs:
             --adj-hist-csv "$TDA_ARTIFACT_DIR/adj_vr_parent.csv" \
             --json "$TDA_ARTIFACT_DIR/run_vr.jsonl"
 
-      - name: Analyze VR probe artifacts (gate + require CSV when present)
+      - name: Analyze VR probe artifacts (gate + require CSV + recompute-gate)
+        env:
+          RECOMPUTE_GATE: "1"
         run: |
           python3 scripts/analyze_performance_logs.py \
             --artifacts "$TDA_ARTIFACT_DIR" \
-            --gate --require-csv
+            --gate --require-csv --recompute-gate
 
       - name: Compact analyzer summary
         if: always()

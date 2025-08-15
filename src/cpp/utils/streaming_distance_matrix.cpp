@@ -9,6 +9,9 @@
 #ifdef _OPENMP
 #include <omp.h>
 #endif
+#ifdef TDA_ENABLE_CUDA
+#include "tda/utils/streaming_distance_cuda.hpp"
+#endif
 
 namespace tda::utils {
 
@@ -69,6 +72,7 @@ StreamingDMStats StreamingDistanceMatrix::process(const PointContainer& points) 
             }
             const size_t j_end = std::min(bj + B, n);
             const size_t j_len = j_end - bj;
+            stats.last_block_i0 = bi; stats.last_block_j0 = bj;
             // processed_blocks is incremented after block compute at label after_block_compute
 
             // Optional tile buffer only if block callback is used.
@@ -79,7 +83,18 @@ StreamingDMStats StreamingDistanceMatrix::process(const PointContainer& points) 
 
             // Compute tile
             bool partial_block_computed = false;
-            if (symmetric && bi == bj) {
+            bool used_cuda = false;
+            (void)used_cuda;
+            if (!threshold_mode && block_cb_ && config_.use_cuda) {
+#ifdef TDA_ENABLE_CUDA
+                if (!tile.empty()) {
+                    used_cuda = compute_distance_tile_cuda(points, bi, bj, i_len, j_len, points.front().size(), tile);
+                }
+#else
+                // CUDA disabled at compile time; ignore use_cuda
+#endif
+            }
+            if (!used_cuda && symmetric && bi == bj) {
                 // Diagonal block: compute only upper triangle (i < j)
                 for (size_t i = bi; i < i_end; ++i) {
                     const size_t j_start = i + 1; // upper triangle only
@@ -113,12 +128,13 @@ StreamingDMStats StreamingDistanceMatrix::process(const PointContainer& points) 
                             double elapsed = std::chrono::duration<double>(now - t0).count();
                             if (elapsed >= config_.time_limit_seconds) {
                                 partial_block_computed = true;
+                                stats.stopped_by_time = true;
                                 goto after_block_compute;
                             }
                         }
                     }
                 }
-            } else {
+            } else if (!used_cuda) {
                 // Off-diagonal block: full i x j tile
                 bool can_parallel_blocks = false;
 #ifdef _OPENMP
@@ -263,6 +279,7 @@ StreamingDMStats StreamingDistanceMatrix::process(const PointContainer& points) 
                                 // Early stop: pairs
                                 if (config_.max_pairs > 0 && stats.total_pairs >= config_.max_pairs) {
                                     partial_block_computed = true;
+                                    stats.stopped_by_pairs = true;
                                     goto after_block_compute;
                                 }
                                 // Early stop: time
@@ -271,6 +288,7 @@ StreamingDMStats StreamingDistanceMatrix::process(const PointContainer& points) 
                                     double elapsed = std::chrono::duration<double>(now - t0).count();
                                     if (elapsed >= config_.time_limit_seconds) {
                                         partial_block_computed = true;
+                                        stats.stopped_by_time = true;
                                         goto after_block_compute;
                                     }
                                 }
@@ -310,6 +328,7 @@ StreamingDMStats StreamingDistanceMatrix::process(const PointContainer& points) 
                     auto now2 = std::chrono::high_resolution_clock::now();
                     double elapsed2 = std::chrono::duration<double>(now2 - t0).count();
                     if (elapsed2 >= config_.time_limit_seconds) {
+                        stats.stopped_by_time = true;
                         goto early_stop;
                     }
                 }
@@ -320,6 +339,7 @@ StreamingDMStats StreamingDistanceMatrix::process(const PointContainer& points) 
 early_stop:
     // Report actually processed blocks (not planned), which is meaningful under early-stop.
     stats.total_blocks = processed_blocks;
+    if (config_.max_blocks > 0 && processed_blocks >= config_.max_blocks) stats.stopped_by_blocks = true;
     auto t1 = std::chrono::high_resolution_clock::now();
     stats.elapsed_seconds = std::chrono::duration<double>(t1 - t0).count();
     stats.memory_after_bytes = tda::core::MemoryMonitor::getCurrentMemoryUsage();

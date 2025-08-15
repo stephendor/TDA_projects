@@ -40,5 +40,35 @@ int main() {
 
     std::cout << "SimplexPool basic test passed. total=" << total_after
               << " free=" << free_after << std::endl;
+
+    // Fragmentation sanity and defragmentation hook
+    {
+        SimplexPool p2(64);
+        std::vector<Simplex*> held;
+        for (size_t round = 0; round < 4; ++round) {
+            for (size_t ar = 1; ar <= 4; ++ar) {
+                for (int i = 0; i < 50; ++i) {
+                    auto* s = p2.acquire(ar);
+                    assert(s != nullptr);
+                    held.push_back(s);
+                }
+                // release half
+                for (size_t i = 0; i < held.size(); i += 2) {
+                    p2.release(held[i], (i % 4) + 1);
+                }
+                held.clear();
+            }
+        }
+        auto agg2 = p2.getAggregateStats();
+        size_t total2 = agg2.first, free2 = agg2.second;
+        if (total2 > 0) {
+            double frag2 = 1.0 - (static_cast<double>(free2) / static_cast<double>(total2));
+            assert(frag2 >= 0.0 && frag2 <= 1.0);
+        }
+        p2.defragment();
+        auto* s3 = p2.acquire(3);
+        assert(s3 != nullptr);
+        p2.release(s3, 3);
+    }
     return 0;
 }

@@ -332,6 +332,122 @@
             "details": "Develop the application logic that takes a persistence diagram as input, calls the vectorization functions from subtask 1, and then writes the metadata and version info to PostgreSQL and the raw diagram/vectors to MongoDB in a consistent manner.",
             "status": "done",
             "testStrategy": "Perform end-to-end integration testing. Pass a sample diagram to the service and verify that all related data (metadata, version, raw diagram, all vector types) is correctly stored across both databases and can be retrieved as a complete, consistent record."
+          },
+          {
+            "id": 6,
+            "title": "Implement C++ PersistenceLandscapeBlock",
+            "description": "C++23 implementation of persistence landscapes with deterministic configuration (k_max, resolution, range policy).",
+            "details": "- Implement `PersistenceLandscapeBlock` using SoA-friendly buffers and AVX2 where beneficial\n- Inputs: `PersistenceDiagram`, config {k_max, resolution, global_range_policy: [auto, fixed(min,max)]}\n- Determinism: stable sorting, consistent tie-breaking, no RNG; config manifest hash emitted\n- Memory: avoid reallocations; reuse buffers; bound peak memory; support streaming ranges\n- Output: fixed-size vector length k_max*resolution per homology dimension with metadata\n- Tests: numeric stability across repeated runs; monotonicity over k; small-n parity vs giotto-tda",
+            "status": "pending",
+            "dependencies": [
+              "2.1"
+            ],
+            "parentTaskId": 2
+          },
+          {
+            "id": 7,
+            "title": "Implement C++ PersistenceImageBlock",
+            "description": "C++23 implementation of persistence images with Gaussian kernel rasterization on a fixed grid.",
+            "details": "- Implement `PersistenceImageBlock` with config {grid=(H,W), sigma, weight_fn, range policy}\n- Kernel aggregation with vectorized loops; precompute Gaussian rows/cols; guard for Inf deaths\n- Determinism: fixed grid bounds; stable accumulation order; float-sum compensation (Kahan) as needed\n- Output: flattened image per dimension + metadata; support batch diagrams\n- Tests: shape correctness, reproducibility, small-n parity vs gudhi/gtda examples",
+            "status": "pending",
+            "dependencies": [
+              "2.1"
+            ],
+            "parentTaskId": 2
+          },
+          {
+            "id": 8,
+            "title": "Expose vectorizers via pybind11",
+            "description": "Add pybind11 bindings for landscape/image vectorizers with typed configs and arrays.",
+            "details": "- Bind `PersistenceLandscapeBlock` and `PersistenceImageBlock` APIs into `tda.vectorizers`\n- Accept NumPy arrays for diagrams; return NumPy arrays with explicit dtypes/shapes\n- Validate configs; raise rich errors; include config manifest hash in result\n- Wire build in `CMakeLists.txt`; ensure manylinux-compatible flags\n- Docs: Python usage examples; error handling",
+            "status": "pending",
+            "dependencies": [
+              "2.6",
+              "2.7"
+            ],
+            "parentTaskId": 2
+          },
+          {
+            "id": 9,
+            "title": "Vectorizer unit tests: determinism, shape, and small-n parity",
+            "description": "Add comprehensive tests for landscapes/images including determinism and parity vs references.",
+            "details": "- Determinism: repeated calls produce identical outputs bitwise (or within 1e-9 tolerance)\n- Shapes: validate output shapes from configs across dims\n- Parity: compare against giotto-tda/gudhi on toy diagrams (circles, spheres) within tolerance\n- CI: add to `cpp-tests` and Python pytest; run in CI matrix",
+            "status": "pending",
+            "dependencies": [
+              "2.6",
+              "2.7",
+              "2.8"
+            ],
+            "parentTaskId": 2
+          },
+          {
+            "id": 10,
+            "title": "PostgreSQL models and migrations for vectorized features",
+            "description": "Design SQLAlchemy models and Alembic migrations for metadata, diagrams, and vectorized features.",
+            "details": "- Models: Job, Diagram (per-dimension), VectorFeature (kind=landscape|image|betti), VersionedConfig (manifest hash, params), Artifact\n- Indexes: (job_id, kind), (manifest_hash), (created_at desc), GIN/JSONB for metadata\n- Migrations: create tables, FKs, constraints; seed version table\n- DAO/service: CRUD helpers; upsert on manifest hash\n- Health checks and DB pool config",
+            "status": "pending",
+            "dependencies": [
+              "2.5"
+            ],
+            "parentTaskId": 2
+          },
+          {
+            "id": 11,
+            "title": "Mongo collections for diagrams and feature vectors",
+            "description": "Define Motor/PyMongo collections and indexes for raw diagrams and vector outputs.",
+            "details": "- Collections: `tda.diagrams`, `tda.vector_features`\n- Schema: dimension, pairs, metadata; vector kind, array shape, dtype, manifest hash\n- Indexes: manifest_hash, job_id, created_at; consider GridFS for large images\n- CRUD helpers; retention policies; health checks",
+            "status": "pending",
+            "dependencies": [
+              "2.5"
+            ],
+            "parentTaskId": 2
+          },
+          {
+            "id": 12,
+            "title": "Vectorization API endpoints and service orchestration",
+            "description": "FastAPI endpoints to trigger vectorization and persist outputs into Postgres/Mongo with provenance.",
+            "details": "- Endpoints: POST /v1/vectorize (sync small), POST /v1/jobs/{id}/vectorize (async)\n- Service orchestrates: fetch diagrams -> call `tda.vectorizers` -> persist to Pg/Mongo -> emit Kafka result message\n- Validation: input shapes/types, config manifest hashing\n- Error handling, tracing, metrics",
+            "status": "pending",
+            "dependencies": [
+              "2.8",
+              "2.10",
+              "2.11"
+            ],
+            "parentTaskId": 2
+          },
+          {
+            "id": 13,
+            "title": "Kafka schema update for vectorized features",
+            "description": "Add schema subjects for vectorized features and integrate with registry + validator.",
+            "details": "- New subjects: tda-vectorized-features (JSON Schema)\n- Fields: job_id, diagram_id, kind, manifest_hash, vector_shape, dtype, stats, created_at\n- Update `kafka_schemas.py` registry and validator; add tests\n- Versioning/compatibility policy: BACKWARD",
+            "status": "pending",
+            "dependencies": [
+              "2.12"
+            ],
+            "parentTaskId": 2
+          },
+          {
+            "id": 14,
+            "title": "Flink job wiring for vectorization",
+            "description": "Integrate vectorization into streaming pipeline with backpressure and metrics.",
+            "details": "- Ingest diagrams from `tda_results` → call vectorizers → emit `tda_vectorized_features`\n- Preserve provenance and config manifest; add watermarks and windows as needed\n- Metrics: throughput, latency, error rate per vectorizer kind\n- Failure policy and retries; comprehensive logging",
+            "status": "pending",
+            "dependencies": [
+              "2.13"
+            ],
+            "parentTaskId": 2
+          },
+          {
+            "id": 15,
+            "title": "End-to-end tests and CI gates for vectorization",
+            "description": "Add e2e tests (API + streaming) and extend analyzer gates to validate vectorized outputs.",
+            "details": "- API: upload small dataset → compute PH → vectorize → assert DB/Kafka artifacts, shapes, determinism\n- Streaming: mock topic inputs → verify outputs on `tda_vectorized_features`\n- Analyzer: extend to parse vector stats (shape, dtype, norms) and gate on presence + determinism across runs\n- CI: add jobs; artifacts stored under `docs/performance/artifacts/...`",
+            "status": "pending",
+            "dependencies": [
+              "2.12",
+              "2.14"
+            ],
+            "parentTaskId": 2
           }
         ]
       },

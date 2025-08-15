@@ -45,7 +45,7 @@ The final module now supports both 2D and 3D point clouds with automatic dimensi
 ### Details:
 Implement the Čech complex, likely using an approximation for efficiency. Implement the DTM filtration, which requires computing a distance-to-measure function on the point cloud before building a Rips-like filtration based on the new metric.
 
-## 5. Implement Persistence Diagram and Barcode Data Structure Generation [pending]
+## 5. Implement Persistence Diagram and Barcode Data Structure Generation [done]
 ### Dependencies: 1.2, 1.3, 1.4
 ### Description: Develop data structures and serialization functions to represent and export the computed persistence pairs as persistence diagrams and barcodes.
 ### Details:
@@ -57,13 +57,13 @@ Create C++ structs/classes to store persistence pairs (birth, death, dimension).
 ### Details:
 Implement a function that takes a persistence diagram and a filtration value (epsilon) as input. It must count the number of persistence intervals [b, d) for each dimension k such that b <= epsilon < d to calculate the Betti number βₖ(epsilon).
 
-## 7. Optimize Engine for Large-Scale Point Clouds (>1M points) [pending]
+## 7. Optimize Engine for Large-Scale Point Clouds (>1M points) [done]
 ### Dependencies: 1.2, 1.3, 1.4
 ### Description: Profile and optimize the performance of all implemented filtration methods to meet the ST-101 requirement of processing over 1 million points in under 60 seconds.
 ### Details:
 Use profiling tools (e.g., gprof, Valgrind/Callgrind) to identify bottlenecks. Implement optimizations such as multi-threading for complex construction, sparse matrix representations, and memory pooling. Investigate and implement approximation algorithms like sparse Rips filtrations.
 
-## 8. Develop C++ API and Python Bindings for the Homology Engine [pending]
+## 8. Develop C++ API and Python Bindings for the Homology Engine [done]
 ### Dependencies: 1.6, 1.7
 ### Description: Design and implement a clean C++ API for the engine and create Python bindings to allow other services (like Task 2) to call the C++ code.
 ### Details:
@@ -198,31 +198,31 @@ Identify the exact epsilon values where topology changes occur, which are the bi
 ### Details:
 Test all functions with various persistence diagrams, verify mathematical correctness, test edge cases (empty diagrams, single points, infinite death times), and validate against known topological examples.
 
-## 21. Performance Profiling and Bottleneck Analysis [pending]
+## 21. Performance Profiling and Bottleneck Analysis [done]
 ### Dependencies: None
 ### Description: Profile existing filtration methods to identify performance bottlenecks using tools like gprof, Valgrind/Callgrind, and custom timing instrumentation.
 ### Details:
 Analyze current performance characteristics, identify memory allocation hotspots, CPU bottlenecks, and algorithmic inefficiencies in Vietoris-Rips, Alpha Complex, and Čech Complex implementations.
 
-## 22. Multi-threading and Parallelization [pending]
+## 22. Multi-threading and Parallelization [done]
 ### Dependencies: None
 ### Description: Implement OpenMP and/or std::thread parallelization for complex construction, distance matrix computation, and simplex enumeration.
 ### Details:
 Parallelize the most computationally intensive parts: distance matrix construction, simplex enumeration, and complex building. Use OpenMP for loop parallelization and std::thread for task-based parallelism.
 
-## 23. Memory Optimization and Pooling [pending]
+## 23. Memory Optimization and Pooling [review]
 ### Dependencies: None
 ### Description: Implement memory pooling, sparse matrix representations, and reduce memory allocations during complex construction.
 ### Details:
 Replace dynamic allocations with memory pools, use sparse representations for distance matrices, implement object reuse patterns, and optimize memory layout for cache efficiency.
 
-## 24. Approximation Algorithms Implementation [pending]
+## 24. Approximation Algorithms Implementation [review]
 ### Dependencies: None
 ### Description: Implement sparse Rips filtrations and other approximation techniques to reduce computational complexity while maintaining topological accuracy.
 ### Details:
 Implement sparse Rips filtrations using landmark selection, implement DTM-based filtrations for noise robustness, and add options for user-controlled accuracy vs. speed trade-offs.
 
-## 25. Performance Test Suite and Benchmarking [pending]
+## 25. Performance Test Suite and Benchmarking [review]
 ### Dependencies: None
 ### Description: Create comprehensive performance tests with point clouds of increasing size (100k, 500k, 1M, 1.5M) and benchmark execution time and memory usage.
 ### Details:

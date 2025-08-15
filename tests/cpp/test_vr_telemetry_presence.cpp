@@ -48,6 +48,9 @@ int main() {
     assert(has("\"pool_total_blocks\""));
     assert(has("\"pool_free_blocks\""));
     assert(has("\"pool_fragmentation\""));
+    // Page info presence (Phase 4)
+    assert(has("\"pool_pages\""));
+    assert(has("\"pool_blocks_per_page\""));
     // Optional per-bucket compact string field present
     assert(has("\"pool_bucket_stats_compact\""));
     // Numeric value checks: pt==0 and overshoot==0

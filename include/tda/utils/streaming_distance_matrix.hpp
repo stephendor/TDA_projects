@@ -14,6 +14,7 @@ struct StreamingDMConfig {
     bool symmetric = true;            // treat matrix as symmetric
     double max_distance = -1.0;       // if >= 0, only report distances <= threshold
     bool use_parallel = true;         // enable OpenMP where compiled
+    bool use_cuda = false;            // optional CUDA acceleration for block tiles (off by default)
     // Optional early-stop controls (0/<=0 means disabled)
     size_t max_blocks = 0;            // stop after processing this many blocks
     size_t max_pairs = 0;             // stop after computing this many pairs
@@ -42,6 +43,12 @@ struct StreamingDMStats {
     // Soft-cap telemetry (when knn_cap_per_vertex_soft > 0)
     size_t softcap_overshoot_sum = 0; // total vertices-by-amount over K observed during merges
     uint32_t softcap_overshoot_max = 0; // max per-vertex overshoot observed in merges
+    // Early-stop diagnostics
+    bool stopped_by_time = false;
+    bool stopped_by_pairs = false;
+    bool stopped_by_blocks = false;
+    size_t last_block_i0 = 0; // starting i-index of last processed (or attempted) block
+    size_t last_block_j0 = 0; // starting j-index of last processed (or attempted) block
 };
 
 // Callback signatures

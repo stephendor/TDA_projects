@@ -135,6 +135,13 @@ tda::core::Result<void> StreamingCechComplex::computeComplex() {
         build_stats_.pool_total_blocks = agg.first;
         build_stats_.pool_free_blocks = agg.second;
         build_stats_.pool_fragmentation = (agg.first > 0) ? (1.0 - (static_cast<double>(agg.second) / static_cast<double>(agg.first))) : 0.0;
+        // Optional defragmentation hook: if fragmentation is extreme and pool is sizable, compact
+        if (build_stats_.pool_total_blocks >= 100 && build_stats_.pool_fragmentation >= 0.95) {
+            simplex_pool_.defragment();
+        }
+        auto pi = simplex_pool_.getPageInfo();
+        build_stats_.pool_pages = pi.first;
+        build_stats_.pool_blocks_per_page = pi.second;
         auto buckets = simplex_pool_.getAllBucketStats();
         build_stats_.pool_bucket_stats.clear();
         build_stats_.pool_bucket_stats.reserve(buckets.size());

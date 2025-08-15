@@ -410,3 +410,31 @@ endif()
 target_compile_definitions(test_vr_adj_hist_presence PRIVATE STREAMING_CECH_PERF_PATH="$<TARGET_FILE:test_streaming_cech_perf>")
 add_test(NAME VRAdjHistPresence COMMAND test_vr_adj_hist_presence)
 set_tests_properties(VRAdjHistPresence PROPERTIES TIMEOUT 120)
+
+# GPU sanity test (skips gracefully if CUDA not enabled)
+add_executable(test_gpu_sanity
+    test_gpu_sanity.cpp
+)
+target_link_libraries(test_gpu_sanity
+    Threads::Threads
+)
+if(TDA_ENABLE_OPENMP AND OpenMP_CXX_FOUND)
+    target_link_libraries(test_gpu_sanity OpenMP::OpenMP_CXX)
+endif()
+target_compile_definitions(test_gpu_sanity PRIVATE STREAMING_CECH_PERF_PATH="$<TARGET_FILE:test_streaming_cech_perf>")
+add_test(NAME GPUSanity COMMAND test_gpu_sanity)
+set_tests_properties(GPUSanity PROPERTIES TIMEOUT 300)
+
+# Manifest/early-stop presence test
+add_executable(test_manifest_presence
+    test_manifest_presence.cpp
+)
+target_link_libraries(test_manifest_presence
+    Threads::Threads
+)
+if(TDA_ENABLE_OPENMP AND OpenMP_CXX_FOUND)
+    target_link_libraries(test_manifest_presence OpenMP::OpenMP_CXX)
+endif()
+target_compile_definitions(test_manifest_presence PRIVATE STREAMING_CECH_PERF_PATH="$<TARGET_FILE:test_streaming_cech_perf>")
+add_test(NAME ManifestPresence COMMAND test_manifest_presence)
+set_tests_properties(ManifestPresence PROPERTIES TIMEOUT 120)

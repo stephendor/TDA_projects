@@ -43,6 +43,13 @@ public:
     // Enumerate all buckets' stats
     std::vector<BucketStats> getAllBucketStats() const;
 
+    // Fragmentation and defragmentation helpers
+    // Attempts to reduce fragmentation by clearing and reserving fresh pages for hot buckets.
+    void defragment();
+
+    // Returns (allocated_pages, blocks_per_page)
+    std::pair<size_t, size_t> getPageInfo() const;
+
 private:
     using PoolT = tda::utils::MemoryPool<Simplex>;
 

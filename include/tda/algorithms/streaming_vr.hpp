@@ -67,6 +67,8 @@ public:
     size_t pool_free_blocks = 0;              // free blocks across all buckets
     double pool_fragmentation = 0.0;          // 1 - (free/total) when total>0
     std::vector<std::pair<size_t, std::pair<size_t,size_t>>> pool_bucket_stats; // (arity, (total,free))
+    size_t pool_pages = 0;                    // total allocated pages across buckets (optional)
+    size_t pool_blocks_per_page = 0;          // blocks per page (representative)
     };
     BuildStats getBuildStats() const { return build_stats_; }
 

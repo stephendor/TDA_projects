@@ -5,11 +5,13 @@
 #include <vector>
 #include <random>
 #include <fstream>
+#include <chrono>
 #include <sstream>
 #include <cstring>
 #include <cstdlib>
 #include <ctime>
 #include <unistd.h>
+#include <iomanip>
 using std::strcmp;
 
 using tda::algorithms::StreamingCechComplex;
@@ -26,6 +28,19 @@ static StreamingCechComplex::PointContainer make_points(size_t n, size_t d, uint
         pts.emplace_back(std::move(p));
     }
     return pts;
+}
+
+static std::string fnv1a64(const std::string &s) {
+    const uint64_t FNV_OFFSET = 1469598103934665603ull;
+    const uint64_t FNV_PRIME  = 1099511628211ull;
+    uint64_t h = FNV_OFFSET;
+    for (unsigned char c : s) {
+        h ^= static_cast<uint64_t>(c);
+        h *= FNV_PRIME;
+    }
+    std::ostringstream oss;
+    oss << std::hex << std::setw(16) << std::setfill('0') << h;
+    return oss.str();
 }
 
 int main(int argc, char** argv) {
@@ -73,6 +88,7 @@ int main(int argc, char** argv) {
     else if (!strcmp(argv[i], "--baseline-json-out") && i+1 < argc) { baselineJsonOut = argv[++i]; }
     else if (!strcmp(argv[i], "--dm-only")) { dmOnly = true; }
     else if (!strcmp(argv[i], "--mode") && i+1 < argc) { modeSel = argv[++i]; }
+    else if (!strcmp(argv[i], "--cuda") && i+1 < argc) { int cu = std::atoi(argv[++i]); if (cu) setenv("TDA_USE_CUDA","1",1); }
     else if (!strcmp(argv[i], "--max-blocks") && i+1 < argc) { max_blocks = static_cast<size_t>(std::strtoull(argv[++i], nullptr, 10)); }
     else if (!strcmp(argv[i], "--max-pairs") && i+1 < argc) { max_pairs = static_cast<size_t>(std::strtoull(argv[++i], nullptr, 10)); }
     else if (!strcmp(argv[i], "--time-limit") && i+1 < argc) { time_limit = std::strtod(argv[++i], nullptr); }
@@ -101,7 +117,18 @@ int main(int argc, char** argv) {
     size_t pool_total_blocks = 0;
     size_t pool_free_blocks = 0;
     double pool_fragmentation = 0.0;
+    size_t pool_pages = 0;
+    size_t pool_blocks_per_page = 0;
     std::string pool_bucket_stats_compact; // e.g., "1:10/2;2:5/1"
+    // DM early-stop diagnostics (defaults; populated in DM-only path)
+    size_t dm_blocks_stats = 0;
+    size_t dm_pairs_stats = 0;
+    int dm_stopped_time = 0, dm_stopped_pairs = 0, dm_stopped_blocks = 0;
+    size_t dm_last_i0 = 0, dm_last_j0 = 0;
+    // Manifest & soft-cap telemetry
+    std::string manifest_hash;
+    size_t attempted_count = 0;
+    std::string attempted_kind;
     // Soft-cap telemetry
     size_t overshoot_sum = 0;
     size_t overshoot_max = 0;
@@ -124,18 +151,30 @@ int main(int argc, char** argv) {
     cfg.edge_callback_threadsafe = true; // counting only, safe
     cfg.knn_cap_per_vertex_soft = static_cast<size_t>(soft_knn_cap > 0 ? soft_knn_cap : 0);
     cfg.softcap_local_merge = (softcap_local_merge != 0);
+    // optional CUDA
+    if (const char* CUDA_ENV = std::getenv("TDA_USE_CUDA"); CUDA_ENV && std::strlen(CUDA_ENV) > 0 && CUDA_ENV[0] == '1') cfg.use_cuda = true;
 
         tda::utils::StreamingDistanceMatrix dm(cfg);
         dm.onEdge([&](size_t, size_t, double){ /* no-op, just count in stats */ });
-    auto stats = dm.process(pts);
+        auto t0 = std::chrono::steady_clock::now();
+        auto stats = dm.process(pts);
+        auto t1 = std::chrono::steady_clock::now();
         dm_blocks = stats.total_blocks;
         dm_edges = stats.emitted_edges;
         dm_peak_mb = stats.peak_memory_bytes / (1024.0 * 1024.0);
-    overshoot_sum = stats.softcap_overshoot_sum;
-    overshoot_max = stats.softcap_overshoot_max;
-        build_secs = 0.0;
+        overshoot_sum = stats.softcap_overshoot_sum;
+        overshoot_max = stats.softcap_overshoot_max;
+        build_secs = std::chrono::duration<double>(t1 - t0).count();
         build_peak_mb = 0.0;
         simplices = 0;
+        // capture for JSONL later
+        dm_blocks_stats = stats.total_blocks;
+        dm_pairs_stats = stats.total_pairs;
+        dm_stopped_time = stats.stopped_by_time ? 1 : 0;
+        dm_stopped_pairs = stats.stopped_by_pairs ? 1 : 0;
+        dm_stopped_blocks = stats.stopped_by_blocks ? 1 : 0;
+        dm_last_i0 = stats.last_block_i0;
+        dm_last_j0 = stats.last_block_j0;
         if (soft_knn_cap > 0) {
             std::cout << "  [softcap] overshoot_sum=" << stats.softcap_overshoot_sum
                       << ", overshoot_max=" << stats.softcap_overshoot_max << std::endl;
@@ -160,6 +199,7 @@ int main(int argc, char** argv) {
             cfg.dm.edge_callback_threadsafe = true; // guarded updates in builder
             cfg.dm.knn_cap_per_vertex_soft = static_cast<size_t>(soft_knn_cap > 0 ? soft_knn_cap : 0);
             cfg.dm.softcap_local_merge = (softcap_local_merge != 0);
+            if (const char* CUDA_ENV2 = std::getenv("TDA_USE_CUDA"); CUDA_ENV2 && std::strlen(CUDA_ENV2) > 0 && CUDA_ENV2[0] == '1') cfg.dm.use_cuda = true;
 
             // Run primary build in a limited scope to free memory before optional baseline compare
             StreamingCechComplex::BuildStats b;
@@ -188,6 +228,8 @@ int main(int argc, char** argv) {
                 pool_total_blocks = b.pool_total_blocks;
                 pool_free_blocks = b.pool_free_blocks;
                 pool_fragmentation = b.pool_fragmentation;
+                pool_pages = b.pool_pages;
+                pool_blocks_per_page = b.pool_blocks_per_page;
                 if (!b.pool_bucket_stats.empty()) {
                     std::ostringstream oss;
                     // Order by arity ascending for stability, limit to first 12 entries to keep it short
@@ -210,6 +252,8 @@ int main(int argc, char** argv) {
             build_secs = b.elapsed_seconds;
             build_peak_mb = b.peak_memory_bytes / (1024.0 * 1024.0);
             simplices = b.num_simplices_built;
+            attempted_count = simplices;
+            attempted_kind = "simplices";
             if (soft_knn_cap > 0) {
                 std::cout << "  [softcap] overshoot_sum=" << dm.softcap_overshoot_sum
                           << ", overshoot_max=" << dm.softcap_overshoot_max << std::endl;
@@ -310,6 +354,7 @@ int main(int argc, char** argv) {
             cfg.dm.edge_callback_threadsafe = true;
             cfg.dm.knn_cap_per_vertex_soft = static_cast<size_t>(soft_knn_cap > 0 ? soft_knn_cap : 0);
             cfg.dm.softcap_local_merge = (softcap_local_merge != 0);
+            if (const char* CUDA_ENV3 = std::getenv("TDA_USE_CUDA"); CUDA_ENV3 && std::strlen(CUDA_ENV3) > 0 && CUDA_ENV3[0] == '1') cfg.dm.use_cuda = true;
 
             StreamingVRComplex::BuildStats b;
             tda::utils::StreamingDMStats dm;
@@ -336,6 +381,8 @@ int main(int argc, char** argv) {
                 pool_total_blocks = b.pool_total_blocks;
                 pool_free_blocks = b.pool_free_blocks;
                 pool_fragmentation = b.pool_fragmentation;
+                pool_pages = b.pool_pages;
+                pool_blocks_per_page = b.pool_blocks_per_page;
                 if (!b.pool_bucket_stats.empty()) {
                     std::ostringstream oss;
                     size_t count = 0;
@@ -357,6 +404,8 @@ int main(int argc, char** argv) {
             build_secs = b.elapsed_seconds;
             build_peak_mb = b.peak_memory_bytes / (1024.0 * 1024.0);
             simplices = b.num_simplices_built;
+            attempted_count = simplices;
+            attempted_kind = "simplices";
             if (soft_knn_cap > 0) {
                 std::cout << "  [softcap] overshoot_sum=" << dm.softcap_overshoot_sum
                           << ", overshoot_max=" << dm.softcap_overshoot_max << std::endl;
@@ -511,6 +560,38 @@ int main(int argc, char** argv) {
            // Pool telemetry (aggregate)
            << "\"pool_total_blocks\":" << pool_total_blocks << ",\"pool_free_blocks\":" << pool_free_blocks
            << ",\"pool_fragmentation\":" << pool_fragmentation
+           // Optional page info (if available in BuildStats)
+           << ",\"pool_pages\":" << pool_pages
+           << ",\"pool_blocks_per_page\":" << pool_blocks_per_page
+           // Early-stop diagnostics (DM-only path populates these)
+           << ",\"dm_total_blocks\":" << (dmOnly ? dm_blocks_stats : 0)
+           << ",\"dm_total_pairs\":" << (dmOnly ? dm_pairs_stats : 0)
+           << ",\"dm_stopped_by_time\":" << (dmOnly ? dm_stopped_time : 0)
+           << ",\"dm_stopped_by_pairs\":" << (dmOnly ? dm_stopped_pairs : 0)
+           << ",\"dm_stopped_by_blocks\":" << (dmOnly ? dm_stopped_blocks : 0)
+           << ",\"dm_last_block_i0\":" << (dmOnly ? dm_last_i0 : 0)
+           << ",\"dm_last_block_j0\":" << (dmOnly ? dm_last_j0 : 0)
+           // Manifest hash & attempted recompute count
+           << ",\"attempted_count\":" << attempted_count
+           << ",\"attempted_kind\":\"" << attempted_kind << "\""
+           << ",\"manifest_hash\":\"";
+        {
+            std::ostringstream man;
+            man << "mode=" << mode
+                << ",n=" << n << ",d=" << d
+                << (useVR ? ",epsilon=" : ",radius=") << (useVR ? epsilon : radius)
+                << ",maxDim=" << maxDim << ",maxNeighbors=" << maxNeighbors
+                << ",block=" << block
+                << ",soft_knn_cap=" << soft_knn_cap
+                << ",parallel_threshold=" << (par_thresh ? 1 : 0)
+                << ",softcap_local_merge=" << softcap_local_merge
+                << ",maxBlocks=" << max_blocks << ",maxPairs=" << max_pairs
+                << ",timeLimit=" << time_limit
+                << ",seed=" << seed
+                << ",use_cuda=" << (std::getenv("TDA_USE_CUDA") ? 1 : 0);
+            manifest_hash = fnv1a64(man.str());
+        }
+        jout << manifest_hash << "\""
            // Optional compact per-bucket stats as string: "arity:total/free;..." (empty for now)
            << ",\"pool_bucket_stats_compact\":\"" << pool_bucket_stats_compact << "\""
            << "}" << "\n";

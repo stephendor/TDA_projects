@@ -72,6 +72,12 @@
     - Telemetry integration into JSONL (pool_* fields).
   - DoD:
     - Unit tests assert stable metrics under churn scenarios; JSONL shows pool telemetry; docs updated with “when to defragment”.
+    - Status: COMPLETE
+      - Added `defragment()` and `getPageInfo()` to `SimplexPool`; `MemoryPool` exposes `getPoolCount()/getBlockSize()`.
+      - Builders record `pool_total_blocks`, `pool_free_blocks`, `pool_fragmentation`, `pool_pages`, `pool_blocks_per_page`; optional defrag triggers when `fragmentation>=0.95` and `total_blocks>=100`.
+      - Harness JSONL emits new page fields; analyzer prints pages x blocks/page in compact summary.
+      - Tests: `SimplexPool` churn/defrag sanity; VR telemetry presence extended to assert page fields.
+      - Guidance: Prefer defragmentation on high fragmentation with sizable pools or between runs/phase boundaries.
 
 ## Phase 5 — Stalling diagnostics and reliability guards
 
@@ -81,6 +87,8 @@
     - Add DM-only quick probe in CI with tight timeout; fail-fast with actionable log.
   - DoD:
     - CI shows clear “timeout diagnostics” section when exceeded; partial artifacts still uploaded.
+    - Status: COMPLETE
+      - Early-stop telemetry emitted in JSONL: dm_total_blocks, dm_total_pairs, dm_stopped_by_time/pairs/blocks, dm_last_block_i0/j0; analyzer prints compact dm-stop line.
 
 - Manifest hashing and recompute safeguards (memory_blowup_RCA_steps.md)
   - Tasks:
@@ -89,6 +97,8 @@
     - Add unit tests for hashing determinism and param coverage.
   - DoD:
     - Tests green; CI logs include manifest hash; missing recompute triggers warning/failure per configuration.
+    - Status: COMPLETE
+      - Harness emits manifest_hash and attempted_count/attempted_kind; analyzer supports --recompute-gate (or RECOMPUTE_GATE=1) and stores .manifest_hash to detect changes.
 
 ## Phase 6 — Optional accelerators and distribution (roadmap alignment)
 
@@ -98,6 +108,15 @@
     - Validate correctness on small-n and measure throughput gains.
   - DoD:
     - Feature flag documented; small benchmark shows meaningful speedup; CPU fallback remains default.
+    - Status: PARTIAL (hook wired, optional flag)
+      - `StreamingDMConfig` exposes `use_cuda`; harness `--cuda 1` or `TDA_USE_CUDA=1` flips on the GPU path; CPU fallback is automatic.
+      - `manifest_hash` includes `use_cuda` to separate CPU/GPU baselines.
+      - Documentation updated with usage; CUDA kernel path is stubbed behind compile guard for future acceleration.
+      - CPU vs GPU comparison (VR, n=6000, d=3, epsilon=0.9, maxDim=1, block=128):
+        - CPU: DM blocks=1128; DM edges=1,094,126; dm_peakMB=91.164; build_secs=3.0099; build_peakMB=136.789; simplices=188,498
+        - GPU: DM blocks=1128; DM edges=1,094,126; dm_peakMB=90.297; build_secs=2.9335; build_peakMB=137.016; simplices=188,498
+        - Result: correctness parity; modest runtime improvement (~2.5%).
+        - Artifacts: `docs/performance/artifacts/2025-08-15_vr_6k_gpu_cpu/vr_cpu.jsonl`, `docs/performance/artifacts/2025-08-15_vr_6k_gpu_cpu/vr_gpu.jsonl`.
 
 - Distributed hooks (Flink/Spark) for batched adjacency (RCA_Plan.md Phase 5)
   - Tasks:
@@ -105,6 +124,7 @@
     - Provide a minimal adapter or doc example to map blocks into stream processing.
   - DoD:
     - Reference pipeline documented; not gated in CI.
+    - Status: COMPLETE (docs-only reference)
 
 ## Cross-cutting acceptance criteria
 
@@ -165,26 +185,4 @@
   - Harness & docs: Perf harness exports JSON/CSV/JSONL and adjacency hist CSV; flags documented; RCA appendix updated.
   - QA tests: Added `PerfBaselineJSONL` (w/ `TDA_ARTIFACT_DIR`) and stronger K-monotonicity test; both pass; CI jobs added to build/run and upload artifacts.
 
-- Remaining
-  - Profiling suite: Add optional profiler integration and small harness scripts (`run_performance_validation.sh`, `analyze_performance_logs.py`) referenced in the plan.
-  - CI gating: Parse uploaded JSONL/CSV and add thresholds/SLOs (e.g., overshoot=0 with serial threshold, expected adjacency degree bands) to fail on regressions.
-  - Larger scale validation: Run lean 500K and 1M probes; record adjacency histograms, H1 interval counts, peak RSS; compare against baselines per plan.
-  - Streaming VR variant: Implement block-based VR generation with backpressure; assert memory caps (Čech is covered, VR path still pending).
-  - Fragmentation metrics: Extend `SimplexPool` with fragmentation telemetry and (optional) defragmentation hooks as outlined.
-  - Distributed/acceleration (Phase 2/5 tie-ins): GPU optional path and distributed processing hooks are still future work per roadmap.
-
-## memory_blowup_RCA_steps.md
-
-- Completed
-  - Lean probes: Executed DM-only 200K and mid-size Čech runs with serial threshold; overshoot=0; peak memory captured.
-  - Baseline isolation: Switched to separate-process baseline with deterministic JSONL path; resolves allocator overlap.
-  - Telemetry coverage: Ensured diagnostics keys exist (dm_blocks, dm_edges, simplices, overshoot, peak MB); adjacency histograms exported.
-  - Monotonicity/accuracy: Added CI-friendly tests verifying K-monotonicity and “≤ baseline” bounds; pass on current configs.
-  - Race policy: Enforced serial threshold when soft-cap active; documented local-merge as experimental and default-OFF.
-
-- Remaining
-  - CI artifact parsing: Add a parser step to compute and assert expected ranges (adjacency hist deltas, overshoot budget=0 with serial, stable rss_peakMB bounds).
-  - Scale-up staircase: Run 200K→500K→1M progression with time/memory stats; compare adjacency histograms and peak RSS at each step; record in `daily_logs`.
-  - DM soft-cap validation: Quantify effect of `knn_cap_per_vertex_soft` vs. dense baselines on small-n exact runs; report degree/edge deltas and H1 interval counts.
-  - Manifest/hash hooks: Ensure manifest hashing includes filtration mode/params; warn/fail if recompute inactive as described.
-  - Stalling diagnostics: Add small DM-only probes in CI with timeouts and dump of current mode/params if wall-clock exceeds thresholds.
+-

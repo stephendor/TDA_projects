@@ -120,6 +120,22 @@ public:
         free_blocks_.clear();
     }
 
+    /**
+     * @brief Get the number of allocated pools (pages)
+     */
+    size_t getPoolCount() const {
+        std::lock_guard<std::mutex> lock(mutex_);
+        return pools_.size();
+    }
+
+    /**
+     * @brief Get the configured block size (blocks per pool)
+     */
+    size_t getBlockSize() const {
+        // block_size_ is immutable after construction
+        return block_size_;
+    }
+
 private:
     /**
      * @brief Add a new pool to the memory pool

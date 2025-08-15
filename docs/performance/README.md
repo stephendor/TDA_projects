@@ -178,6 +178,70 @@ Compact summary lines printed in CI (example):
 
 Backward-compatible underscore keys are also present: dm_peak_mb, build_peak_mb, overshoot_sum, overshoot_max.
 
+## Optional GPU path (CUDA)
+
+The streaming distance stage supports an optional, flag-gated CUDA path for block computations.
+
+- Build with CUDA enabled:
+
+```bash
+./build.sh release ON false  # or: cmake -DENABLE_CUDA=ON ...
+```
+
+- Turn on GPU path at runtime (two equivalent ways):
+
+```bash
+# CLI flag (sets env internally)
+build/release/tests/cpp/test_streaming_cech_perf --dm-only --n 100000 --d 3 --radius 0.5 --cuda 1 --json /tmp/run.jsonl
+
+# or via environment variable
+export TDA_USE_CUDA=1
+build/release/tests/cpp/test_streaming_cech_perf --dm-only --n 100000 --d 3 --radius 0.5 --json /tmp/run.jsonl
+```
+
+Notes:
+
+- CUDA is optional and off by default. If not compiled with CUDA (`ENABLE_CUDA=OFF`) or no device is available, the harness falls back to the CPU path.
+- The `manifest_hash` includes `use_cuda` so CI can distinguish CPU/GPU runs deterministically.
+- Analyzer gating is unchanged by GPU usage.
+
+## Distributed hooks (Flink/Spark) — reference format
+
+To integrate with stream processors, represent work and results via compact NDJSON:
+
+- Block task schema (per tile):
+
+```json
+{ "i0": 0, "j0": 256, "block": 64, "threshold": 1.0, "mode": "threshold", "seed": 42 }
+```
+
+- Edge emission schema (threshold mode):
+
+```json
+{ "i": 123, "j": 987, "d": 0.4123 }
+```
+
+Reference mapping (pseudocode):
+
+```python
+# Flink Python pseudocode
+from pyflink.datastream import StreamExecutionEnvironment
+
+env = StreamExecutionEnvironment.get_execution_environment()
+tasks = env.from_source("block_tasks")  # (i0,j0,block,threshold,...)
+
+def compute_tile(task):
+    # Load points shard(s), compute distances for tile (i0..i0+B-1, j0..j0+B-1)
+    # Emit edges with d <= threshold
+    yield from edges
+
+edges_ds = tasks.flat_map(compute_tile)
+edges_ds.add_sink("edges_out")
+env.execute("tda-edges")
+```
+
+This reference pipeline is documentation-only and not gated in CI.
+
 ### Accuracy reports and thresholds
 
 Use `scripts/run_accuracy_check.sh` to emit `accuracy_report_*.json` comparing exact (serial, no soft cap) to soft-cap variants (e.g., K=8,16,32). The analyzer can parse these and optionally enforce percentage thresholds:

@@ -1,6 +1,6 @@
 # Task ID: 4
 # Title: Develop Prototype UI for Core Analysis Workflow
-# Status: todo
+# Status: pending
 # Dependencies: 3
 # Priority: medium
 # Description: Create a basic user interface for running analyses and visualizing the primary results of persistent homology.

@@ -73,4 +73,32 @@ std::vector<SimplexPool::BucketStats> SimplexPool::getAllBucketStats() const {
     return out;
 }
 
+void SimplexPool::defragment() {
+    std::lock_guard<std::mutex> lock(mtx_);
+    for (auto& kv : pools_) {
+        auto& poolPtr = kv.second;
+        auto stats = poolPtr->getStats();
+        const size_t total = stats.first;
+        const size_t free  = stats.second;
+        if (total == 0) continue;
+        const double free_ratio = static_cast<double>(free) / static_cast<double>(total);
+        // Heuristic: if highly free and grown to multiple pages, reset to one page
+        if (free_ratio >= 0.80 && poolPtr->getPoolCount() > 2) {
+            poolPtr->clear();
+            poolPtr->reserve(1);
+        }
+    }
+}
+
+std::pair<size_t, size_t> SimplexPool::getPageInfo() const {
+    std::lock_guard<std::mutex> lock(mtx_);
+    size_t pages = 0;
+    size_t blocks_per_page = 0;
+    for (const auto& kv : pools_) {
+        pages += kv.second->getPoolCount();
+        if (blocks_per_page == 0) blocks_per_page = kv.second->getBlockSize();
+    }
+    return {pages, blocks_per_page};
+}
+
 } // namespace tda::core

@@ -29,6 +29,10 @@ option(TDA_BUILD_EXAMPLES "Build example programs" ON)
 option(TDA_ENABLE_SIMD "Enable SIMD optimizations" ON)
 option(TDA_ENABLE_OPENMP "Enable OpenMP parallelization" ON)
 option(TDA_ENABLE_CUDA "Enable CUDA support" OFF)
+# Backward-compat: honor ENABLE_CUDA if provided by scripts
+if(DEFINED ENABLE_CUDA AND NOT DEFINED TDA_ENABLE_CUDA)
+    set(TDA_ENABLE_CUDA ${ENABLE_CUDA})
+endif()
 
 # =============================================================================
 # COMPILER CONFIGURATION
@@ -261,6 +265,34 @@ add_library(tda_utils STATIC
     src/cpp/utils/distance_matrix.cpp
     src/cpp/utils/streaming_distance_matrix.cpp
 )
+
+# Optional CUDA object for distance tiles
+if(TDA_ENABLE_CUDA)
+    enable_language(CUDA)
+    find_package(CUDAToolkit REQUIRED)
+    # Set CUDA language standard and target architecture (RTX 3070 -> sm_86)
+    set(CMAKE_CUDA_STANDARD 17)
+    set(CMAKE_CUDA_STANDARD_REQUIRED ON)
+    set(CMAKE_CUDA_ARCHITECTURES 86)
+
+    add_library(tda_utils_cuda OBJECT
+        src/cpp/utils/streaming_distance_cuda.cu
+    )
+    set_target_properties(tda_utils_cuda PROPERTIES
+        CUDA_STANDARD 17
+        CUDA_ARCHITECTURES 86
+    )
+
+    target_compile_definitions(tda_utils PUBLIC TDA_ENABLE_CUDA)
+    target_link_libraries(tda_utils PUBLIC CUDA::cudart)
+    target_sources(tda_utils PRIVATE $<TARGET_OBJECTS:tda_utils_cuda>)
+    # Ensure top-level target has CUDA standard/arch set to avoid CUDA23 mismatch
+    set_target_properties(tda_utils PROPERTIES
+        CUDA_STANDARD 17
+        CUDA_STANDARD_REQUIRED ON
+        CUDA_ARCHITECTURES 86
+    )
+endif()
 
 # Main platform executable
 add_executable(tda_platform src/cpp/tda_platform.cpp)
