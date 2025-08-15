@@ -25,8 +25,11 @@ import logging
 import argparse
 from typing import List, Dict, Any, Optional, Tuple
 from dataclasses import dataclass, asdict
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 import numpy as np
+import tempfile
+import subprocess
+import shlex
 
 # PyFlink imports
 from pyflink.datastream import StreamExecutionEnvironment, TimeCharacteristic
@@ -45,6 +48,7 @@ from pyflink.datastream.window import (
 )
 from pyflink.datastream.state import ValueStateDescriptor, ListStateDescriptor
 from pyflink.common.types import Row
+from pyflink.common.watermark_strategy import WatermarkStrategy
 
 # Logging configuration
 logging.basicConfig(
@@ -235,27 +239,88 @@ class TDAComputation(WindowFunction):
                     'computation_time': 0.0,
                     'success': False
                 }
-            
-            # Simple distance matrix computation
-            num_points = len(points)
-            
-            # For demonstration, compute basic topological features
-            # In production, this would use optimized TDA libraries
-            
-            # Compute pairwise distances
+            # Preferred path: invoke optimized C++ harness if configured
+            use_harness = os.getenv("TDA_USE_HARNESS", "1") == "1"
+            harness_path = os.getenv("TDA_HARNESS_PATH", "build/release/tests/cpp/test_streaming_cech_perf")
+            mode = os.getenv("TDA_MODE", "vr")  # vr or cech
+            epsilon = float(os.getenv("TDA_EPSILON", "0.5"))
+            radius = float(os.getenv("TDA_RADIUS", "0.5"))
+            soft_knn_cap = int(os.getenv("TDA_SOFT_K", "16"))
+            parallel_threshold = int(os.getenv("TDA_PAR_THRESH", "0"))
+            max_dim = int(os.getenv("TDA_MAX_DIM", str(self.config.max_dimension)))
+            time_limit = int(os.getenv("TDA_TIME_LIMIT", "0"))
+            use_gpu = os.getenv("TDA_USE_CUDA", "0") == "1"
+
+            if use_harness:
+                # Ensure harness binary path exists
+                if not os.path.exists(harness_path) or not os.access(harness_path, os.X_OK):
+                    logger.warning(f"Harness not found or not executable at {harness_path}; falling back to Python path.")
+                    raise FileNotFoundError(harness_path)
+
+                with tempfile.TemporaryDirectory() as tmpd:
+                    csv_path = os.path.join(tmpd, "points.csv")
+                    jsonl_path = os.path.join(tmpd, "out.jsonl")
+                    # Write CSV: one point per line, comma-separated floats
+                    np.savetxt(csv_path, points, delimiter=",", fmt="%.10f")
+                    cmd = [
+                        harness_path,
+                        "--mode", mode,
+                        "--points-csv", csv_path,
+                        "--epsilon", str(epsilon),
+                        "--radius", str(radius),
+                        "--maxDim", str(max_dim),
+                        "--soft-knn-cap", str(soft_knn_cap),
+                        "--parallel-threshold", str(parallel_threshold),
+                        "--json", jsonl_path,
+                    ]
+                    if time_limit > 0:
+                        cmd.extend(["--time-limit", str(time_limit)])
+                    logger.info(f"Invoking harness: {' '.join(shlex.quote(c) for c in cmd)}")
+                    try:
+                        env = os.environ.copy()
+                        if use_gpu:
+                            env["TDA_USE_CUDA"] = "1"
+                        subprocess.run(cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=max(5, time_limit or 30), env=env)
+                    except subprocess.CalledProcessError as e:
+                        logger.error(f"Harness failed: rc={e.returncode}, stderr={e.stderr[:500]}...")
+                        raise
+                    except subprocess.TimeoutExpired as e:
+                        logger.error("Harness timed out")
+                        raise
+                    # Read last JSONL line for metrics
+                    last = {}
+                    try:
+                        with open(jsonl_path, "r") as f:
+                            for line in f:
+                                line = line.strip()
+                                if line:
+                                    try:
+                                        last = json.loads(line)
+                                    except Exception:
+                                        pass
+                    except FileNotFoundError:
+                        logger.error("Harness JSONL output not found")
+                        last = {}
+                    computation_time = time.time() - start_time
+                    # Map harness telemetry to streaming result shape
+                    betti_numbers = {"0": [int(last.get("betti0", 0))] } if isinstance(last.get("betti0", 0), (int,float)) else {}
+                    homology_groups = []
+                    persistence_pairs = []
+                    return {
+                        'betti_numbers': betti_numbers,
+                        'persistence_pairs': persistence_pairs,
+                        'homology_groups': homology_groups,
+                        'computation_time': computation_time,
+                        'memory_usage': int( (last.get('rss_peakMB') or 0) * 1024 * 1024 ),
+                        'success': True
+                    }
+
+            # Fallback placeholder path: local Python approximation
             distances = self._compute_distance_matrix(points)
-            
-            # Simple persistence computation (placeholder)
             persistence_pairs = self._compute_simple_persistence(distances)
-            
-            # Compute Betti numbers
             betti_numbers = self._compute_betti_numbers(persistence_pairs)
-            
-            # Create homology groups
             homology_groups = self._create_homology_groups(persistence_pairs)
-            
             computation_time = time.time() - start_time
-            
             return {
                 'betti_numbers': betti_numbers,
                 'persistence_pairs': persistence_pairs,
@@ -470,11 +535,11 @@ def create_tda_streaming_job(config: TDAJobConfig) -> None:
     # Filter valid data
     valid_stream = parsed_stream.filter(lambda row: row.num_points > 0)
     
-    # Assign timestamps and watermarks
-    timestamped_stream = valid_stream.assign_timestamps_and_watermarks(
-        watermark_strategy=lambda event: event.event_time,
-        watermark_generator_supplier=lambda: BoundedOutOfOrdernessWatermarks(Time.seconds(5))
-    )
+    # Assign timestamps and watermarks (bounded out-of-orderness)
+    watermark_strategy = WatermarkStrategy \
+        .for_bounded_out_of_orderness(timedelta(seconds=5)) \
+        .with_timestamp_assigner(lambda e, ts: e.event_time)
+    timestamped_stream = valid_stream.assign_timestamps_and_watermarks(watermark_strategy)
     
     # Key by job_id for parallel processing
     keyed_stream = timestamped_stream.key_by(lambda row: row.job_id)

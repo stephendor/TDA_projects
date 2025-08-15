@@ -236,6 +236,7 @@ research/                   # Extracted research content
 - **Plan References**: When addressing memory blowup issues, the primary reference documents are `memory_blowup_RCA_steps.md` and `RCA_Plan.md`.
 - **Coding and Testing**: When implementing new components like `StreamingDistanceMatrix`, create a reusable component (header + source), wire it into the build, and add a unit test to validate correctness and memory-bounded behavior.
 - **Current Focus**: We are currently testing streamingVR.
+- **When starting a new task or re-engaging with a paused task, YOU (the AI) must open relevant files like `chathandoff.md` to understand the current project context and active development areas. YOU (the AI) must scan the repository for mentions of specific features or modules (e.g., "streamingVR") to locate relevant code, tests, and build configurations. YOU (the AI) must then use this information to suggest or run appropriate tests and validate the current status.**
 
 ### Experimentation
 - For controlled experiments, ensure a deterministic setup: same seed, identical non-filtration flags.
@@ -279,6 +280,8 @@ research/                   # Extracted research content
 - Update testing to include a lean run for sanity checking, then a full run. Determine if settings need tuning. Find a lean lower bound and then step up in stages to a full run.
 - **ALWAYS** run a lean 200K sanity probe (e.g., maxDim=1, K=8–16, tighter radius or time/pair caps), then step up to fuller config and compare adjacency histograms and peak RSS at each step.
 - Validate that DM knn_cap_per_vertex_soft reduces work without unacceptable loss; compare simplex counts and adjacency degree distributions across runs.
+- **After a run, the default value for `n` should be 10k and use this as a baseline ongoing.**
+- Ensure that the CI VR perf probe runs at n=10k and emits both parent and baseline artifacts, and the analyzer gating with require-csv is kept, with addition of compact delta echo.
 
 ## 🗑️ **METHODOLOGY GRAVEYARD**
 - Document all failed approaches and their rationale in `METHODOLOGY_GRAVEYARD.md`.
@@ -594,15 +597,4 @@ docker run -d \
   - dm_peakMB=755.746, rss_peakMB=789.586
   - overshoot_sum=0, overshoot_max=0
 - Baseline (no soft cap, serial, time-limit=600)
-  - dm_blocks=371,930, dm_edges=3,299,630, simplices=1,604,812
-  - dm_peakMB=752.184, rss_peakMB=791.402
-- Deltas (parent − baseline)
-  - Δedges = −183,657, Δsimplices = −2,134
-
-## 🧪 VALIDATION & TESTING
-
-## 🛠️ DEBUGGING
-- If a required diagnostics key is missing, patch the code to include it before running any variant runs.
-- If any variant run crashes, analyze the terminal output, fix the issue, and rerun the variant.
-- If the manifest hash does not change as expected for a variant, investigate the hashing logic and correct it.
--
+  - dm_blocks=371,

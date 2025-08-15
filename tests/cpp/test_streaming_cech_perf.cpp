@@ -57,6 +57,7 @@ int main(int argc, char** argv) {
     const char* adjHistCsv = nullptr;           // export adjacency histogram (current run)
     const char* adjHistCsvBaseline = nullptr;   // export baseline adjacency histogram (baseline run)
     const char* baselineJsonOut = nullptr;      // optional: where the separate-process baseline writes its JSONL
+    const char* pointsCsvPath = nullptr;        // optional: read input points from CSV file (overrides n/d)
     bool dmOnly = false;
     std::string modeSel = "cech"; // cech|vr
     int baseline_compare = 0; // if 1 and not dmOnly, run a baseline (no soft cap, serial threshold)
@@ -86,6 +87,7 @@ int main(int argc, char** argv) {
     else if (!strcmp(argv[i], "--adj-hist-csv") && i+1 < argc) { adjHistCsv = argv[++i]; }
     else if (!strcmp(argv[i], "--adj-hist-csv-baseline") && i+1 < argc) { adjHistCsvBaseline = argv[++i]; }
     else if (!strcmp(argv[i], "--baseline-json-out") && i+1 < argc) { baselineJsonOut = argv[++i]; }
+    else if (!strcmp(argv[i], "--points-csv") && i+1 < argc) { pointsCsvPath = argv[++i]; }
     else if (!strcmp(argv[i], "--dm-only")) { dmOnly = true; }
     else if (!strcmp(argv[i], "--mode") && i+1 < argc) { modeSel = argv[++i]; }
     else if (!strcmp(argv[i], "--cuda") && i+1 < argc) { int cu = std::atoi(argv[++i]); if (cu) setenv("TDA_USE_CUDA","1",1); }
@@ -105,7 +107,52 @@ int main(int argc, char** argv) {
         }
     }
 
-    auto pts = make_points(n, d, seed);
+    auto pts = StreamingCechComplex::PointContainer{};
+    if (pointsCsvPath && std::strlen(pointsCsvPath) > 0) {
+        // Read points from CSV; each line: x1,x2,...,xd
+        std::ifstream pin(pointsCsvPath);
+        if (!pin.good()) {
+            std::cerr << "Failed to open points CSV: " << pointsCsvPath << "\n";
+            return 2;
+        }
+        std::string line;
+        size_t inferred_d = 0;
+        while (std::getline(pin, line)) {
+            if (line.empty()) continue;
+            std::vector<double> coords;
+            coords.reserve(8);
+            std::stringstream ss(line);
+            std::string tok;
+            while (std::getline(ss, tok, ',')) {
+                if (!tok.empty()) {
+                    try {
+                        coords.push_back(std::stod(tok));
+                    } catch (...) {
+                        // treat non-numeric as 0
+                        coords.push_back(0.0);
+                    }
+                } else {
+                    coords.push_back(0.0);
+                }
+            }
+            if (coords.empty()) continue;
+            if (inferred_d == 0) inferred_d = coords.size();
+            // normalize dimension: pad or trim to inferred_d
+            if (coords.size() < inferred_d) coords.resize(inferred_d, 0.0);
+            else if (coords.size() > inferred_d) coords.resize(inferred_d);
+            pts.emplace_back(std::move(coords));
+        }
+        if (pts.empty()) {
+            std::cerr << "No points parsed from CSV: " << pointsCsvPath << "\n";
+            return 3;
+        }
+        // Override n and d from parsed data
+        n = pts.size();
+        d = pts.front().size();
+        std::cout << "[input] Loaded " << n << " points of dimension " << d << " from CSV: " << pointsCsvPath << "\n";
+    } else {
+        pts = make_points(n, d, seed);
+    }
 
     // Result vars
     size_t dm_blocks = 0, dm_edges = 0;

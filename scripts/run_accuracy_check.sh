@@ -6,7 +6,7 @@ set -euo pipefail
 
 HARNESS=""
 ARTIFACTS_DIR="${TDA_ARTIFACT_DIR:-/tmp/tda-artifacts}"
-N=4000
+N=10000
 D=8
 RADIUS=0.5
 MAXDIM=1
