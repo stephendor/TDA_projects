@@ -100,7 +100,7 @@ int BettiCurve::calculateBettiNumber(
     // Count how many homology features of the given dimension are active at this filtration value
     int count = 0;
     for (const auto& pair : diagram) {
-        if (pair.dimension != dimension) continue;
+        if (static_cast<int>(pair.dimension) != dimension) continue;
         
         // A feature is active if it has been born but not died yet
         if (pair.birth <= filtration_value && filtration_value < pair.death) {

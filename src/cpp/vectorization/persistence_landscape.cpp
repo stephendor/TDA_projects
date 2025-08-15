@@ -107,7 +107,7 @@ std::vector<double> PersistenceLandscape::computeLandscapeLevel(
     // Filter diagram for the desired dimension
     std::vector<std::pair<double, double>> filtered_pairs;
     for (const auto& pair : diagram) {
-        if (pair.dimension == dimension) {
+        if (static_cast<int>(pair.dimension) == dimension) {
             filtered_pairs.emplace_back(pair.birth, pair.death);
         }
     }
@@ -127,9 +127,7 @@ std::vector<double> PersistenceLandscape::computeLandscapeLevel(
         std::vector<double> values;
         values.reserve(filtered_pairs.size());
         
-        for (const auto& [birth, death] : filtered_pairs) {
-            const double persistence = death - birth;
-            
+    for (const auto& [birth, death] : filtered_pairs) {
             if (t <= birth) {
                 values.push_back(0.0);
             } else if (birth < t && t <= (birth + death) / 2) {

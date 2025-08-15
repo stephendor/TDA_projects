@@ -43,7 +43,7 @@ globs: *
 - **Vectorizer**: Registry and static registration implemented (`VectorizerRegistrar`).
 - **Algorithms**: `VietorisRipsImpl` is now implemented with Gudhi.
 - **Tests**: All C++ tests pass after minor stabilization of floating-point assertions. FullPipeline test may terminate due to resource limits in some environments.
-- **Warnings**: Some non-blocking warnings (misleading indentation in `filtration.cpp`, sign/narrowing and unused-variable warnings in vectorization/DTM code).
+- **Warnings**: Some non-blocking warnings (misleading indentation in `filtration.cpp`, sign/narrowing and unused-variable warnings in vectorization/DTM code). These have largely been addressed, but some DTM narrowing and vectorization sign-compare warnings may persist.
 - **Current Branch**: cursor/research-and-plan-system-components-e146
 
 ## 🚫 **FORBIDDEN ACTIONS**
@@ -297,6 +297,7 @@ research/                   # Extracted research content
 - Scan the core and vectorization headers and source files to locate definitions of data structures and method signatures to apply targeted fixes.
 - Inspect the failing source files to identify missing includes and patch them to include the correct header.
 - Inspect relevant headers and source files to align method signatures and replace outdated API calls.
+- When a `PersistencePair` struct is used, access the persistence value using the `get_persistence()` method, not a `persistence` member directly.
 
 ## 🧪 **VALIDATION & TESTING**
 

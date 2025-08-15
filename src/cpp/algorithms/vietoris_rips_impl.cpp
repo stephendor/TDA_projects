@@ -14,11 +14,26 @@ ResultVoid VietorisRipsImpl::initialize(const std::vector<std::vector<double>>& 
                                         double threshold,
                                         int max_dimension,
                                         int coefficient_field) {
+    // Reset any previous state
+    cleanup();
+
+    // Validate inputs to align with API expectations and tests
+    if (points.empty()) {
+        return ResultVoid::failure("VietorisRipsImpl::initialize: empty point cloud provided.");
+    }
+    if (threshold <= 0.0) {
+        return ResultVoid::failure("VietorisRipsImpl::initialize: threshold must be positive.");
+    }
+    if (max_dimension < 0) {
+        return ResultVoid::failure("VietorisRipsImpl::initialize: max_dimension must be non-negative.");
+    }
+
+    // Store parameters
     points_ = points;
     threshold_ = threshold;
     max_dimension_ = max_dimension;
     coefficient_field_ = coefficient_field;
-    cleanup();
+
     return ResultVoid::success();
 }
 

@@ -167,6 +167,10 @@ tda::core::Result<void> DTMFiltration::buildFiltration(int maxDimension) {
     }
     
     try {
+        // Ensure simplex tree exists before building
+        if (!simplex_tree_) {
+            simplex_tree_ = std::make_unique<Simplex_tree>();
+        }
         buildFiltrationFromDTM(maxDimension);
         return tda::core::Result<void>::success();
     } catch (const std::exception& e) {
@@ -181,10 +185,17 @@ void DTMFiltration::buildFiltrationFromDTM(int maxDimension) {
     
     simplex_tree_->clear();
     
+    auto vh = [](size_t idx) -> Simplex_tree::Vertex_handle {
+        if (idx > static_cast<size_t>(std::numeric_limits<Simplex_tree::Vertex_handle>::max())) {
+            throw std::overflow_error("Vertex index exceeds Simplex_tree::Vertex_handle range");
+        }
+        return static_cast<Simplex_tree::Vertex_handle>(idx);
+    };
+
     // Add vertices (0-simplices) with DTM-based filtration values
     for (size_t i = 0; i < points_.size(); ++i) {
         double filtrationValue = dtmValues_[i];
-        simplex_tree_->insert_simplex({i}, filtrationValue);
+        simplex_tree_->insert_simplex({vh(i)}, filtrationValue);
     }
     
     // Build higher-dimensional simplices using Vietoris-Rips approach
@@ -196,7 +207,7 @@ void DTMFiltration::buildFiltrationFromDTM(int maxDimension) {
             
             // Add edge if it meets the dimension constraint
             if (maxDimension >= 1) {
-                simplex_tree_->insert_simplex({i, j}, edgeFiltration);
+                simplex_tree_->insert_simplex({vh(i), vh(j)}, edgeFiltration);
             }
         }
     }
@@ -208,7 +219,7 @@ void DTMFiltration::buildFiltrationFromDTM(int maxDimension) {
                 for (size_t k = j + 1; k < points_.size(); ++k) {
                     // Compute triangle filtration value
                     double triangleFiltration = std::max({dtmValues_[i], dtmValues_[j], dtmValues_[k]});
-                    simplex_tree_->insert_simplex({i, j, k}, triangleFiltration);
+                    simplex_tree_->insert_simplex({vh(i), vh(j), vh(k)}, triangleFiltration);
                 }
             }
         }
@@ -222,26 +233,33 @@ void DTMFiltration::buildFiltrationFromDTM(int maxDimension) {
                     for (size_t l = k + 1; l < points_.size(); ++l) {
                         // Compute tetrahedron filtration value
                         double tetrahedronFiltration = std::max({dtmValues_[i], dtmValues_[j], dtmValues_[k], dtmValues_[l]});
-                        simplex_tree_->insert_simplex({i, j, k, l}, tetrahedronFiltration);
+                        simplex_tree_->insert_simplex({vh(i), vh(j), vh(k), vh(l)}, tetrahedronFiltration);
                     }
                 }
             }
         }
     }
+
+    // Ensure filtration values are consistent
+    simplex_tree_->initialize_filtration();
 }
 
 tda::core::Result<void> DTMFiltration::computePersistence(int coefficientField) {
-    if (!simplex_tree_ || !persistent_cohomology_) {
+    if (!simplex_tree_) {
         return tda::core::Result<void>::failure("Filtration not built");
     }
-    
+
     try {
+        if (!persistent_cohomology_) {
+            persistent_cohomology_ = std::make_unique<Persistent_cohomology>(*simplex_tree_);
+        }
+
         // Initialize coefficients
         persistent_cohomology_->init_coefficients(coefficientField);
-        
-        // Compute persistent cohomology
-        persistent_cohomology_->compute_persistent_cohomology(coefficientField);
-        
+
+        // Compute persistent cohomology (min_persistence = 0 by default)
+        persistent_cohomology_->compute_persistent_cohomology();
+
         return tda::core::Result<void>::success();
     } catch (const std::exception& e) {
         return tda::core::Result<void>::failure(std::string("Persistence computation failed: ") + e.what());
@@ -256,31 +274,21 @@ tda::core::Result<std::vector<tda::core::PersistencePair>> DTMFiltration::getPer
     if (!persistent_cohomology_) {
         return tda::core::Result<std::vector<tda::core::PersistencePair>>::failure("Persistence not computed");
     }
-    
+
     try {
         std::vector<tda::core::PersistencePair> pairs;
-        
-        // Get persistent pairs from GUDHI
-        auto persistent_pairs = persistent_cohomology_->persistent_pairs_;
-        
-        for (const auto& pair : persistent_pairs) {
-            tda::core::PersistencePair tdaPair;
-            
-            // Extract birth and death simplex handles
-            auto birth_simplex_handle = std::get<0>(pair);
-            auto death_simplex_handle = std::get<1>(pair);
-            int dimension = std::get<2>(pair);
-            
-            // Set pair properties
-            tdaPair.dimension = dimension;
-            tdaPair.birth = simplex_tree_->filtration(birth_simplex_handle);
-            tdaPair.death = simplex_tree_->filtration(death_simplex_handle);
-            tdaPair.birth_simplex = simplex_tree_->key(birth_simplex_handle);
-            tdaPair.death_simplex = simplex_tree_->key(death_simplex_handle);
-            
-            pairs.push_back(std::move(tdaPair));
+
+        for (const auto& p : persistent_cohomology_->get_persistent_pairs()) {
+            const auto& [birth_handle, death_handle, dim] = p;
+            tda::core::PersistencePair out;
+            out.dimension = static_cast<tda::core::Dimension>(dim);
+            out.birth = simplex_tree_->filtration(birth_handle);
+            out.death = simplex_tree_->filtration(death_handle);
+            out.birth_simplex = simplex_tree_->key(birth_handle);
+            out.death_simplex = simplex_tree_->key(death_handle);
+            pairs.emplace_back(out);
         }
-        
+
         return tda::core::Result<std::vector<tda::core::PersistencePair>>::success(pairs);
     } catch (const std::exception& e) {
         return tda::core::Result<std::vector<tda::core::PersistencePair>>::failure(std::string("Failed to get persistence pairs: ") + e.what());
@@ -304,6 +312,10 @@ tda::core::Result<std::vector<tda::core::SimplexInfo>> DTMFiltration::getSimplic
             // Extract vertices
             std::vector<int> vertices;
             for (auto vertex : simplex_tree_->simplex_vertex_range(simplex)) {
+                // Avoid narrowing warning by checking range
+                if (vertex > std::numeric_limits<int>::max()) {
+                    throw std::runtime_error("Vertex index exceeds int range: " + std::to_string(vertex));
+                }
                 vertices.push_back(static_cast<int>(vertex));
             }
             simplexInfo.vertices = vertices;
@@ -328,13 +340,14 @@ tda::core::Result<tda::core::ComplexStatistics> DTMFiltration::getStatistics() c
         stats.num_points = points_.size();
         stats.num_simplices = simplex_tree_->num_simplices();
         stats.max_dimension = simplex_tree_->dimension();
-        
+        // Prepare counts by dimension
+        stats.simplex_count_by_dim.assign(static_cast<size_t>(stats.max_dimension) + 1, 0);
+
         // Count simplices by dimension
         for (auto simplex : simplex_tree_->filtration_simplex_range()) {
             int dim = simplex_tree_->dimension(simplex);
-            if (dim < static_cast<int>(stats.simplex_count_by_dim.size())) {
-                stats.simplex_count_by_dim[dim]++;
-            }
+            // dim is non-negative and within range given assign above
+            stats.simplex_count_by_dim[static_cast<size_t>(dim)]++;
         }
         
         return tda::core::Result<tda::core::ComplexStatistics>::success(stats);

@@ -124,23 +124,23 @@ if(TBB_FOUND)
 endif()
 add_test(NAME ST101MemoryOptimized COMMAND test_st101_memory_optimized)
 
-# Temporarily disabled - requires GoogleTest conversion
-# add_executable(test_vietoris_rips
-#     test_vietoris_rips.cpp
-# )
-# target_link_libraries(test_vietoris_rips 
-#     tda_algorithms 
-#     tda_core 
-#     Eigen3::Eigen 
-#     Threads::Threads
-# )
-# if(TDA_ENABLE_OPENMP AND OpenMP_CXX_FOUND)
-#     target_link_libraries(test_vietoris_rips OpenMP::OpenMP_CXX)
-# endif()
-# if(TBB_FOUND)
-#     target_link_libraries(test_vietoris_rips TBB::tbb)
-# endif()
-# add_test(NAME VietorisRips COMMAND test_vietoris_rips)
+# Vietoris-Rips comprehensive test
+add_executable(test_vietoris_rips
+    test_vietoris_rips.cpp
+)
+target_link_libraries(test_vietoris_rips 
+    tda_algorithms 
+    tda_core 
+    Eigen3::Eigen 
+    Threads::Threads
+)
+if(TDA_ENABLE_OPENMP AND OpenMP_CXX_FOUND)
+    target_link_libraries(test_vietoris_rips OpenMP::OpenMP_CXX)
+endif()
+if(TBB_FOUND)
+    target_link_libraries(test_vietoris_rips TBB::tbb)
+endif()
+add_test(NAME VietorisRips COMMAND test_vietoris_rips)
 
 # Minimal Vietoris–Rips smoke test (fast)
 add_executable(test_vr_minimal
@@ -172,12 +172,12 @@ set_tests_properties(DistanceMatrix PROPERTIES TIMEOUT 180)
 set_tests_properties(FullPipeline PROPERTIES TIMEOUT 600)
 set_tests_properties(MathematicalValidation PROPERTIES TIMEOUT 300)
 set_tests_properties(ST101MemoryOptimized PROPERTIES TIMEOUT 1200)  # 20 minutes for large datasets
-# set_tests_properties(VietorisRips PROPERTIES TIMEOUT 300)
+set_tests_properties(VietorisRips PROPERTIES TIMEOUT 300 LABELS "vr;algorithms")
 
 # Add custom test target for running all tests
 add_custom_target(run_all_tests
     COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure --parallel 4
-    DEPENDS test_result test_sparse_rips test_distance_matrix test_full_pipeline test_mathematical_validation test_st101_memory_optimized
+    DEPENDS test_result test_sparse_rips test_distance_matrix test_full_pipeline test_mathematical_validation test_st101_memory_optimized test_vietoris_rips test_vr_minimal
     COMMENT "Running all TDA tests"
 )
 

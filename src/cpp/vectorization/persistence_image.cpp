@@ -22,7 +22,7 @@ PersistenceImage::FeatureVector PersistenceImage::vectorize(const PersistenceDia
         // Filter diagram for the desired dimension
         std::vector<std::pair<double, double>> filtered_pairs;
         for (const auto& pair : diagram) {
-            if (pair.dimension == dim) {
+            if (static_cast<int>(pair.dimension) == dim) {
                 // Transform from (birth, death) to (birth, persistence)
                 // For stability and better visualization
                 const double birth = pair.birth;
