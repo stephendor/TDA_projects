@@ -1,0 +1,465 @@
+# TDA Kafka Topics Configuration
+# Environment-specific topic configurations with schema requirements and compatibility settings
+
+version: "1.0"
+metadata:
+  created: "2025-01-01"
+  description: "TDA Platform Kafka topic configurations"
+  maintainer: "TDA Platform Team"
+  schema_registry_url: "${SCHEMA_REGISTRY_URL:-http://localhost:8081}"
+
+# Global defaults applied to all topics unless overridden
+defaults:
+  replication_factor: 3
+  min_in_sync_replicas: 2
+  cleanup_policy: "delete"
+  compression_type: "lz4"
+  segment_ms: 86400000  # 24 hours
+  message_max_bytes: 1048576  # 1MB
+  unclean_leader_election_enable: false
+  delete_retention_ms: 86400000  # 24 hours
+
+# Environment-specific configurations
+environments:
+  development:
+    defaults:
+      replication_factor: 1
+      min_in_sync_replicas: 1
+      retention_ms: 604800000  # 7 days
+      retention_bytes: 1073741824  # 1GB
+    
+  staging:
+    defaults:
+      replication_factor: 2
+      min_in_sync_replicas: 1
+      retention_ms: 1209600000  # 14 days
+      retention_bytes: 5368709120  # 5GB
+    
+  production:
+    defaults:
+      replication_factor: 3
+      min_in_sync_replicas: 2
+      retention_ms: 2592000000  # 30 days
+      retention_bytes: 10737418240  # 10GB
+
+# Topic definitions
+topics:
+  # Job lifecycle management events
+  tda_jobs:
+    description: "TDA computation job lifecycle events"
+    partitions: 12
+    config:
+      retention_ms: 604800000  # 7 days
+      retention_bytes: 1073741824  # 1GB per partition
+      cleanup_policy: "delete"
+      segment_ms: 86400000  # 24 hours
+      min_cleanable_dirty_ratio: 0.1
+      
+    schema:
+      key_schema: "job_id"
+      value_schema: "tda_job_event_v1"
+      compatibility: "BACKWARD"
+      
+    event_types:
+      - job.submitted
+      - job.queued
+      - job.started
+      - job.progress
+      - job.completed
+      - job.failed
+      - job.cancelled
+      
+    environment_overrides:
+      development:
+        partitions: 3
+        config:
+          retention_ms: 259200000  # 3 days
+          retention_bytes: 536870912  # 512MB
+      staging:
+        partitions: 6
+        config:
+          retention_ms: 432000000  # 5 days
+          retention_bytes: 1073741824  # 1GB
+
+  # Computation results and persistence diagrams
+  tda_results:
+    description: "TDA computation results and persistence diagrams"
+    partitions: 12
+    config:
+      retention_ms: 2592000000  # 30 days
+      retention_bytes: 5368709120  # 5GB per partition
+      cleanup_policy: "compact"
+      segment_ms: 86400000  # 24 hours
+      min_cleanable_dirty_ratio: 0.1
+      max_compaction_lag_ms: 3600000  # 1 hour
+      
+    schema:
+      key_schema: "job_id"
+      value_schema: "tda_result_event_v1"
+      compatibility: "BACKWARD"
+      
+    event_types:
+      - result.persistence_diagram
+      - result.betti_numbers
+      - result.filtration_data
+      - result.metadata
+      - result.visualization
+      
+    environment_overrides:
+      development:
+        partitions: 3
+        config:
+          retention_ms: 604800000  # 7 days
+          retention_bytes: 1073741824  # 1GB
+      staging:
+        partitions: 6
+        config:
+          retention_ms: 1209600000  # 14 days
+          retention_bytes: 2147483648  # 2GB
+
+  # System events and notifications
+  tda_events:
+    description: "System events, health checks, and notifications"
+    partitions: 3
+    config:
+      retention_ms: 1209600000  # 14 days
+      retention_bytes: 536870912  # 512MB per partition
+      cleanup_policy: "delete"
+      segment_ms: 86400000  # 24 hours
+      
+    schema:
+      key_schema: "event_id"
+      value_schema: "tda_system_event_v1"
+      compatibility: "FORWARD"
+      
+    event_types:
+      - system.health_check
+      - system.error
+      - system.metric
+      - user.notification
+      - admin.alert
+      
+    environment_overrides:
+      development:
+        partitions: 1
+        config:
+          retention_ms: 259200000  # 3 days
+          retention_bytes: 268435456  # 256MB
+      staging:
+        partitions: 2
+        config:
+          retention_ms: 604800000  # 7 days
+          retention_bytes: 536870912  # 512MB
+
+  # File upload events and data ingestion
+  tda_uploads:
+    description: "File upload events and data ingestion pipeline"
+    partitions: 6
+    config:
+      retention_ms: 259200000  # 3 days
+      retention_bytes: 2147483648  # 2GB per partition
+      cleanup_policy: "delete"
+      segment_ms: 86400000  # 24 hours
+      
+    schema:
+      key_schema: "upload_id"
+      value_schema: "tda_upload_event_v1"
+      compatibility: "BACKWARD"
+      
+    event_types:
+      - upload.started
+      - upload.progress
+      - upload.completed
+      - upload.failed
+      - upload.validated
+      - upload.processed
+      
+    environment_overrides:
+      development:
+        partitions: 2
+        config:
+          retention_ms: 86400000  # 1 day
+          retention_bytes: 536870912  # 512MB
+      staging:
+        partitions: 4
+        config:
+          retention_ms: 172800000  # 2 days
+          retention_bytes: 1073741824  # 1GB
+
+  # Error events and failure tracking
+  tda_errors:
+    description: "Error events and failure tracking for debugging"
+    partitions: 3
+    config:
+      retention_ms: 2592000000  # 30 days
+      retention_bytes: 1073741824  # 1GB per partition
+      cleanup_policy: "delete"
+      segment_ms: 86400000  # 24 hours
+      
+    schema:
+      key_schema: "error_id"
+      value_schema: "tda_error_event_v1"
+      compatibility: "FULL"
+      
+    event_types:
+      - error.computation
+      - error.validation
+      - error.system
+      - error.timeout
+      - error.resource
+      
+    environment_overrides:
+      development:
+        partitions: 1
+        config:
+          retention_ms: 604800000  # 7 days
+          retention_bytes: 268435456  # 256MB
+      staging:
+        partitions: 2
+        config:
+          retention_ms: 1209600000  # 14 days
+          retention_bytes: 536870912  # 512MB
+
+  # Dead letter queue for failed message processing
+  tda_dlq:
+    description: "Dead letter queue for failed message processing"
+    partitions: 3
+    config:
+      retention_ms: 7776000000  # 90 days
+      retention_bytes: 1073741824  # 1GB per partition
+      cleanup_policy: "delete"
+      segment_ms: 86400000  # 24 hours
+      
+    schema:
+      key_schema: "original_topic_partition"
+      value_schema: "dlq_message_v1"
+      compatibility: "BACKWARD"
+      
+    environment_overrides:
+      development:
+        partitions: 1
+        config:
+          retention_ms: 604800000  # 7 days
+          retention_bytes: 268435456  # 256MB
+
+  # Audit logs for compliance and security
+  tda_audit:
+    description: "Audit logs for compliance and security tracking"
+    partitions: 6
+    config:
+      retention_ms: 31557600000  # 1 year
+      retention_bytes: 5368709120  # 5GB per partition
+      cleanup_policy: "delete"
+      segment_ms: 86400000  # 24 hours
+      
+    schema:
+      key_schema: "audit_id"
+      value_schema: "tda_audit_event_v1"
+      compatibility: "FULL"
+      
+    environment_overrides:
+      development:
+        partitions: 1
+        config:
+          retention_ms: 2592000000  # 30 days
+          retention_bytes: 536870912  # 512MB
+      staging:
+        partitions: 3
+        config:
+          retention_ms: 7776000000  # 90 days
+          retention_bytes: 1073741824  # 1GB
+
+# Schema definitions for validation
+schemas:
+  tda_job_event_v1:
+    type: "record"
+    name: "TDAJobEvent"
+    namespace: "com.tda.platform.events"
+    fields:
+      - name: "schema_version"
+        type: "string"
+        default: "1.0"
+      - name: "event_id"
+        type: "string"
+      - name: "timestamp"
+        type: "string"
+      - name: "event_type"
+        type: "string"
+      - name: "source"
+        type: "string"
+      - name: "correlation_id"
+        type: ["null", "string"]
+        default: null
+      - name: "headers"
+        type: ["null", {"type": "map", "values": "string"}]
+        default: null
+      - name: "data"
+        type: "record"
+        name: "JobEventData"
+        fields:
+          - name: "job_id"
+            type: "string"
+          - name: "user_id"
+            type: "string"
+          - name: "algorithm"
+            type: "string"
+          - name: "parameters"
+            type: ["null", {"type": "map", "values": "string"}]
+            default: null
+          - name: "status"
+            type: ["null", "string"]
+            default: null
+          - name: "progress_percentage"
+            type: ["null", "double"]
+            default: null
+          - name: "error_message"
+            type: ["null", "string"]
+            default: null
+
+  tda_result_event_v1:
+    type: "record"
+    name: "TDAResultEvent"
+    namespace: "com.tda.platform.events"
+    fields:
+      - name: "schema_version"
+        type: "string"
+        default: "1.0"
+      - name: "event_id"
+        type: "string"
+      - name: "timestamp"
+        type: "string"
+      - name: "event_type"
+        type: "string"
+      - name: "source"
+        type: "string"
+      - name: "correlation_id"
+        type: "string"
+      - name: "data"
+        type: "record"
+        name: "ResultEventData"
+        fields:
+          - name: "job_id"
+            type: "string"
+          - name: "algorithm"
+            type: "string"
+          - name: "result_type"
+            type: "string"
+          - name: "storage_location"
+            type: ["null", "string"]
+            default: null
+          - name: "computation_time_seconds"
+            type: ["null", "double"]
+            default: null
+          - name: "result_size_bytes"
+            type: ["null", "long"]
+            default: null
+
+# Topic monitoring and alerting configuration
+monitoring:
+  metrics:
+    - name: "message_rate"
+      description: "Messages per second per topic"
+      threshold: 1000
+      severity: "warning"
+      
+    - name: "consumer_lag"
+      description: "Consumer lag per topic partition"
+      threshold: 10000
+      severity: "critical"
+      
+    - name: "error_rate"
+      description: "Error rate per topic"
+      threshold: 0.05  # 5%
+      severity: "warning"
+      
+    - name: "disk_usage"
+      description: "Disk usage per topic"
+      threshold: 0.85  # 85%
+      severity: "critical"
+
+  alerts:
+    - name: "high_consumer_lag"
+      condition: "kafka_consumer_lag > 10000"
+      severity: "critical"
+      message: "Consumer lag is high on topic {{ $labels.topic }}"
+      
+    - name: "topic_error_rate_high"
+      condition: "rate(kafka_messages_failed_total[5m]) > 0.05"
+      severity: "warning"
+      message: "Error rate is high on topic {{ $labels.topic }}"
+      
+    - name: "topic_disk_usage_high"
+      condition: "kafka_log_size_bytes / kafka_log_size_limit > 0.85"
+      severity: "critical"
+      message: "Disk usage is high on topic {{ $labels.topic }}"
+
+# Retention and cleanup policies
+retention_policies:
+  job_data:
+    description: "Job-related data retention"
+    topics: ["tda_jobs", "tda_results"]
+    default_retention_days: 30
+    max_retention_days: 90
+    
+  system_data:
+    description: "System and operational data retention"
+    topics: ["tda_events", "tda_errors"]
+    default_retention_days: 14
+    max_retention_days: 30
+    
+  temporary_data:
+    description: "Temporary upload data retention"
+    topics: ["tda_uploads"]
+    default_retention_days: 3
+    max_retention_days: 7
+    
+  audit_data:
+    description: "Audit and compliance data retention"
+    topics: ["tda_audit"]
+    default_retention_days: 365
+    max_retention_days: 2555  # 7 years
+
+# Access control and security settings
+security:
+  enable_acls: true
+  default_deny: true
+  
+  roles:
+    producer:
+      topics: ["tda_jobs", "tda_uploads", "tda_events", "tda_errors", "tda_audit"]
+      operations: ["WRITE", "DESCRIBE"]
+      
+    consumer:
+      topics: ["tda_jobs", "tda_results", "tda_events", "tda_uploads", "tda_errors"]
+      operations: ["READ", "DESCRIBE"]
+      
+    admin:
+      topics: ["*"]
+      operations: ["ALL"]
+      
+    monitoring:
+      topics: ["*"]
+      operations: ["DESCRIBE", "READ"]
+
+# Performance tuning recommendations
+performance:
+  producer:
+    batch_size: 65536  # 64KB
+    linger_ms: 10
+    compression_type: "lz4"
+    acks: "all"
+    max_in_flight_requests_per_connection: 5
+    
+  consumer:
+    fetch_min_bytes: 65536  # 64KB
+    fetch_max_wait_ms: 500
+    max_poll_records: 1000
+    session_timeout_ms: 30000
+    heartbeat_interval_ms: 10000
+    
+  broker:
+    num_network_threads: 8
+    num_io_threads: 16
+    socket_send_buffer_bytes: 102400
+    socket_receive_buffer_bytes: 102400
+    num_replica_fetchers: 4

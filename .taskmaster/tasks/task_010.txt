@@ -9,3 +9,65 @@ Refine the UI/UX based on design principles and user feedback, focusing on domai
 
 # Test Strategy:
 Conduct usability testing with target users (quantitative analysts, cybersecurity analysts) to validate the new workflows. Verify the Mapper implementation against known examples from academic literature. Use automated tools and manual checks to validate accessibility compliance.
+
+# Subtasks:
+## 1. Collate and Prioritize UI/UX Feedback from Prototype Phase [pending]
+### Dependencies: None
+### Description: Systematically gather all feedback from the prototype's usability testing (Task 4.9) and other stakeholder reviews. Triage and prioritize the feedback into actionable UI/UX improvements.
+### Details:
+
+
+## 2. Develop/Refine a Basic UI Design System [pending]
+### Dependencies: None
+### Description: Create a small, consistent design system or component library. This includes standardizing colors, typography, spacing, and creating reusable components (buttons, inputs, modals) to ensure a polished and consistent user experience.
+### Details:
+
+
+## 3. [Backend] Implement Mapper Algorithm Core Logic [pending]
+### Dependencies: None
+### Description: Implement the Mapper algorithm itself, likely as a C++ module exposed to the Python backend for performance. This must include customizable components: filter functions, a covering algorithm, and a clustering step (e.g., DBSCAN, k-means) as per FR-CORE-003.
+### Details:
+
+
+## 4. [Backend] Expose Mapper Algorithm via a New API Endpoint [pending]
+### Dependencies: None
+### Description: Create a new, well-documented API endpoint in the FastAPI service that allows users to run the Mapper algorithm. The endpoint must accept parameters for the filter function, cover, and clustering method.
+### Details:
+
+
+## 5. [Frontend] Build UI for Mapper Configuration [pending]
+### Dependencies: None
+### Description: Develop a new section in the React UI for configuring and launching a Mapper analysis. This form will be more complex than the persistent homology one, requiring inputs for lens/filter selection, cover resolution/gain, and clustering parameters.
+### Details:
+
+
+## 6. [Frontend] Develop Interactive Mapper Graph Visualization [pending]
+### Dependencies: None
+### Description: Using D3.js or Plotly, build a component to render the Mapper output as an interactive graph. Nodes should represent clusters, and edges should connect nodes with overlapping data points. Key features should include coloring nodes by a statistic, zooming, and clicking a node to inspect its constituent points.
+### Details:
+
+
+## 7. Refactor Core Workflows and Integrate Mapper [pending]
+### Dependencies: None
+### Description: Apply the prioritized UI/UX improvements from subtask 10.1 to the existing application. Seamlessly integrate the new Mapper workflow into the main UI, ensuring it feels like a natural extension of the platform.
+### Details:
+
+
+## 8. Conduct WCAG 2.1 AA Accessibility Audit and Remediation [pending]
+### Dependencies: None
+### Description: Perform a comprehensive accessibility audit of the entire frontend application. Use automated tools (e.g., Axe) and manual testing (e.g., keyboard navigation, screen reader checks) to identify and fix issues to meet the WCAG 2.1 AA standard.
+### Details:
+
+
+## 9. Validate Mapper Implementation Against Benchmarks [pending]
+### Dependencies: None
+### Description: Test the Mapper implementation by running it on well-known datasets from academic literature (e.g., circles, spheres) and verifying that the resulting topological network matches the expected structure.
+### Details:
+
+
+## 10. Conduct Final Usability Testing with Target Users [pending]
+### Dependencies: None
+### Description: Run a final round of formal usability tests with target end-users (e.g., quantitative analysts, cybersecurity analysts). Validate the refined workflows and the new Mapper feature to ensure they are effective and meet user needs.
+### Details:
+
+

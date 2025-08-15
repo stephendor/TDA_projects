@@ -1,0 +1,325 @@
+# Docker Compose for TDA Kafka Monitoring System
+# Complete monitoring stack with Prometheus, Grafana, and custom TDA services
+
+version: '3.8'
+
+services:
+  # Prometheus for metrics collection
+  prometheus:
+    image: prom/prometheus:v2.45.0
+    container_name: tda-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus-config.yml:/etc/prometheus/prometheus.yml
+      - ./alerts.yml:/etc/prometheus/rules/alerts.yml
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
+      - '--web.enable-admin-api'
+      - '--storage.tsdb.retention.time=30d'
+    networks:
+      - tda-monitoring
+    restart: unless-stopped
+    labels:
+      - "com.tda.service=prometheus"
+      - "com.tda.component=monitoring"
+
+  # Grafana for visualization
+  grafana:
+    image: grafana/grafana:10.1.0
+    container_name: tda-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin123
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_INSTALL_PLUGINS=grafana-piechart-panel,grafana-worldmap-panel
+      - GF_FEATURE_TOGGLES_ENABLE=ngalert
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana-dashboard.json:/var/lib/grafana/dashboards/tda-kafka-dashboard.json
+      - ./config/grafana-datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml
+      - ./config/grafana-dashboards.yml:/etc/grafana/provisioning/dashboards/dashboards.yml
+    networks:
+      - tda-monitoring
+    restart: unless-stopped
+    depends_on:
+      - prometheus
+    labels:
+      - "com.tda.service=grafana"
+      - "com.tda.component=monitoring"
+
+  # TDA Health Check Service
+  tda-health-checker:
+    build:
+      context: .
+      dockerfile: Dockerfile.health-checker
+    container_name: tda-health-checker
+    ports:
+      - "8091:8091"
+    environment:
+      - KAFKA_BOOTSTRAP_SERVERS=kafka-broker-1:9092,kafka-broker-2:9092,kafka-broker-3:9092
+      - TDA_BACKEND_URL=http://tda-backend:8000
+      - SCHEMA_REGISTRY_URL=http://schema-registry:8081
+      - LOG_LEVEL=INFO
+    volumes:
+      - ./config/health-check.yml:/app/config/health-check.yml
+      - tda_logs:/var/log
+    networks:
+      - tda-monitoring
+      - kafka-network
+    restart: unless-stopped
+    depends_on:
+      - prometheus
+    labels:
+      - "com.tda.service=health-checker"
+      - "com.tda.component=monitoring"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8091/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # TDA Metrics Exporter
+  tda-metrics-exporter:
+    build:
+      context: .
+      dockerfile: Dockerfile.metrics-exporter
+    container_name: tda-metrics-exporter
+    ports:
+      - "8090:8090"
+    environment:
+      - KAFKA_BOOTSTRAP_SERVERS=kafka-broker-1:9092,kafka-broker-2:9092,kafka-broker-3:9092
+      - TDA_BACKEND_URL=http://tda-backend:8000
+      - LOG_LEVEL=INFO
+      - PYTHONUNBUFFERED=1
+    volumes:
+      - ./config/metrics-exporter.yml:/app/config/metrics-exporter.yml
+      - tda_logs:/var/log
+    networks:
+      - tda-monitoring
+      - kafka-network
+    restart: unless-stopped
+    depends_on:
+      - prometheus
+    labels:
+      - "com.tda.service=metrics-exporter"
+      - "com.tda.component=monitoring"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8090/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Alertmanager for alert handling
+  alertmanager:
+    image: prom/alertmanager:v0.26.0
+    container_name: tda-alertmanager
+    ports:
+      - "9093:9093"
+    volumes:
+      - ./config/alertmanager.yml:/etc/alertmanager/alertmanager.yml
+      - alertmanager_data:/alertmanager
+    command:
+      - '--config.file=/etc/alertmanager/alertmanager.yml'
+      - '--storage.path=/alertmanager'
+      - '--web.external-url=http://localhost:9093'
+      - '--web.route-prefix=/'
+    networks:
+      - tda-monitoring
+    restart: unless-stopped
+    labels:
+      - "com.tda.service=alertmanager"
+      - "com.tda.component=monitoring"
+
+  # Node Exporter for system metrics
+  node-exporter:
+    image: prom/node-exporter:v1.6.1
+    container_name: tda-node-exporter
+    ports:
+      - "9100:9100"
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.rootfs=/rootfs'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    networks:
+      - tda-monitoring
+    restart: unless-stopped
+    labels:
+      - "com.tda.service=node-exporter"
+      - "com.tda.component=monitoring"
+
+  # cAdvisor for container metrics
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.47.0
+    container_name: tda-cadvisor
+    ports:
+      - "8080:8080"
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+    privileged: true
+    devices:
+      - /dev/kmsg
+    networks:
+      - tda-monitoring
+    restart: unless-stopped
+    labels:
+      - "com.tda.service=cadvisor"
+      - "com.tda.component=monitoring"
+
+  # Kafka Lag Exporter
+  kafka-lag-exporter:
+    image: seglo/kafka-lag-exporter:0.7.1
+    container_name: tda-kafka-lag-exporter
+    ports:
+      - "8000:8000"
+    environment:
+      - KAFKA_LAG_EXPORTER_KAFKA_BOOTSTRAP_BROKERS=kafka-broker-1:9092,kafka-broker-2:9092,kafka-broker-3:9092
+    volumes:
+      - ./config/kafka-lag-exporter.conf:/opt/docker/conf/application.conf
+    networks:
+      - tda-monitoring
+      - kafka-network
+    restart: unless-stopped
+    labels:
+      - "com.tda.service=kafka-lag-exporter"
+      - "com.tda.component=monitoring"
+
+  # JMX Exporter for detailed Kafka metrics
+  kafka-jmx-exporter:
+    image: sscaling/jmx-prometheus-exporter:0.18.0
+    container_name: tda-kafka-jmx-exporter
+    ports:
+      - "8081:8080"
+    volumes:
+      - ./config/kafka-jmx-exporter.yml:/opt/jmx_exporter/config.yml
+    command:
+      - "8080"
+      - "/opt/jmx_exporter/config.yml"
+    networks:
+      - tda-monitoring
+      - kafka-network
+    restart: unless-stopped
+    labels:
+      - "com.tda.service=kafka-jmx-exporter"
+      - "com.tda.component=monitoring"
+
+volumes:
+  prometheus_data:
+    driver: local
+    labels:
+      - "com.tda.volume=prometheus-data"
+  
+  grafana_data:
+    driver: local
+    labels:
+      - "com.tda.volume=grafana-data"
+  
+  alertmanager_data:
+    driver: local
+    labels:
+      - "com.tda.volume=alertmanager-data"
+  
+  tda_logs:
+    driver: local
+    labels:
+      - "com.tda.volume=tda-logs"
+
+networks:
+  tda-monitoring:
+    driver: bridge
+    labels:
+      - "com.tda.network=monitoring"
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+  
+  kafka-network:
+    external: true
+    name: tda-kafka-network
+
+# Health checks and dependencies configuration
+x-healthcheck-defaults: &healthcheck-defaults
+  interval: 30s
+  timeout: 10s
+  retries: 3
+  start_period: 60s
+
+# Common environment variables
+x-common-variables: &common-variables
+  TZ: UTC
+  KAFKA_BOOTSTRAP_SERVERS: kafka-broker-1:9092,kafka-broker-2:9092,kafka-broker-3:9092
+  TDA_ENVIRONMENT: ${TDA_ENVIRONMENT:-development}
+
+# Logging configuration
+x-logging: &default-logging
+  driver: "json-file"
+  options:
+    max-size: "10m"
+    max-file: "3"
+    labels: "com.tda.service,com.tda.component"
+
+services:
+  # Override logging for all services
+  prometheus:
+    <<: *healthcheck-defaults
+    logging: *default-logging
+    environment:
+      <<: *common-variables
+  
+  grafana:
+    <<: *healthcheck-defaults
+    logging: *default-logging
+    environment:
+      <<: *common-variables
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin123}
+  
+  tda-health-checker:
+    logging: *default-logging
+    environment:
+      <<: *common-variables
+  
+  tda-metrics-exporter:
+    logging: *default-logging
+    environment:
+      <<: *common-variables
+  
+  alertmanager:
+    <<: *healthcheck-defaults
+    logging: *default-logging
+    environment:
+      <<: *common-variables
+  
+  node-exporter:
+    logging: *default-logging
+    environment:
+      <<: *common-variables
+  
+  cadvisor:
+    logging: *default-logging
+    environment:
+      <<: *common-variables
+  
+  kafka-lag-exporter:
+    logging: *default-logging
+    environment:
+      <<: *common-variables
+  
+  kafka-jmx-exporter:
+    logging: *default-logging
+    environment:
+      <<: *common-variables

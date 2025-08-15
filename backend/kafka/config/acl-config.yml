@@ -1,0 +1,645 @@
+# TDA Kafka Access Control Configuration
+# Defines user permissions per topic, service-specific access patterns,
+# security groups and roles for the TDA platform
+
+version: "1.0"
+metadata:
+  created: "2025-01-01"
+  description: "TDA Platform Kafka Access Control Lists (ACLs)"
+  maintainer: "TDA Platform Security Team"
+  security_model: "principle_of_least_privilege"
+
+# Global ACL settings
+global_settings:
+  # Default deny all access - explicit grants required
+  default_policy: "deny"
+  
+  # Super users with full administrative access
+  super_users:
+    - "CN=kafka-admin,OU=TDA Platform,O=TDA Corp"
+    - "User:admin"
+    - "User:tda-ops-admin"
+  
+  # Enable ACL enforcement
+  authorizer_class_name: "kafka.security.authorizer.AclAuthorizer"
+  allow_everyone_if_no_acl_found: false
+  
+  # SSL/SASL configuration
+  ssl_client_auth: "required"
+  sasl_enabled_mechanisms: ["PLAIN", "SCRAM-SHA-256"]
+  
+  # Inter-broker communication
+  security_inter_broker_protocol: "SASL_SSL"
+  sasl_mechanism_inter_broker_protocol: "SCRAM-SHA-256"
+
+# Environment-specific configurations
+environments:
+  development:
+    relaxed_security: true
+    allow_wildcards: true
+    default_retention_hours: 168  # 7 days
+    
+  staging:
+    relaxed_security: false
+    allow_wildcards: false
+    default_retention_hours: 336  # 14 days
+    
+  production:
+    relaxed_security: false
+    allow_wildcards: false
+    strict_validation: true
+    default_retention_hours: 720  # 30 days
+    audit_logging: true
+
+# Service accounts and their credentials
+service_accounts:
+  # Backend API service
+  tda_backend_api:
+    type: "service"
+    authentication: "scram-sha-256"
+    description: "TDA Backend API service for job submission"
+    certificate_subject: "CN=tda-backend-api,OU=TDA Services,O=TDA Corp"
+    password_policy: "strong"
+    rotation_days: 90
+    
+  # Flink stream processor
+  flink_processor:
+    type: "service"
+    authentication: "scram-sha-256"
+    description: "Apache Flink stream processing service"
+    certificate_subject: "CN=flink-processor,OU=TDA Services,O=TDA Corp"
+    password_policy: "strong"
+    rotation_days: 90
+    
+  # C++ computation engine
+  cpp_engine:
+    type: "service"
+    authentication: "scram-sha-256"
+    description: "C++ TDA computation engine"
+    certificate_subject: "CN=cpp-engine,OU=TDA Services,O=TDA Corp"
+    password_policy: "strong"
+    rotation_days: 90
+    
+  # Monitoring and alerting
+  monitoring_service:
+    type: "service"
+    authentication: "scram-sha-256"
+    description: "Monitoring and metrics collection service"
+    certificate_subject: "CN=monitoring,OU=TDA Services,O=TDA Corp"
+    password_policy: "strong"
+    rotation_days: 180
+    
+  # Log aggregation
+  log_aggregator:
+    type: "service"
+    authentication: "scram-sha-256"
+    description: "Log aggregation and analysis service"
+    certificate_subject: "CN=log-aggregator,OU=TDA Services,O=TDA Corp"
+    password_policy: "strong"
+    rotation_days: 180
+    
+  # Backup service
+  backup_service:
+    type: "service"
+    authentication: "scram-sha-256"
+    description: "Data backup and archival service"
+    certificate_subject: "CN=backup,OU=TDA Services,O=TDA Corp"
+    password_policy: "strong"
+    rotation_days: 365
+
+# User groups and roles
+groups:
+  # Administrative groups
+  kafka_admins:
+    description: "Kafka cluster administrators"
+    members:
+      - "admin"
+      - "tda-ops-admin"
+    permissions:
+      - "cluster_admin"
+      - "topic_admin"
+      - "consumer_group_admin"
+      - "acl_admin"
+      
+  platform_operators:
+    description: "TDA platform operators"
+    members:
+      - "ops-user-1"
+      - "ops-user-2"
+    permissions:
+      - "topic_read"
+      - "topic_describe"
+      - "consumer_group_read"
+      - "metrics_access"
+      
+  # Developer groups
+  backend_developers:
+    description: "Backend development team"
+    members:
+      - "dev-backend-1"
+      - "dev-backend-2"
+    permissions:
+      - "development_topic_access"
+      - "test_data_access"
+      
+  platform_developers:
+    description: "Platform development team"
+    members:
+      - "dev-platform-1"
+      - "dev-platform-2"
+    permissions:
+      - "development_topic_access"
+      - "schema_registry_access"
+      
+  # Data teams
+  data_scientists:
+    description: "Data science and research team"
+    members:
+      - "datascientist-1"
+      - "researcher-1"
+    permissions:
+      - "results_read_access"
+      - "analytics_access"
+      
+  # Monitoring and support
+  support_team:
+    description: "Support and monitoring team"
+    members:
+      - "support-1"
+      - "support-2"
+    permissions:
+      - "monitoring_access"
+      - "troubleshooting_access"
+
+# Role definitions with specific permissions
+roles:
+  # Administrative roles
+  cluster_admin:
+    description: "Full cluster administration"
+    operations:
+      - "CREATE"
+      - "DELETE"
+      - "ALTER"
+      - "DESCRIBE"
+      - "CLUSTER_ACTION"
+      - "DESCRIBE_CONFIGS"
+      - "ALTER_CONFIGS"
+    resources:
+      - resource_type: "CLUSTER"
+        resource_name: "*"
+        
+  topic_admin:
+    description: "Topic administration"
+    operations:
+      - "CREATE"
+      - "DELETE"
+      - "ALTER"
+      - "DESCRIBE"
+      - "DESCRIBE_CONFIGS"
+      - "ALTER_CONFIGS"
+    resources:
+      - resource_type: "TOPIC"
+        resource_name: "*"
+        
+  # Service roles
+  producer_role:
+    description: "Message producer"
+    operations:
+      - "WRITE"
+      - "DESCRIBE"
+    resources:
+      - resource_type: "TOPIC"
+        resource_name: "tda_*"
+        
+  consumer_role:
+    description: "Message consumer"
+    operations:
+      - "READ"
+      - "DESCRIBE"
+    resources:
+      - resource_type: "TOPIC"
+        resource_name: "tda_*"
+      - resource_type: "GROUP"
+        resource_name: "*"
+        
+  # Monitoring roles
+  metrics_reader:
+    description: "Metrics and monitoring access"
+    operations:
+      - "DESCRIBE"
+    resources:
+      - resource_type: "TOPIC"
+        resource_name: "*"
+      - resource_type: "GROUP"
+        resource_name: "*"
+      - resource_type: "CLUSTER"
+        resource_name: "*"
+
+# Topic-specific access control
+topic_access:
+  # Job management topic
+  tda_jobs:
+    description: "TDA job lifecycle events"
+    security_level: "high"
+    
+    producers:
+      - principal: "User:tda_backend_api"
+        operations: ["WRITE", "DESCRIBE"]
+        conditions:
+          source_ip_ranges: ["10.0.0.0/8", "192.168.0.0/16"]
+          time_restrictions: "business_hours"
+          
+    consumers:
+      - principal: "User:flink_processor"
+        operations: ["READ", "DESCRIBE"]
+        consumer_groups: ["flink_tda_processor"]
+        
+      - principal: "User:cpp_engine"
+        operations: ["READ", "DESCRIBE"]
+        consumer_groups: ["cpp_tda_processors"]
+        
+      - principal: "User:monitoring_service"
+        operations: ["READ", "DESCRIBE"]
+        consumer_groups: ["monitoring_consumers"]
+        
+    admin_access:
+      - principal: "User:admin"
+        operations: ["ALL"]
+        
+    restrictions:
+      max_message_size: 1048576  # 1MB
+      rate_limit_messages_per_second: 1000
+      
+  # Results topic
+  tda_results:
+    description: "TDA computation results"
+    security_level: "medium"
+    data_classification: "internal"
+    
+    producers:
+      - principal: "User:cpp_engine"
+        operations: ["WRITE", "DESCRIBE"]
+        
+      - principal: "User:flink_processor"
+        operations: ["WRITE", "DESCRIBE"]
+        
+    consumers:
+      - principal: "User:tda_backend_api"
+        operations: ["READ", "DESCRIBE"]
+        consumer_groups: ["backend_result_consumers"]
+        
+      - principal: "User:monitoring_service"
+        operations: ["READ", "DESCRIBE"]
+        consumer_groups: ["monitoring_consumers"]
+        
+      - principal: "Group:data_scientists"
+        operations: ["READ", "DESCRIBE"]
+        consumer_groups: ["analytics_consumers"]
+        conditions:
+          data_anonymization: true
+          
+    restrictions:
+      max_message_size: 10485760  # 10MB
+      compaction_enabled: true
+      
+  # System events topic
+  tda_events:
+    description: "System events and notifications"
+    security_level: "medium"
+    
+    producers:
+      - principal: "User:tda_backend_api"
+        operations: ["WRITE", "DESCRIBE"]
+        
+      - principal: "User:flink_processor"
+        operations: ["WRITE", "DESCRIBE"]
+        
+      - principal: "User:cpp_engine"
+        operations: ["WRITE", "DESCRIBE"]
+        
+      - principal: "User:monitoring_service"
+        operations: ["WRITE", "DESCRIBE"]
+        
+    consumers:
+      - principal: "User:monitoring_service"
+        operations: ["READ", "DESCRIBE"]
+        consumer_groups: ["monitoring_consumers", "alerting_consumers"]
+        
+      - principal: "User:log_aggregator"
+        operations: ["READ", "DESCRIBE"]
+        consumer_groups: ["logging_consumers"]
+        
+      - principal: "Group:support_team"
+        operations: ["READ", "DESCRIBE"]
+        consumer_groups: ["support_consumers"]
+        
+  # Upload events topic
+  tda_uploads:
+    description: "File upload and ingestion events"
+    security_level: "high"
+    
+    producers:
+      - principal: "User:tda_backend_api"
+        operations: ["WRITE", "DESCRIBE"]
+        conditions:
+          authenticated_users_only: true
+          
+    consumers:
+      - principal: "User:flink_processor"
+        operations: ["READ", "DESCRIBE"]
+        consumer_groups: ["upload_processors"]
+        
+      - principal: "User:monitoring_service"
+        operations: ["READ", "DESCRIBE"]
+        consumer_groups: ["monitoring_consumers"]
+        
+    restrictions:
+      max_message_size: 2097152  # 2MB
+      encryption_required: true
+      
+  # Error events topic
+  tda_errors:
+    description: "Error and failure tracking"
+    security_level: "medium"
+    
+    producers:
+      - principal: "*"  # All services can produce errors
+        operations: ["WRITE", "DESCRIBE"]
+        
+    consumers:
+      - principal: "User:monitoring_service"
+        operations: ["READ", "DESCRIBE"]
+        consumer_groups: ["error_monitoring", "alerting_consumers"]
+        
+      - principal: "User:log_aggregator"
+        operations: ["READ", "DESCRIBE"]
+        consumer_groups: ["error_logging"]
+        
+      - principal: "Group:support_team"
+        operations: ["READ", "DESCRIBE"]
+        consumer_groups: ["support_error_analysis"]
+        
+      - principal: "Group:backend_developers"
+        operations: ["READ", "DESCRIBE"]
+        consumer_groups: ["dev_error_analysis"]
+        conditions:
+          environment: "development"
+          
+  # Audit logs topic
+  tda_audit:
+    description: "Audit and compliance logs"
+    security_level: "critical"
+    data_classification: "confidential"
+    
+    producers:
+      - principal: "User:tda_backend_api"
+        operations: ["WRITE", "DESCRIBE"]
+        
+      - principal: "User:monitoring_service"
+        operations: ["WRITE", "DESCRIBE"]
+        
+    consumers:
+      - principal: "User:log_aggregator"
+        operations: ["READ", "DESCRIBE"]
+        consumer_groups: ["audit_logging"]
+        
+      - principal: "User:backup_service"
+        operations: ["READ", "DESCRIBE"]
+        consumer_groups: ["audit_backup"]
+        
+      - principal: "Group:kafka_admins"
+        operations: ["READ", "DESCRIBE"]
+        consumer_groups: ["admin_audit_review"]
+        
+    restrictions:
+      retention_years: 7
+      encryption_required: true
+      immutable: true
+      compliance_logging: true
+      
+  # Dead letter queue
+  tda_dlq:
+    description: "Dead letter queue for failed messages"
+    security_level: "medium"
+    
+    producers:
+      - principal: "*"  # All services can send to DLQ
+        operations: ["WRITE", "DESCRIBE"]
+        
+    consumers:
+      - principal: "User:monitoring_service"
+        operations: ["READ", "DESCRIBE"]
+        consumer_groups: ["dlq_monitoring"]
+        
+      - principal: "Group:support_team"
+        operations: ["READ", "DESCRIBE"]
+        consumer_groups: ["dlq_analysis"]
+        
+      - principal: "Group:platform_developers"
+        operations: ["READ", "DESCRIBE"]
+        consumer_groups: ["dlq_debugging"]
+
+# Consumer group access control
+consumer_group_access:
+  # Production consumer groups
+  flink_tda_processor:
+    description: "Flink stream processing"
+    allowed_principals:
+      - "User:flink_processor"
+    allowed_topics:
+      - "tda_jobs"
+      - "tda_uploads"
+    max_members: 12
+    
+  cpp_tda_processors:
+    description: "C++ computation engines"
+    allowed_principals:
+      - "User:cpp_engine"
+    allowed_topics:
+      - "tda_jobs"
+    max_members: 24
+    
+  backend_result_consumers:
+    description: "Backend API result consumers"
+    allowed_principals:
+      - "User:tda_backend_api"
+    allowed_topics:
+      - "tda_results"
+    max_members: 6
+    
+  # Monitoring consumer groups
+  monitoring_consumers:
+    description: "Monitoring and metrics collection"
+    allowed_principals:
+      - "User:monitoring_service"
+    allowed_topics:
+      - "tda_*"
+    max_members: 3
+    
+  alerting_consumers:
+    description: "Alerting and notification"
+    allowed_principals:
+      - "User:monitoring_service"
+    allowed_topics:
+      - "tda_events"
+      - "tda_errors"
+    max_members: 2
+    
+  # Analytics consumer groups
+  analytics_consumers:
+    description: "Data analytics and research"
+    allowed_principals:
+      - "Group:data_scientists"
+    allowed_topics:
+      - "tda_results"
+    max_members: 5
+    conditions:
+      data_access_agreement_required: true
+      
+  # Operations consumer groups
+  support_consumers:
+    description: "Support and troubleshooting"
+    allowed_principals:
+      - "Group:support_team"
+    allowed_topics:
+      - "tda_events"
+      - "tda_errors"
+    max_members: 3
+    
+  # Development consumer groups (dev environment only)
+  dev_consumers:
+    description: "Development and testing"
+    allowed_principals:
+      - "Group:backend_developers"
+      - "Group:platform_developers"
+    allowed_topics:
+      - "dev_tda_*"
+    max_members: 10
+    environment_restriction: "development"
+
+# Security policies and compliance
+security_policies:
+  # Data protection
+  data_protection:
+    encryption_at_rest: true
+    encryption_in_transit: true
+    key_rotation_days: 90
+    
+  # Access control
+  access_control:
+    mfa_required_for_admin: true
+    session_timeout_minutes: 60
+    failed_login_lockout_attempts: 3
+    password_complexity: "strong"
+    
+  # Monitoring and auditing
+  monitoring:
+    access_logging: true
+    permission_change_alerts: true
+    suspicious_activity_detection: true
+    
+  # Compliance requirements
+  compliance:
+    gdpr_compliance: true
+    data_retention_enforcement: true
+    right_to_be_forgotten: true
+    audit_trail_retention_years: 7
+
+# Network security
+network_security:
+  # IP access control
+  ip_allowlists:
+    production_services:
+      - "10.0.1.0/24"    # Production service subnet
+      - "10.0.2.0/24"    # Production database subnet
+      
+    development_services:
+      - "10.1.0.0/16"    # Development environment
+      - "192.168.1.0/24" # Developer VPN
+      
+    monitoring_services:
+      - "10.0.3.0/24"    # Monitoring infrastructure
+      
+  # Port restrictions
+  port_restrictions:
+    kafka_brokers: [9092, 9093, 9094]
+    schema_registry: [8081]
+    connect: [8083]
+    
+  # SSL/TLS configuration
+  ssl_config:
+    min_tls_version: "1.2"
+    cipher_suites: ["TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384"]
+    certificate_validation: "strict"
+
+# Automation and tooling
+automation:
+  # Automated ACL management
+  acl_management:
+    auto_provision_service_accounts: true
+    auto_rotate_credentials: true
+    auto_cleanup_unused_permissions: true
+    
+  # Monitoring and alerting
+  security_monitoring:
+    unauthorized_access_alerts: true
+    permission_escalation_detection: true
+    anomaly_detection: true
+    
+  # Compliance reporting
+  compliance_reporting:
+    daily_access_reports: true
+    monthly_permission_audits: true
+    quarterly_security_reviews: true
+
+# Emergency procedures
+emergency_procedures:
+  # Security incident response
+  incident_response:
+    emergency_contacts:
+      - "security-team@tda-corp.com"
+      - "+1-555-SECURITY"
+    
+    lockdown_procedures:
+      - "revoke_all_non_admin_access"
+      - "enable_emergency_monitoring"
+      - "notify_security_team"
+      
+  # Account recovery
+  account_recovery:
+    admin_recovery_process: "offline_verification"
+    service_account_recovery: "certificate_based"
+    emergency_access_duration_hours: 4
+    
+  # Backup access
+  backup_access:
+    emergency_admin_account: "emergency-admin"
+    break_glass_procedure: "dual_authorization"
+    audit_emergency_access: true
+
+# Environment-specific overrides
+environment_overrides:
+  development:
+    security_policies:
+      access_control:
+        mfa_required_for_admin: false
+        session_timeout_minutes: 480  # 8 hours
+        
+    network_security:
+      ip_allowlists:
+        relaxed_access: ["0.0.0.0/0"]  # Allow all for development
+        
+  staging:
+    security_policies:
+      data_protection:
+        key_rotation_days: 30  # More frequent rotation
+        
+  production:
+    security_policies:
+      access_control:
+        mfa_required_for_admin: true
+        failed_login_lockout_attempts: 2  # Stricter lockout
+        
+    compliance:
+      strict_mode: true
+      real_time_monitoring: true

@@ -113,6 +113,7 @@ This project integrates key research from:
 - **API Documentation**: `make docs` generates Doxygen documentation
 - **Design Documents**: See `docs/design/` for architecture details
 - **Performance Guides**: See `docs/performance/` for optimization tips
+- **Background Agents**: See `docs/background_agents/` for agent playbooks (Tasks 2, 5, 6, 7, 8, 9, 10)
 
 ## 🤝 Contributing
 

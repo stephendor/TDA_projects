@@ -1,0 +1,22 @@
+{
+  "agents": [
+    {
+      "id": "agent_research_planning",
+      "name": "Research & Planning Agent",
+      "why": "These are research-heavy, require literature review, and can be planned in parallel while the core engine is built.",
+      "assignedTaskIds": [2, 5]
+    },
+    {
+      "id": "agent_infra_planning",
+      "name": "Infrastructure Planning Agent",
+      "why": "These require domain expertise research, dataset analysis, and can be planned while core algorithms are being built.",
+      "assignedTaskIds": [6, 7]
+    },
+    {
+      "id": "agent_perf_scaling",
+      "name": "Performance & Scaling Agent",
+      "why": "These are infrastructure-heavy and can be researched/planned while core development is happening.",
+      "assignedTaskIds": [8, 9, 10]
+    }
+  ]
+}

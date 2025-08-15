@@ -12,6 +12,7 @@ namespace tda::vector_stack {
 
 // Forward declarations
 class PersistenceDiagram;
+class Barcode;
 class BettiNumbers;
 
 // Vector Stack - Core data structure for TDA operations

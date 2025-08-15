@@ -1,0 +1,214 @@
+[build-system]
+requires = ["hatchling", "pybind11"]
+build-backend = "hatchling.build"
+
+[project]
+name = "tda-backend"
+version = "1.0.0"
+description = "TDA Platform Backend API with Streaming Infrastructure"
+authors = [
+    { name = "TDA Platform Team", email = "dev@tda-platform.com" }
+]
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.11"
+keywords = ["topology", "data-analysis", "persistent-homology", "streaming"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering :: Mathematics",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+
+dependencies = [
+    # FastAPI and web framework
+    "fastapi>=0.104.0",
+    "uvicorn[standard]>=0.24.0",
+    "pydantic>=2.5.0",
+    "pydantic-settings>=2.1.0",
+    
+    # HTTP client and middleware
+    "httpx>=0.25.0",
+    "python-multipart>=0.0.6",
+    "python-jose[cryptography]>=3.3.0",
+    "passlib[bcrypt]>=1.7.4",
+    
+    # Data processing and scientific computing
+    "numpy>=1.24.0",
+    "pandas>=2.1.0",
+    "scipy>=1.11.0",
+    "scikit-learn>=1.3.0",
+    "h5py>=3.9.0",  # HDF5 file support
+    
+    # Async support and concurrency
+    "asyncio-mqtt>=0.16.0",
+    "aiofiles>=23.2.1",
+    "aioredis>=2.0.1",
+    
+    # Kafka streaming
+    "aiokafka>=0.10.0",
+    "kafka-python>=2.0.2",
+    "confluent-kafka>=2.3.0",
+    
+    # Flink integration
+    "apache-flink>=1.18.0",
+    "pyflink>=1.18.0",
+    
+    # Database and caching
+    "asyncpg>=0.29.0",
+    "sqlalchemy[asyncio]>=2.0.0",
+    "alembic>=1.13.0",
+    "redis>=5.0.0",
+    
+    # Monitoring and logging
+    "prometheus-client>=0.19.0",
+    "prometheus-fastapi-instrumentator>=6.1.0",
+    "structlog>=23.2.0",
+    "rich>=13.7.0",
+    
+    # Configuration and environment
+    "python-dotenv>=1.0.0",
+    "click>=8.1.0",
+    "typer>=0.9.0",
+    
+    # Development and testing (when extras are installed)
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.0",
+    "pytest-asyncio>=0.21.0",
+    "pytest-cov>=4.1.0",
+    "pytest-mock>=3.12.0",
+    "httpx>=0.25.0",  # for testing FastAPI
+    "black>=23.11.0",
+    "isort>=5.12.0",
+    "flake8>=6.1.0",
+    "mypy>=1.7.0",
+    "pre-commit>=3.6.0",
+]
+
+docs = [
+    "mkdocs>=1.5.0",
+    "mkdocs-material>=9.4.0",
+    "mkdocstrings[python]>=0.24.0",
+]
+
+performance = [
+    "cython>=3.0.0",
+    "numba>=0.58.0",
+    "cupy>=12.3.0",  # GPU acceleration
+]
+
+[project.urls]
+Documentation = "https://tda-platform.readthedocs.io"
+Repository = "https://github.com/tda-platform/backend"
+Issues = "https://github.com/tda-platform/backend/issues"
+
+[project.scripts]
+tda-server = "tda_backend.cli:main"
+
+[tool.hatch.version]
+path = "tda_backend/__init__.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["tda_backend"]
+
+[tool.black]
+line-length = 88
+target-version = ['py311']
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+  # directories
+  \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | build
+  | dist
+  | migrations
+)/
+'''
+
+[tool.isort]
+profile = "black"
+multi_line_output = 3
+include_trailing_comma = true
+force_grid_wrap = 0
+use_parentheses = true
+ensure_newline_before_comments = true
+line_length = 88
+known_first_party = ["tda_backend"]
+known_third_party = ["fastapi", "pydantic", "sqlalchemy", "kafka"]
+
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_untyped_decorators = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_unreachable = true
+strict_equality = true
+
+[[tool.mypy.overrides]]
+module = [
+    "kafka.*",
+    "confluent_kafka.*",
+    "pyflink.*",
+    "gudhi.*",
+    "ripser.*",
+]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+minversion = "7.0"
+addopts = "-ra -q --cov=tda_backend --cov-report=term-missing --cov-report=html"
+testpaths = [
+    "tests",
+]
+python_files = [
+    "test_*.py",
+    "*_test.py",
+]
+python_classes = [
+    "Test*",
+]
+python_functions = [
+    "test_*",
+]
+asyncio_mode = "auto"
+
+[tool.coverage.run]
+source = ["tda_backend"]
+omit = [
+    "*/tests/*",
+    "*/migrations/*",
+    "*/__init__.py",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if self.debug:",
+    "if settings.DEBUG",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if 0:",
+    "if __name__ == .__main__.:",
+    "class .*\\bProtocol\\):",
+    "@(abc\\.)?abstractmethod",
+]

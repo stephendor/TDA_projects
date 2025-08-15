@@ -58,8 +58,16 @@ struct PersistencePair {
     Index birth_simplex;
     Index death_simplex;
     
+    // Default constructor
+    constexpr PersistencePair() : birth(0.0), death(0.0), dimension(0), birth_simplex(0), death_simplex(0) {}
+    
+    // Full constructor
     constexpr PersistencePair(Birth b, Death d, Dimension dim, Index b_sim, Index d_sim)
         : birth(b), death(d), dimension(dim), birth_simplex(b_sim), death_simplex(d_sim) {}
+    
+    // Simple constructor for TDA algorithms
+    constexpr PersistencePair(Dimension dim, Birth b, Death d)
+        : birth(b), death(d), dimension(dim), birth_simplex(0), death_simplex(0) {}
     
     constexpr Persistence get_persistence() const noexcept {
         return death - birth;
@@ -102,19 +110,23 @@ enum class ErrorCode {
 // Result type for error handling
 template<typename T>
 class Result {
-    std::variant<T, ErrorCode> data_;
+    std::variant<T, std::string> data_;
     
 public:
     Result(T value) : data_(std::move(value)) {}
-    Result(ErrorCode error) : data_(error) {}
+    Result(std::string error) : data_(std::move(error)) {}
     
-    bool is_success() const noexcept { return std::holds_alternative<T>(data_); }
-    bool is_error() const noexcept { return std::holds_alternative<ErrorCode>(data_); }
+    // Static factory methods
+    static Result<T> success(T value) { return Result<T>(std::move(value)); }
+    static Result<T> failure(std::string error) { return Result<T>(std::move(error)); }
+    
+    bool has_value() const noexcept { return std::holds_alternative<T>(data_); }
+    bool has_error() const noexcept { return std::holds_alternative<std::string>(data_); }
     
     T& value() { return std::get<T>(data_); }
     const T& value() const { return std::get<T>(data_); }
     
-    ErrorCode error() const { return std::get<ErrorCode>(data_); }
+    std::string error() const { return std::get<std::string>(data_); }
     
     T& operator*() { return value(); }
     const T& operator*() const { return value(); }
@@ -126,17 +138,21 @@ public:
 // Specialization for void
 template<>
 class Result<void> {
-    ErrorCode error_;
+    std::string error_;
     bool is_success_;
     
 public:
-    Result() : error_(ErrorCode::Success), is_success_(true) {}
-    Result(ErrorCode error) : error_(error), is_success_(false) {}
+    Result() : error_(""), is_success_(true) {}
+    Result(std::string error) : error_(std::move(error)), is_success_(false) {}
     
-    bool is_success() const noexcept { return is_success_; }
-    bool is_error() const noexcept { return !is_success_; }
+    // Static factory methods
+    static Result<void> success() { return Result<void>(); }
+    static Result<void> failure(std::string error) { return Result<void>(std::move(error)); }
     
-    ErrorCode error() const { return error_; }
+    bool has_value() const noexcept { return is_success_; }
+    bool has_error() const noexcept { return !is_success_; }
+    
+    std::string error() const { return error_; }
 };
 
 // Utility functions
@@ -144,6 +160,30 @@ template<typename T>
 constexpr bool is_power_of_two(T n) noexcept {
     return n > 0 && (n & (n - 1)) == 0;
 }
+
+// Simplex information structure for TDA algorithms
+struct SimplexInfo {
+    int dimension;
+    double filtration_value;
+    std::vector<int> vertices;
+    
+    SimplexInfo() : dimension(0), filtration_value(0.0) {}
+    SimplexInfo(int dim, double filt, std::vector<int> verts)
+        : dimension(dim), filtration_value(filt), vertices(std::move(verts)) {}
+};
+
+// Complex statistics structure
+struct ComplexStatistics {
+    size_t num_points;
+    size_t num_simplices;
+    int max_dimension;
+    double threshold;
+    std::vector<int> simplex_count_by_dim;
+    
+    ComplexStatistics() : num_points(0), num_simplices(0), max_dimension(0), threshold(0.0) {}
+};
+
+
 
 template<typename T>
 constexpr T next_power_of_two(T n) noexcept {
