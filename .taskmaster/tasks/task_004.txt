@@ -9,3 +9,23 @@ Build a React frontend application that allows users to upload a dataset, config
 
 # Test Strategy:
 Perform end-to-end testing of the primary user workflow: data upload, analysis execution, and result visualization. Conduct initial usability testing on the prototype to gather feedback on the workflow and interface clarity.
+
+# Subtasks:
+## 1. Setup Frontend Project & Tooling [pending]
+### Dependencies: None
+### Description: Initialize the React application using a modern toolchain (e.g., Vite or Create React App). Configure essential tooling including a linter (ESLint), code formatter (Prettier), and a basic folder structure for components, services, and styles.
+### Details:
+
+
+## 2. Design & Implement API Client Service [pending]
+### Dependencies: None
+### Description: Create a dedicated service layer (e.g., using Axios or `fetch`) to handle all communication with the backend API (from Task 3). This service will manage API endpoints, request/response formats, and error handling, providing a clean interface for UI components.
+### Details:
+
+
+## 3. Build Data Upload Component [pending]
+### Dependencies: None
+### Description: Develop a React component that allows users to select and upload a dataset file (e.g., CSV, point cloud data). This component should provide visual feedback on upload progress and handle potential upload errors.
+### Details:
+
+

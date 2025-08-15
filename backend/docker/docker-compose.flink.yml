@@ -1,0 +1,141 @@
+version: '3.8'
+
+services:
+  # Apache Flink JobManager (Master Node)
+  flink-jobmanager:
+    image: flink:1.18-java11
+    container_name: tda-flink-jobmanager
+    ports:
+      - "8082:8081"
+    command: jobmanager
+    environment:
+      - FLINK_PROPERTIES=
+        jobmanager.rpc.address: flink-jobmanager
+        jobmanager.memory.process.size: 1024m
+        taskmanager.memory.process.size: 2048m
+        taskmanager.numberOfTaskSlots: 4
+        parallelism.default: 2
+        state.backend: filesystem
+        state.checkpoints.dir: file:///tmp/flink-checkpoints
+        state.savepoints.dir: file:///tmp/flink-savepoints
+        rest.flamegraph.enabled: true
+        web.upload.dir: /opt/flink/usrlib
+        execution.checkpointing.interval: 10s
+        execution.checkpointing.min-pause: 5s
+        pipeline.auto-watermark-interval: 1s
+        # Kafka connector configuration
+        connector.kafka.bootstrap.servers: kafka1:9092,kafka2:9093,kafka3:9094
+        connector.kafka.schema-registry.url: http://schema-registry:8081
+    volumes:
+      - ./flink-data:/tmp/flink-data
+      - ./flink-checkpoints:/tmp/flink-checkpoints
+      - ./flink-savepoints:/tmp/flink-savepoints
+      - ./flink-jars:/opt/flink/usrlib
+    networks:
+      - tda-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8081/overview || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # Apache Flink TaskManager (Worker Nodes)
+  flink-taskmanager-1:
+    image: flink:1.18-java11
+    container_name: tda-flink-taskmanager-1
+    depends_on:
+      - flink-jobmanager
+    command: taskmanager
+    scale: 2
+    environment:
+      - FLINK_PROPERTIES=
+        jobmanager.rpc.address: flink-jobmanager
+        taskmanager.memory.process.size: 2048m
+        taskmanager.numberOfTaskSlots: 4
+        taskmanager.memory.network.fraction: 0.3
+        taskmanager.memory.managed.fraction: 0.4
+    volumes:
+      - ./flink-data:/tmp/flink-data
+      - ./flink-checkpoints:/tmp/flink-checkpoints
+      - ./flink-savepoints:/tmp/flink-savepoints
+      - ./flink-jars:/opt/flink/usrlib
+    networks:
+      - tda-network
+    healthcheck:
+      test: ["CMD-SHELL", "ps aux | grep taskmanager || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Apache Flink SQL Gateway (for SQL queries)
+  flink-sql-gateway:
+    image: flink:1.18-java11
+    container_name: tda-flink-sql-gateway
+    depends_on:
+      - flink-jobmanager
+    ports:
+      - "8083:8083"
+    command: |
+      bash -c "
+      /opt/flink/bin/sql-gateway.sh start-foreground \
+        --Dsql-gateway.endpoint.rest.address=0.0.0.0 \
+        --Dsql-gateway.endpoint.rest.port=8083
+      "
+    environment:
+      - FLINK_PROPERTIES=
+        jobmanager.rpc.address: flink-jobmanager
+        rest.address: flink-jobmanager
+        rest.port: 8081
+    volumes:
+      - ./flink-jars:/opt/flink/usrlib
+    networks:
+      - tda-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8083/v1/info || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Prometheus for Flink metrics collection
+  flink-prometheus:
+    image: prom/prometheus:latest
+    container_name: tda-flink-prometheus
+    ports:
+      - "9091:9090"
+    volumes:
+      - ./monitoring/prometheus-flink.yml:/etc/prometheus/prometheus.yml
+      - prometheus-flink-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=15d'
+      - '--web.enable-lifecycle'
+    networks:
+      - tda-network
+
+  # Grafana for Flink monitoring dashboards
+  flink-grafana:
+    image: grafana/grafana:latest
+    container_name: tda-flink-grafana
+    ports:
+      - "3001:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_INSTALL_PLUGINS=grafana-piechart-panel
+    volumes:
+      - grafana-flink-data:/var/lib/grafana
+      - ./monitoring/grafana-dashboards:/var/lib/grafana/dashboards
+      - ./monitoring/grafana-provisioning:/etc/grafana/provisioning
+    networks:
+      - tda-network
+
+networks:
+  tda-network:
+    external: true
+
+volumes:
+  prometheus-flink-data:
+  grafana-flink-data:

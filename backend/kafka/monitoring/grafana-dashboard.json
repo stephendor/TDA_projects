@@ -1,0 +1,591 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "TDA Kafka Monitoring Dashboard",
+    "tags": ["kafka", "tda", "monitoring"],
+    "style": "dark",
+    "timezone": "browser",
+    "refresh": "30s",
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    },
+    "timepicker": {
+      "refresh_intervals": ["5s", "10s", "30s", "1m", "5m", "15m", "30m", "1h", "2h", "1d"],
+      "time_options": ["5m", "15m", "1h", "6h", "12h", "24h", "2d", "7d", "30d"]
+    },
+    "templating": {
+      "list": [
+        {
+          "name": "environment",
+          "type": "query",
+          "query": "label_values(kafka_broker_topic_MessagesInPerSec_total, environment)",
+          "refresh": 1,
+          "options": [],
+          "includeAll": false,
+          "multi": false
+        },
+        {
+          "name": "cluster",
+          "type": "query",
+          "query": "label_values(kafka_broker_topic_MessagesInPerSec_total{environment=\"$environment\"}, cluster)",
+          "refresh": 1,
+          "options": [],
+          "includeAll": false,
+          "multi": false
+        },
+        {
+          "name": "topic",
+          "type": "query",
+          "query": "label_values(kafka_broker_topic_MessagesInPerSec_total{environment=\"$environment\", cluster=\"$cluster\"}, topic)",
+          "refresh": 1,
+          "options": [],
+          "includeAll": true,
+          "multi": true
+        }
+      ]
+    },
+    "panels": [
+      {
+        "id": 1,
+        "title": "Cluster Health Overview",
+        "type": "stat",
+        "gridPos": {"h": 8, "w": 24, "x": 0, "y": 0},
+        "targets": [
+          {
+            "expr": "up{job=\"kafka-brokers\"}",
+            "legendFormat": "Brokers Online",
+            "refId": "A"
+          },
+          {
+            "expr": "kafka_controller_ActiveControllerCount",
+            "legendFormat": "Active Controllers",
+            "refId": "B"
+          },
+          {
+            "expr": "sum(kafka_cluster_partition_under_replicated)",
+            "legendFormat": "Under-replicated Partitions",
+            "refId": "C"
+          },
+          {
+            "expr": "sum(rate(tda_system_health_score[5m]))",
+            "legendFormat": "TDA System Health Score",
+            "refId": "D"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "thresholds"},
+            "thresholds": {
+              "steps": [
+                {"color": "red", "value": 0},
+                {"color": "yellow", "value": 80},
+                {"color": "green", "value": 95}
+              ]
+            },
+            "unit": "short"
+          }
+        },
+        "options": {
+          "reduceOptions": {
+            "values": false,
+            "calcs": ["lastNotNull"],
+            "fields": ""
+          },
+          "orientation": "auto",
+          "textMode": "auto",
+          "colorMode": "value",
+          "graphMode": "area",
+          "justifyMode": "auto"
+        }
+      },
+      {
+        "id": 2,
+        "title": "TDA Topic Throughput",
+        "type": "graph",
+        "gridPos": {"h": 9, "w": 12, "x": 0, "y": 8},
+        "targets": [
+          {
+            "expr": "sum(rate(kafka_broker_topic_MessagesInPerSec_total{topic=~\"tda_.*\"}[5m])) by (topic)",
+            "legendFormat": "{{topic}} - Messages/sec",
+            "refId": "A"
+          }
+        ],
+        "xAxis": {"show": true},
+        "yAxes": [
+          {
+            "label": "Messages/sec",
+            "show": true,
+            "min": 0
+          }
+        ],
+        "legend": {
+          "show": true,
+          "values": true,
+          "current": true,
+          "max": true,
+          "avg": true
+        },
+        "tooltip": {"shared": true}
+      },
+      {
+        "id": 3,
+        "title": "TDA Topic Byte Rate",
+        "type": "graph",
+        "gridPos": {"h": 9, "w": 12, "x": 12, "y": 8},
+        "targets": [
+          {
+            "expr": "sum(rate(kafka_broker_topic_BytesInPerSec_total{topic=~\"tda_.*\"}[5m])) by (topic)",
+            "legendFormat": "{{topic}} - Bytes In/sec",
+            "refId": "A"
+          },
+          {
+            "expr": "sum(rate(kafka_broker_topic_BytesOutPerSec_total{topic=~\"tda_.*\"}[5m])) by (topic)",
+            "legendFormat": "{{topic}} - Bytes Out/sec",
+            "refId": "B"
+          }
+        ],
+        "xAxis": {"show": true},
+        "yAxes": [
+          {
+            "label": "Bytes/sec",
+            "show": true,
+            "min": 0,
+            "unit": "bytes"
+          }
+        ],
+        "legend": {
+          "show": true,
+          "values": true,
+          "current": true,
+          "max": true,
+          "avg": true
+        }
+      },
+      {
+        "id": 4,
+        "title": "Consumer Group Lag",
+        "type": "graph",
+        "gridPos": {"h": 9, "w": 24, "x": 0, "y": 17},
+        "targets": [
+          {
+            "expr": "sum(kafka_consumer_lag_sum{topic=~\"tda_.*\"}) by (consumergroup, topic)",
+            "legendFormat": "{{consumergroup}} - {{topic}}",
+            "refId": "A"
+          }
+        ],
+        "xAxis": {"show": true},
+        "yAxes": [
+          {
+            "label": "Lag (messages)",
+            "show": true,
+            "min": 0
+          }
+        ],
+        "legend": {
+          "show": true,
+          "values": true,
+          "current": true,
+          "max": true,
+          "avg": true
+        },
+        "alert": {
+          "conditions": [
+            {
+              "evaluator": {
+                "params": [10000],
+                "type": "gt"
+              },
+              "operator": {
+                "type": "and"
+              },
+              "query": {
+                "params": ["A", "5m", "now"]
+              },
+              "reducer": {
+                "params": [],
+                "type": "avg"
+              },
+              "type": "query"
+            }
+          ],
+          "executionErrorState": "alerting",
+          "for": "5m",
+          "frequency": "10s",
+          "handler": 1,
+          "name": "High Consumer Lag Alert",
+          "noDataState": "no_data",
+          "notifications": []
+        }
+      },
+      {
+        "id": 5,
+        "title": "TDA Job Processing Metrics",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 26},
+        "targets": [
+          {
+            "expr": "sum(rate(tda_jobs_submitted_total[5m])) by (job_type)",
+            "legendFormat": "{{job_type}} - Jobs Submitted/sec",
+            "refId": "A"
+          },
+          {
+            "expr": "sum(rate(tda_jobs_completed_total[5m])) by (job_type)",
+            "legendFormat": "{{job_type}} - Jobs Completed/sec",
+            "refId": "B"
+          },
+          {
+            "expr": "sum(rate(tda_jobs_failed_total[5m])) by (job_type)",
+            "legendFormat": "{{job_type}} - Jobs Failed/sec",
+            "refId": "C"
+          }
+        ],
+        "xAxis": {"show": true},
+        "yAxes": [
+          {
+            "label": "Jobs/sec",
+            "show": true,
+            "min": 0
+          }
+        ],
+        "legend": {
+          "show": true,
+          "values": true,
+          "current": true
+        }
+      },
+      {
+        "id": 6,
+        "title": "TDA Processing Time",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 26},
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, sum(rate(tda_processing_time_seconds_bucket[5m])) by (le, algorithm))",
+            "legendFormat": "{{algorithm}} - 95th percentile",
+            "refId": "A"
+          },
+          {
+            "expr": "histogram_quantile(0.50, sum(rate(tda_processing_time_seconds_bucket[5m])) by (le, algorithm))",
+            "legendFormat": "{{algorithm}} - 50th percentile",
+            "refId": "B"
+          }
+        ],
+        "xAxis": {"show": true},
+        "yAxes": [
+          {
+            "label": "Processing Time (seconds)",
+            "show": true,
+            "min": 0,
+            "unit": "s"
+          }
+        ],
+        "legend": {
+          "show": true,
+          "values": true,
+          "current": true
+        }
+      },
+      {
+        "id": 7,
+        "title": "Broker Resource Usage",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 8, "x": 0, "y": 34},
+        "targets": [
+          {
+            "expr": "rate(process_cpu_seconds_total{job=\"kafka-brokers\"}[5m]) * 100",
+            "legendFormat": "Broker {{instance}} - CPU %",
+            "refId": "A"
+          }
+        ],
+        "xAxis": {"show": true},
+        "yAxes": [
+          {
+            "label": "CPU Usage %",
+            "show": true,
+            "min": 0,
+            "max": 100
+          }
+        ],
+        "legend": {"show": true}
+      },
+      {
+        "id": 8,
+        "title": "Broker Memory Usage",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 8, "x": 8, "y": 34},
+        "targets": [
+          {
+            "expr": "(process_resident_memory_bytes{job=\"kafka-brokers\"} / 1024 / 1024 / 1024)",
+            "legendFormat": "Broker {{instance}} - Memory (GB)",
+            "refId": "A"
+          }
+        ],
+        "xAxis": {"show": true},
+        "yAxes": [
+          {
+            "label": "Memory (GB)",
+            "show": true,
+            "min": 0,
+            "unit": "bytes"
+          }
+        ],
+        "legend": {"show": true}
+      },
+      {
+        "id": 9,
+        "title": "Disk Usage",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 8, "x": 16, "y": 34},
+        "targets": [
+          {
+            "expr": "100 - ((node_filesystem_avail_bytes{mountpoint=\"/kafka-logs\"} * 100) / node_filesystem_size_bytes{mountpoint=\"/kafka-logs\"})",
+            "legendFormat": "Broker {{instance}} - Disk Usage %",
+            "refId": "A"
+          }
+        ],
+        "xAxis": {"show": true},
+        "yAxes": [
+          {
+            "label": "Disk Usage %",
+            "show": true,
+            "min": 0,
+            "max": 100
+          }
+        ],
+        "legend": {"show": true}
+      },
+      {
+        "id": 10,
+        "title": "TDA Persistence Diagram Metrics",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 42},
+        "targets": [
+          {
+            "expr": "sum(tda_persistence_diagram_points{dimension=\"0\"}) by (instance)",
+            "legendFormat": "H0 - Connected Components",
+            "refId": "A"
+          },
+          {
+            "expr": "sum(tda_persistence_diagram_points{dimension=\"1\"}) by (instance)",
+            "legendFormat": "H1 - Loops",
+            "refId": "B"
+          },
+          {
+            "expr": "sum(tda_persistence_diagram_points{dimension=\"2\"}) by (instance)",
+            "legendFormat": "H2 - Voids",
+            "refId": "C"
+          }
+        ],
+        "xAxis": {"show": true},
+        "yAxes": [
+          {
+            "label": "Point Count",
+            "show": true,
+            "min": 0
+          }
+        ],
+        "legend": {"show": true}
+      },
+      {
+        "id": 11,
+        "title": "TDA Workflow Health Status",
+        "type": "stat",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 42},
+        "targets": [
+          {
+            "expr": "tda_workflow_health_status{workflow=\"data_ingestion\"}",
+            "legendFormat": "Data Ingestion",
+            "refId": "A"
+          },
+          {
+            "expr": "tda_workflow_health_status{workflow=\"computation\"}",
+            "legendFormat": "Computation",
+            "refId": "B"
+          },
+          {
+            "expr": "tda_workflow_health_status{workflow=\"result_delivery\"}",
+            "legendFormat": "Result Delivery",
+            "refId": "C"
+          },
+          {
+            "expr": "tda_workflow_health_status{workflow=\"error_handling\"}",
+            "legendFormat": "Error Handling",
+            "refId": "D"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "thresholds"},
+            "thresholds": {
+              "steps": [
+                {"color": "red", "value": 0},
+                {"color": "yellow", "value": 0.8},
+                {"color": "green", "value": 0.95}
+              ]
+            },
+            "unit": "percentunit",
+            "min": 0,
+            "max": 1
+          }
+        },
+        "options": {
+          "reduceOptions": {
+            "values": false,
+            "calcs": ["lastNotNull"],
+            "fields": ""
+          },
+          "orientation": "auto",
+          "textMode": "auto",
+          "colorMode": "value"
+        }
+      },
+      {
+        "id": 12,
+        "title": "Error Rate by Topic",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 24, "x": 0, "y": 50},
+        "targets": [
+          {
+            "expr": "sum(rate(kafka_broker_topic_FailedProduceRequestsPerSec_total{topic=~\"tda_.*\"}[5m])) by (topic)",
+            "legendFormat": "{{topic}} - Failed Produce Requests/sec",
+            "refId": "A"
+          },
+          {
+            "expr": "sum(rate(kafka_broker_topic_FailedFetchRequestsPerSec_total{topic=~\"tda_.*\"}[5m])) by (topic)",
+            "legendFormat": "{{topic}} - Failed Fetch Requests/sec",
+            "refId": "B"
+          }
+        ],
+        "xAxis": {"show": true},
+        "yAxes": [
+          {
+            "label": "Failed Requests/sec",
+            "show": true,
+            "min": 0
+          }
+        ],
+        "legend": {"show": true},
+        "alert": {
+          "conditions": [
+            {
+              "evaluator": {
+                "params": [0.05],
+                "type": "gt"
+              },
+              "operator": {
+                "type": "and"
+              },
+              "query": {
+                "params": ["A", "5m", "now"]
+              },
+              "reducer": {
+                "params": [],
+                "type": "avg"
+              },
+              "type": "query"
+            }
+          ],
+          "executionErrorState": "alerting",
+          "for": "2m",
+          "frequency": "10s",
+          "handler": 1,
+          "name": "High Error Rate Alert",
+          "noDataState": "no_data",
+          "notifications": []
+        }
+      },
+      {
+        "id": 13,
+        "title": "TDA Results Generation Rate",
+        "type": "singlestat",
+        "gridPos": {"h": 4, "w": 6, "x": 0, "y": 58},
+        "targets": [
+          {
+            "expr": "sum(rate(tda_results_generated_total[5m]))",
+            "refId": "A"
+          }
+        ],
+        "valueName": "current",
+        "unit": "reqps",
+        "thresholds": "10,50",
+        "colorBackground": false,
+        "colorValue": true,
+        "colors": ["#d44a3a", "#e24d42", "#299c46"],
+        "sparkline": {
+          "show": true,
+          "full": false,
+          "lineColor": "rgb(31, 120, 193)",
+          "fillColor": "rgba(31, 118, 189, 0.18)"
+        }
+      },
+      {
+        "id": 14,
+        "title": "Average Job Queue Depth",
+        "type": "singlestat",
+        "gridPos": {"h": 4, "w": 6, "x": 6, "y": 58},
+        "targets": [
+          {
+            "expr": "avg(kafka_consumer_lag_sum{topic=\"tda_jobs\"})",
+            "refId": "A"
+          }
+        ],
+        "valueName": "current",
+        "unit": "short",
+        "thresholds": "1000,5000",
+        "colorBackground": false,
+        "colorValue": true,
+        "colors": ["#299c46", "#e24d42", "#d44a3a"],
+        "sparkline": {
+          "show": true,
+          "full": false,
+          "lineColor": "rgb(31, 120, 193)",
+          "fillColor": "rgba(31, 118, 189, 0.18)"
+        }
+      },
+      {
+        "id": 15,
+        "title": "TDA System Uptime",
+        "type": "singlestat",
+        "gridPos": {"h": 4, "w": 6, "x": 12, "y": 58},
+        "targets": [
+          {
+            "expr": "avg(up{job=\"tda-backend\"})",
+            "refId": "A"
+          }
+        ],
+        "valueName": "current",
+        "unit": "percentunit",
+        "thresholds": "0.95,0.99",
+        "colorBackground": false,
+        "colorValue": true,
+        "colors": ["#d44a3a", "#e24d42", "#299c46"],
+        "sparkline": {
+          "show": true,
+          "full": false
+        }
+      },
+      {
+        "id": 16,
+        "title": "Schema Registry Health",
+        "type": "singlestat",
+        "gridPos": {"h": 4, "w": 6, "x": 18, "y": 58},
+        "targets": [
+          {
+            "expr": "up{job=\"schema-registry\"}",
+            "refId": "A"
+          }
+        ],
+        "valueName": "current",
+        "unit": "short",
+        "thresholds": "0.5,0.9",
+        "colorBackground": false,
+        "colorValue": true,
+        "colors": ["#d44a3a", "#e24d42", "#299c46"],
+        "sparkline": {
+          "show": false
+        }
+      }
+    ]
+  }
+}

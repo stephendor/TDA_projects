@@ -1,0 +1,406 @@
+# Alert Rules for TDA Kafka Monitoring
+# Comprehensive alerting for critical conditions, performance degradation, and TDA-specific issues
+
+groups:
+  # Critical System Alerts - Immediate Response Required
+  - name: tda_kafka_critical
+    interval: 30s
+    rules:
+      - alert: KafkaBrokerDown
+        expr: up{job="kafka-brokers"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: kafka
+          component: broker
+        annotations:
+          summary: "Kafka broker is down"
+          description: "Kafka broker {{ $labels.instance }} has been down for more than 1 minute."
+          runbook_url: "https://tda-platform.docs/runbooks/kafka-broker-down"
+          escalation: "page-oncall-immediately"
+
+      - alert: NoActiveKafkaController
+        expr: kafka_controller_ActiveControllerCount < 1
+        for: 2m
+        labels:
+          severity: critical
+          service: kafka
+          component: controller
+        annotations:
+          summary: "No active Kafka controller"
+          description: "No active Kafka controller found in cluster {{ $labels.cluster }}."
+          runbook_url: "https://tda-platform.docs/runbooks/kafka-controller-election"
+          escalation: "page-oncall-immediately"
+
+      - alert: HighUnderReplicatedPartitions
+        expr: sum(kafka_cluster_partition_under_replicated) > 10
+        for: 5m
+        labels:
+          severity: critical
+          service: kafka
+          component: replication
+        annotations:
+          summary: "High number of under-replicated partitions"
+          description: "{{ $value }} partitions are under-replicated in cluster {{ $labels.cluster }}."
+          runbook_url: "https://tda-platform.docs/runbooks/under-replicated-partitions"
+          escalation: "page-oncall-immediately"
+
+      - alert: TDABackendDown
+        expr: up{job="tda-backend"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          service: tda
+          component: backend
+        annotations:
+          summary: "TDA Backend service is down"
+          description: "TDA Backend service {{ $labels.instance }} has been down for more than 2 minutes."
+          runbook_url: "https://tda-platform.docs/runbooks/tda-backend-down"
+          escalation: "page-oncall-immediately"
+
+      - alert: SchemaRegistryDown
+        expr: up{job="schema-registry"} == 0
+        for: 3m
+        labels:
+          severity: critical
+          service: kafka
+          component: schema_registry
+        annotations:
+          summary: "Schema Registry is down"
+          description: "Schema Registry {{ $labels.instance }} has been down for more than 3 minutes."
+          runbook_url: "https://tda-platform.docs/runbooks/schema-registry-down"
+          escalation: "notify-team-lead"
+
+  # High Priority Alerts - Urgent Response Required
+  - name: tda_kafka_high_priority
+    interval: 60s
+    rules:
+      - alert: HighConsumerLag
+        expr: sum by (consumergroup, topic) (kafka_consumer_lag_sum{topic=~"tda_.*"}) > 10000
+        for: 5m
+        labels:
+          severity: high
+          service: kafka
+          component: consumer
+        annotations:
+          summary: "High consumer lag detected"
+          description: "Consumer group {{ $labels.consumergroup }} has {{ $value }} messages lag on topic {{ $labels.topic }}."
+          runbook_url: "https://tda-platform.docs/runbooks/high-consumer-lag"
+          escalation: "notify-team-lead"
+
+      - alert: TDAJobProcessingFailures
+        expr: rate(tda_jobs_failed_total[5m]) > 0.1
+        for: 3m
+        labels:
+          severity: high
+          service: tda
+          component: job_processing
+        annotations:
+          summary: "High TDA job failure rate"
+          description: "TDA job failure rate is {{ $value | humanizePercentage }} over the last 5 minutes."
+          runbook_url: "https://tda-platform.docs/runbooks/job-processing-failures"
+          escalation: "notify-team-lead"
+
+      - alert: HighErrorRate
+        expr: sum(rate(kafka_broker_topic_FailedProduceRequestsPerSec_total{topic=~"tda_.*"}[5m])) / sum(rate(kafka_broker_topic_TotalProduceRequestsPerSec_total{topic=~"tda_.*"}[5m])) > 0.05
+        for: 3m
+        labels:
+          severity: high
+          service: kafka
+          component: producer
+        annotations:
+          summary: "High error rate on TDA topics"
+          description: "Error rate is {{ $value | humanizePercentage }} on TDA topics."
+          runbook_url: "https://tda-platform.docs/runbooks/high-error-rate"
+          escalation: "notify-team"
+
+      - alert: DiskSpaceRunningOut
+        expr: (node_filesystem_avail_bytes{mountpoint="/kafka-logs"} / node_filesystem_size_bytes{mountpoint="/kafka-logs"}) * 100 < 15
+        for: 10m
+        labels:
+          severity: high
+          service: kafka
+          component: storage
+        annotations:
+          summary: "Kafka broker disk space running out"
+          description: "Kafka broker {{ $labels.instance }} has less than {{ $value }}% disk space remaining."
+          runbook_url: "https://tda-platform.docs/runbooks/disk-space-cleanup"
+          escalation: "notify-team-lead"
+
+      - alert: TDAResultDeliveryFailures
+        expr: rate(tda_results_delivery_failed_total[10m]) > 0.02
+        for: 5m
+        labels:
+          severity: high
+          service: tda
+          component: result_delivery
+        annotations:
+          summary: "TDA result delivery failures detected"
+          description: "TDA result delivery failure rate is {{ $value | humanizePercentage }} over the last 10 minutes."
+          runbook_url: "https://tda-platform.docs/runbooks/result-delivery-failures"
+          escalation: "notify-team"
+
+  # Warning Alerts - Attention Required
+  - name: tda_kafka_warnings
+    interval: 120s
+    rules:
+      - alert: ModerateConsumerLag
+        expr: sum by (consumergroup, topic) (kafka_consumer_lag_sum{topic=~"tda_.*"}) > 5000
+        for: 10m
+        labels:
+          severity: warning
+          service: kafka
+          component: consumer
+        annotations:
+          summary: "Moderate consumer lag detected"
+          description: "Consumer group {{ $labels.consumergroup }} has {{ $value }} messages lag on topic {{ $labels.topic }}."
+          runbook_url: "https://tda-platform.docs/runbooks/consumer-lag-investigation"
+          escalation: "notify-team"
+
+      - alert: HighCPUUsage
+        expr: rate(process_cpu_seconds_total{job="kafka-brokers"}[5m]) * 100 > 80
+        for: 15m
+        labels:
+          severity: warning
+          service: kafka
+          component: broker
+        annotations:
+          summary: "High CPU usage on Kafka broker"
+          description: "Kafka broker {{ $labels.instance }} CPU usage is {{ $value }}%."
+          runbook_url: "https://tda-platform.docs/runbooks/high-cpu-investigation"
+          escalation: "notify-team"
+
+      - alert: HighMemoryUsage
+        expr: (process_resident_memory_bytes{job="kafka-brokers"} / 1024 / 1024 / 1024) > 6
+        for: 15m
+        labels:
+          severity: warning
+          service: kafka
+          component: broker
+        annotations:
+          summary: "High memory usage on Kafka broker"
+          description: "Kafka broker {{ $labels.instance }} memory usage is {{ $value }}GB."
+          runbook_url: "https://tda-platform.docs/runbooks/memory-usage-investigation"
+          escalation: "notify-team"
+
+      - alert: TDAProcessingTimeHigh
+        expr: histogram_quantile(0.95, sum(rate(tda_processing_time_seconds_bucket[10m])) by (le, algorithm)) > 300
+        for: 10m
+        labels:
+          severity: warning
+          service: tda
+          component: processing
+        annotations:
+          summary: "TDA processing time is high"
+          description: "95th percentile processing time for {{ $labels.algorithm }} is {{ $value }}s."
+          runbook_url: "https://tda-platform.docs/runbooks/slow-processing-investigation"
+          escalation: "notify-team"
+
+      - alert: LowThroughput
+        expr: sum(rate(kafka_broker_topic_MessagesInPerSec_total{topic=~"tda_.*"}[5m])) < 10
+        for: 20m
+        labels:
+          severity: warning
+          service: tda
+          component: throughput
+        annotations:
+          summary: "Low message throughput on TDA topics"
+          description: "TDA topics throughput is {{ $value }} messages/sec."
+          runbook_url: "https://tda-platform.docs/runbooks/low-throughput-investigation"
+          escalation: "notify-team"
+
+  # Performance Monitoring Alerts
+  - name: tda_performance_monitoring
+    interval: 300s
+    rules:
+      - alert: TDAWorkflowHealthDegraded
+        expr: tda_workflow_health_status < 0.8
+        for: 10m
+        labels:
+          severity: warning
+          service: tda
+          component: workflow
+        annotations:
+          summary: "TDA workflow health degraded"
+          description: "Workflow {{ $labels.workflow }} health score is {{ $value | humanizePercentage }}."
+          runbook_url: "https://tda-platform.docs/runbooks/workflow-health-investigation"
+          escalation: "notify-team"
+
+      - alert: ReplicationLagHigh
+        expr: kafka_replica_manager_IsrShrinksPerSec > 5
+        for: 10m
+        labels:
+          severity: warning
+          service: kafka
+          component: replication
+        annotations:
+          summary: "High replication lag detected"
+          description: "ISR shrinks rate is {{ $value }}/sec on {{ $labels.instance }}."
+          runbook_url: "https://tda-platform.docs/runbooks/replication-lag-investigation"
+          escalation: "notify-team"
+
+      - alert: TDADeadLetterQueueGrowth
+        expr: increase(kafka_broker_topic_MessagesInPerSec_total{topic="tda_dlq"}[1h]) > 100
+        for: 5m
+        labels:
+          severity: warning
+          service: tda
+          component: error_handling
+        annotations:
+          summary: "TDA Dead Letter Queue is growing"
+          description: "DLQ has received {{ $value }} messages in the last hour."
+          runbook_url: "https://tda-platform.docs/runbooks/dlq-investigation"
+          escalation: "notify-team"
+
+  # Capacity Planning Alerts
+  - name: tda_capacity_planning
+    interval: 600s
+    rules:
+      - alert: TopicPartitionImbalance
+        expr: stddev(kafka_log_size_bytes) by (topic) / avg(kafka_log_size_bytes) by (topic) > 0.3
+        for: 30m
+        labels:
+          severity: info
+          service: kafka
+          component: partitioning
+        annotations:
+          summary: "Topic partition imbalance detected"
+          description: "Topic {{ $labels.topic }} has uneven partition distribution."
+          runbook_url: "https://tda-platform.docs/runbooks/partition-rebalancing"
+          escalation: "notify-team"
+
+      - alert: NetworkThroughputHigh
+        expr: rate(kafka_network_requests_per_sec[5m]) > 1000
+        for: 20m
+        labels:
+          severity: info
+          service: kafka
+          component: network
+        annotations:
+          summary: "High network throughput"
+          description: "Network request rate is {{ $value }}/sec on {{ $labels.instance }}."
+          runbook_url: "https://tda-platform.docs/runbooks/network-optimization"
+          escalation: "notify-team"
+
+      - alert: TDAJobQueueDepthGrowing
+        expr: increase(kafka_consumer_lag_sum{topic="tda_jobs"}[2h]) > 1000
+        for: 15m
+        labels:
+          severity: info
+          service: tda
+          component: job_queue
+        annotations:
+          summary: "TDA job queue depth is growing"
+          description: "Job queue has grown by {{ $value }} messages in the last 2 hours."
+          runbook_url: "https://tda-platform.docs/runbooks/job-queue-scaling"
+          escalation: "notify-team"
+
+  # Data Quality and Integrity Alerts
+  - name: tda_data_quality
+    interval: 900s
+    rules:
+      - alert: TDAPersistenceDiagramAnomalies
+        expr: abs(tda_persistence_diagram_points - tda_persistence_diagram_points offset 1h) / tda_persistence_diagram_points offset 1h > 0.5
+        for: 10m
+        labels:
+          severity: warning
+          service: tda
+          component: data_quality
+        annotations:
+          summary: "Anomalous persistence diagram metrics"
+          description: "Persistence diagram points changed by {{ $value | humanizePercentage }} in dimension {{ $labels.dimension }}."
+          runbook_url: "https://tda-platform.docs/runbooks/data-quality-investigation"
+          escalation: "notify-team"
+
+      - alert: SchemaEvolutionFailure
+        expr: increase(schema_registry_errors_total[1h]) > 10
+        for: 5m
+        labels:
+          severity: warning
+          service: kafka
+          component: schema_registry
+        annotations:
+          summary: "Schema evolution failures detected"
+          description: "{{ $value }} schema evolution errors in the last hour."
+          runbook_url: "https://tda-platform.docs/runbooks/schema-evolution-failures"
+          escalation: "notify-team"
+
+      - alert: TDAResultValidationFailures
+        expr: rate(tda_results_validation_failed_total[10m]) > 0.01
+        for: 5m
+        labels:
+          severity: warning
+          service: tda
+          component: validation
+        annotations:
+          summary: "TDA result validation failures detected"
+          description: "Result validation failure rate is {{ $value | humanizePercentage }}."
+          runbook_url: "https://tda-platform.docs/runbooks/result-validation-failures"
+          escalation: "notify-team"
+
+# Alerting Configuration
+alerting:
+  contact_points:
+    - name: "oncall-team"
+      type: "pagerduty"
+      settings:
+        severity: "critical"
+        integration_key: "${PAGERDUTY_INTEGRATION_KEY}"
+    
+    - name: "team-lead"
+      type: "slack"
+      settings:
+        channel: "#tda-alerts"
+        webhook_url: "${SLACK_WEBHOOK_URL}"
+        title: "TDA Platform Alert"
+    
+    - name: "team-notifications"
+      type: "email"
+      settings:
+        to: "tda-team@company.com"
+        from: "alerts@tda-platform.com"
+        subject: "TDA Platform Alert: {{ .GroupLabels.alertname }}"
+
+  notification_policies:
+    - receiver: "oncall-team"
+      group_wait: "10s"
+      group_interval: "10s"
+      repeat_interval: "1h"
+      matchers:
+        - name: "severity"
+          value: "critical"
+    
+    - receiver: "team-lead"
+      group_wait: "30s"
+      group_interval: "5m"
+      repeat_interval: "4h"
+      matchers:
+        - name: "severity"
+          value: "high"
+    
+    - receiver: "team-notifications"
+      group_wait: "2m"
+      group_interval: "10m"
+      repeat_interval: "12h"
+      matchers:
+        - name: "severity"
+          value: "warning"
+
+  inhibit_rules:
+    # Inhibit warning alerts when critical alerts are firing
+    - source_matchers:
+        - name: "severity"
+          value: "critical"
+      target_matchers:
+        - name: "severity"
+          value: "warning"
+      equal: ["service", "component"]
+    
+    # Inhibit individual broker alerts when cluster-wide alerts are firing
+    - source_matchers:
+        - name: "alertname"
+          value: "NoActiveKafkaController"
+      target_matchers:
+        - name: "component"
+          value: "broker"
+      equal: ["cluster"]

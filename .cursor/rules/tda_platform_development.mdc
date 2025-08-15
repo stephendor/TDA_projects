@@ -46,6 +46,28 @@ src/
 - **Task 5** → **Task 6** (Finance) + **Task 7** (Cybersecurity)
 - **Tasks 6,7** → **Task 8** (Performance Optimization)
 
+### Task Details
+
+**Task 1**: Core TDA algorithms (Vietoris-Rips, Alpha, Čech, DTM) ✅ DONE
+**Task 2**: Vector stack and storage (PostgreSQL/MongoDB hybrid)
+**Task 3**: Backend API and streaming (Kafka/Flink)
+**Task 4**: React frontend with Three.js/D3.js visualization
+**Task 5**: Learnable TDA layers (PyTorch attention mechanisms)
+**Task 6**: Financial market regime detection
+**Task 7**: Cybersecurity anomaly detection
+**Task 8**: Performance optimization (GPU/distributed)
+
+### Internal APIs
+- **C++ Core API**: Type-safe persistence computation (`tda::core::*`)
+- **Python Bindings**: pybind11 integration (`tda_python` module)
+- **REST API**: `/api/v1/` endpoints for computation orchestration
+- **Streaming**: Kafka topics for real-time TDA features
+
+### Database Architecture
+- **PostgreSQL**: Structured metadata, versioning, analysis parameters
+- **MongoDB**: Persistence diagrams, high-dimensional vectors, raw TDA data
+- **Redis**: Caching, session management, real-time data
+
 ## Implementation Standards
 
 ### 1. **C++23 Development (Core TDA Engine)**
@@ -93,6 +115,60 @@ public:
 // ❌ DON'T: Use raw pointers or manual memory management
 // ❌ DON'T: Use std::optional when std::expected provides better error context
 // ❌ DON'T: Use nested loops when std::ranges can express the same logic more clearly
+
+### 4. **C++ Code Style Guidelines (C++23)**
+
+**Header Organization**:
+```cpp
+#pragma once
+
+// Standard library (grouped)
+#include <cstdint>
+#include <vector>
+#include <memory>
+#include <concepts>
+#include <ranges>
+#include <span>
+
+// Third-party libraries
+#include <Eigen/Dense>
+#include <gudhi/Simplex_tree.h>
+
+// Local includes (most specific last)
+#include "tda/core/types.hpp"
+#include "tda/algorithms/vietoris_rips.hpp"
+
+namespace tda::algorithms {
+    // Implementation
+}
+```
+
+**Naming Conventions**:
+- **Types**: `PascalCase` - `PointCloud`, `SimplexInfo`, `PersistencePair`
+- **Functions**: `snake_case` - `compute_persistence()`, `get_betti_numbers()`
+- **Variables**: `snake_case` - `point_cloud`, `filtration_value`
+- **Constants**: `UPPER_CASE` - `SIMD_ALIGNMENT`, `MAX_DIMENSION`
+- **Namespaces**: `snake_case` - `tda::core`, `tda::algorithms`
+
+**Type System**:
+```cpp
+// Core type aliases
+using Index = std::size_t;
+using Dimension = std::uint32_t;
+using Birth = double;
+using Death = double;
+
+// Concepts for type safety
+template<typename T>
+concept PointType = requires(T t) {
+    { t[0] } -> std::convertible_to<double>;
+    { t.size() } -> std::convertible_to<std::size_t>;
+};
+
+// Result type for error handling
+template<typename T>
+using Result = std::variant<T, std::string>;
+```
 ```
 
 ### 2. **Python API Development**
@@ -599,6 +675,34 @@ class MonitoredTDAEngine:
             ACTIVE_COMPUTATIONS.dec()
 ```
 
+## Dependencies & Requirements
+
+### Core C++ Dependencies
+- **C++23 Compiler**: GCC 13+ or Clang 16+
+- **CMake**: 3.20+
+- **Eigen3**: Linear algebra operations
+- **GUDHI**: TDA algorithms library
+- **OpenMP**: Parallelization
+- **pybind11**: Python bindings
+
+### Optional Dependencies
+- **CUDA**: GPU acceleration
+- **GMP/MPFR**: High-precision arithmetic (for CGAL/Alpha complexes)
+
+### Python Dependencies
+- **FastAPI**: REST API framework
+- **pydantic**: Data validation
+- **NumPy/pandas**: Data processing
+- **Redis**: Caching layer
+- **psycopg2**: PostgreSQL driver
+- **pymongo**: MongoDB driver
+
+### External Services
+- **PostgreSQL**: Structured data storage
+- **MongoDB**: Document storage for TDA objects
+- **Apache Kafka**: Event streaming
+- **Apache Flink**: Stream processing
+
 ## Development Workflow
 
 ### 1. **Task Implementation Order**
@@ -663,7 +767,8 @@ class MonitoredTDAEngine:
 - **Scalability**: Linear performance up to 32 nodes
 
 This comprehensive guide ensures your TDA platform development follows best practices for performance, security, and maintainability while meeting the ambitious requirements outlined in your PRD.
+
 description:
 globs:
-alwaysApply: false
+alwaysApply: true
 ---

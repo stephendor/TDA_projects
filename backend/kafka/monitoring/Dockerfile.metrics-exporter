@@ -1,0 +1,45 @@
+# Dockerfile for TDA Metrics Exporter Service
+FROM python:3.11-slim
+
+LABEL maintainer="TDA Platform Team <dev@tda-platform.com>"
+LABEL description="TDA Kafka Metrics Exporter Service"
+LABEL version="1.0.0"
+
+# Set working directory
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    curl \
+    netcat-openbsd \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy requirements first for better caching
+COPY requirements-metrics-exporter.txt .
+
+# Install Python dependencies
+RUN pip install --no-cache-dir -r requirements-metrics-exporter.txt
+
+# Copy application code
+COPY metrics-exporter.py /app/
+COPY config/ /app/config/
+
+# Create directories for logs and data
+RUN mkdir -p /var/log /app/data
+
+# Create non-root user
+RUN useradd -r -s /bin/false tda-metrics && \
+    chown -R tda-metrics:tda-metrics /app /var/log
+
+# Switch to non-root user
+USER tda-metrics
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD curl -f http://localhost:8090/health || exit 1
+
+# Expose port
+EXPOSE 8090
+
+# Default command
+CMD ["python", "metrics-exporter.py", "--config", "config/metrics-exporter.yml"]

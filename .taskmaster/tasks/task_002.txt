@@ -9,3 +9,35 @@ Implement the deterministic vector-stack method including persistence landscapes
 
 # Test Strategy:
 Verify that vectorization outputs are correct and consistent for given inputs. Test database performance for write throughput and query latency on stored topological features. Ensure the schema correctly supports versioning and similarity searches.
+
+# Subtasks:
+## 1. Implement Core Vectorization Algorithms [pending]
+### Dependencies: None
+### Description: Implement the deterministic vectorization methods for persistence diagrams: persistence landscapes, persistence images, and Betti curves, as specified in FR-CORE-002.
+### Details:
+Create a self-contained module or library in the project's primary language (e.g., Python with C++ bindings) that provides functions to convert persistence diagrams into their respective vector representations. Ensure the output is deterministic for a given input and set of parameters.
+
+## 2. Design Hybrid Database Schema for Topological Data and Metadata [pending]
+### Dependencies: None
+### Description: Design the database schemas for both PostgreSQL and MongoDB. The design must accommodate raw topological features, vectorized features, and support versioning as per ST-301.
+### Details:
+Design PostgreSQL tables for structured metadata, analysis parameters, and versioning history. Design a corresponding MongoDB collection schema for storing less structured data like persistence diagrams (list of points/bars) and the resulting high-dimensional feature vectors. The design must define how records in PostgreSQL link to documents in MongoDB.
+
+## 3. Implement PostgreSQL Schema for Metadata and Versioning [pending]
+### Dependencies: 2.2
+### Description: Create the tables, indexes, and constraints in PostgreSQL based on the approved schema design to manage metadata and versioning.
+### Details:
+Write and apply SQL DDL scripts to set up the PostgreSQL database. Implement efficient indexes on columns that will be frequently queried, such as dataset ID, analysis timestamp, and version tag. Create functions or procedures for creating and retrieving versioned records.
+
+## 4. Implement MongoDB Schema for Diagrams and Feature Vectors [pending]
+### Dependencies: 2.2
+### Description: Set up the MongoDB collections for storing raw persistence diagrams/barcodes and the various vectorized features generated from them.
+### Details:
+Configure the MongoDB collections, including any schema validation rules. Implement appropriate indexes on fields like the foreign key from PostgreSQL to ensure fast lookups.
+
+## 5. Integrate Vectorization Pipeline with Database Storage Service [pending]
+### Dependencies: 2.1, 2.3, 2.4
+### Description: Create a service or function that orchestrates the end-to-end process: vectorizing a persistence diagram and persisting the original diagram, its vectors, and metadata into the dual-database system.
+### Details:
+Develop the application logic that takes a persistence diagram as input, calls the vectorization functions from subtask 1, and then writes the metadata and version info to PostgreSQL and the raw diagram/vectors to MongoDB in a consistent manner.
+

@@ -1,0 +1,18 @@
+{
+    "job_name": "tda-streaming-dev",
+    "parallelism": 4,
+    "checkpoint_interval": 30000,
+    "window_size": 100,
+    "slide_interval": 10,
+    "window_timeout": 60,
+    "max_dimension": 2,
+    "max_persistence": 1.0,
+    "kafka_bootstrap_servers": "kafka1:9092,kafka2:9093,kafka3:9094",
+    "schema_registry_url": "http://schema-registry:8081",
+    "input_topic": "tda_jobs",
+    "output_topic": "tda_results",
+    "consumer_group": "flink-tda-consumer-dev",
+    "buffer_timeout": 100,
+    "network_buffer_size": 32768,
+    "enable_object_reuse": true
+}
